@@ -1,0 +1,6 @@
+# Zig Build System
+zig-cache/
+zig-out/
+
+# Clangd fix
+compile_commands.json
