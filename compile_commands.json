@@ -1,0 +1,11 @@
+[
+  {
+    "directory": "path/to/close-review/",
+    "output": "close-review",
+    "file": "src/main.c",
+    "arguments": [
+      "zig cc",
+      "-Iinclude/"
+    ]
+  }
+]
