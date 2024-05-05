@@ -9,7 +9,11 @@
 
 #define PACKET_BUFF_SIZE 512
 
+#define CHAR_IP_SIZE 32
+
 typedef struct s_tls_infos TLSInfos;
+
+typedef enum e_mode { SERVER = 1, CLIENT = 2 } Mode;
 
 /**
  * @brief Initialise la structure TLSinfo
@@ -18,7 +22,7 @@ typedef struct s_tls_infos TLSInfos;
  * @return TLSInfos*
  * @note Structure malloc, utiliser deleteTLSInfos() pour supprimer
  */
-TLSInfos *initTLSInfos(const char *ip, const int port);
+TLSInfos *initTLSInfos(const char *ip, const int port, Mode mode);
 
 /**
  * @brief Supprimer la structure TLSInfos
