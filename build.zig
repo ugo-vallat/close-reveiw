@@ -4,55 +4,56 @@ const std = @import("std");
 // declaratively construct a build graph that will be executed by an external
 // runner.
 pub fn build(b: *std.Build) void {
-    // Standard target options allows the person running `zig build` to choose
-    // what target to build for. Here we do not override the defaults, which
-    // means any target is allowed, and the default is native. Other options
-    // for restricting supported target set are available.
-    const target = b.standardTargetOptions(.{});
+    const c_include_list = &[_][]const u8{
+        "placeholder.c",
+    };
+    const c_include_list_server = &[_][]const u8{
+        "placeholder.c",
+    };
+    const c_include_list_client = &[_][]const u8{
+        "placeholder.c",
+    };
 
-    // Standard optimization options allow the person running `zig build` to select
-    // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall. Here we do not
-    // set a preferred release mode, allowing the user to decide how to optimize.
-    const optimize = b.standardOptimizeOption(.{});
-
-    const exe = b.addExecutable(.{
-        .name = "close-review",
-        // In this case the main source file is merely a path, however, in more
-        // complicated build scripts, this could be a generated file.
-        .root_source_file = .{ .path = "src/main.c" },
-        .target = target,
-        .optimize = optimize,
+    const server = b.addExecutable(.{
+        .name = "close-review-server",
+        .link_libc = true,
+        .target = b.host,
     });
-    exe.addIncludePath(.{ .path = "include/" });
-    const c_include_list = &[_][]const u8{""};
-    exe.addCSourceFiles(c_include_list, &.{});
-    exe.linkLibC();
+    server.addCSourceFile(.{ .file = .{ .path = "src/server/main.c" } });
+    server.addIncludePath(.{ .path = "include/" });
+    server.addCSourceFiles(.{ .root = .{ .path = "src/" }, .files = c_include_list });
+    server.addCSourceFiles(.{ .root = .{ .path = "src/server/" }, .files = c_include_list_server });
 
-    // This declares intent for the executable to be installed into the
-    // standard location when the user invokes the "install" step (the default
-    // step when running `zig build`).
-    b.installArtifact(exe);
+    const client = b.addExecutable(.{
+        .name = "close-review-client",
+        .link_libc = true,
+        .target = b.host,
+    });
+    client.addCSourceFile(.{ .file = .{ .path = "src/client/main.c" } });
+    client.addIncludePath(.{ .path = "include/" });
+    client.addCSourceFiles(.{ .root = .{ .path = "src/" }, .files = c_include_list });
+    client.addCSourceFiles(.{ .root = .{ .path = "src/client/" }, .files = c_include_list_client });
 
-    // This *creates* a Run step in the build graph, to be executed when another
-    // step is evaluated that depends on it. The next line below will establish
-    // such a dependency.
-    const run_cmd = b.addRunArtifact(exe);
+    b.installArtifact(server);
+    b.installArtifact(client);
 
-    // By making the run step depend on the install step, it will be run from the
-    // installation directory rather than directly from within the cache directory.
-    // This is not necessary, however, if the application depends on other installed
-    // files, this ensures they will be present and in the expected location.
-    run_cmd.step.dependOn(b.getInstallStep());
+    const server_run_cmd = b.addRunArtifact(server);
+    const client_run_cmd = b.addRunArtifact(client);
 
-    // This allows the user to pass arguments to the application in the build
-    // command itself, like this: `zig build run -- arg1 arg2 etc`
+    server_run_cmd.step.dependOn(b.getInstallStep());
+    client_run_cmd.step.dependOn(b.getInstallStep());
+
     if (b.args) |args| {
-        run_cmd.addArgs(args);
+        server_run_cmd.addArgs(args);
     }
 
-    // This creates a build step. It will be visible in the `zig build --help` menu,
-    // and can be selected like this: `zig build run`
-    // This will evaluate the `run` step rather than the default, which is "install".
-    const run_step = b.step("run", "Run the app");
-    run_step.dependOn(&run_cmd.step);
+    if (b.args) |args| {
+        client_run_cmd.addArgs(args);
+    }
+
+    const server_run_step = b.step("server-run", "Run the Server CLI");
+    server_run_step.dependOn(&server_run_cmd.step);
+
+    const client_run_step = b.step("client-run", "Run the Client CLI");
+    client_run_step.dependOn(&server_run_cmd.step);
 }
