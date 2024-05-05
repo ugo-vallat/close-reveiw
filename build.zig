@@ -4,35 +4,36 @@ const std = @import("std");
 // declaratively construct a build graph that will be executed by an external
 // runner.
 pub fn build(b: *std.Build) void {
-    const c_include_list = &[_][]const u8{
+    const c_include_list = &.{
         "placeholder.c",
     };
-    const c_include_list_server = &[_][]const u8{
+    const c_include_list_server = &.{
         "placeholder.c",
     };
-    const c_include_list_client = &[_][]const u8{
+    const c_include_list_client = &.{
         "placeholder.c",
     };
+    const flags = &.{};
 
     const server = b.addExecutable(.{
         .name = "close-review-server",
         .link_libc = true,
         .target = b.host,
     });
-    server.addCSourceFile(.{ .file = .{ .path = "src/server/main.c" } });
+    server.addCSourceFile(.{ .file = .{ .path = "src/server/main.c" }, .flags = flags });
     server.addIncludePath(.{ .path = "include/" });
-    server.addCSourceFiles(.{ .root = .{ .path = "src/" }, .files = c_include_list });
-    server.addCSourceFiles(.{ .root = .{ .path = "src/server/" }, .files = c_include_list_server });
+    server.addCSourceFiles(.{ .root = .{ .path = "src/" }, .files = c_include_list, .flags = flags });
+    server.addCSourceFiles(.{ .root = .{ .path = "src/server/" }, .files = c_include_list_server, .flags = flags });
 
     const client = b.addExecutable(.{
         .name = "close-review-client",
         .link_libc = true,
         .target = b.host,
     });
-    client.addCSourceFile(.{ .file = .{ .path = "src/client/main.c" } });
+    client.addCSourceFile(.{ .file = .{ .path = "src/client/main.c" }, .flags = flags });
     client.addIncludePath(.{ .path = "include/" });
-    client.addCSourceFiles(.{ .root = .{ .path = "src/" }, .files = c_include_list });
-    client.addCSourceFiles(.{ .root = .{ .path = "src/client/" }, .files = c_include_list_client });
+    client.addCSourceFiles(.{ .root = .{ .path = "src/" }, .files = c_include_list, .flags = flags });
+    client.addCSourceFiles(.{ .root = .{ .path = "src/client/" }, .files = c_include_list_client, .flags = flags });
 
     b.installArtifact(server);
     b.installArtifact(client);
