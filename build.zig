@@ -18,7 +18,7 @@ pub fn build(b: *std.Build) void {
     const server = b.addExecutable(.{
         .name = "close-review-server",
         .link_libc = true,
-        .target = b.host,
+        .target = b.graph.host,
     });
     server.addCSourceFile(.{ .file = .{ .path = "src/server/main.c" }, .flags = flags });
     server.addIncludePath(.{ .path = "include/" });
@@ -28,7 +28,7 @@ pub fn build(b: *std.Build) void {
     const client = b.addExecutable(.{
         .name = "close-review-client",
         .link_libc = true,
-        .target = b.host,
+        .target = b.graph.host,
     });
     client.addCSourceFile(.{ .file = .{ .path = "src/client/main.c" }, .flags = flags });
     client.addIncludePath(.{ .path = "include/" });
