@@ -1,4 +1,3 @@
-#include "logger.h"
 #include <errno.h>
 #include <execinfo.h>
 #include <stdarg.h>
@@ -6,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <utils/logger.h>
 
 #define YELLOW "\033[38;5;184m"
 #define ORANGE "\033[38;5;208m"
@@ -45,8 +45,7 @@ void init_logger(const char *file_path) {
 void printl(const char *format, ...) {
 #ifdef DEBUG
     if (output == NULL) {
-        fprintf(stderr,
-            "Warning: logger call to printl while being not initialized!");
+        fprintf(stderr, "Warning: logger call to printl while being not initialized!");
         return;
     }
 #endif
@@ -61,19 +60,21 @@ void printl(const char *format, ...) {
  * @date 04/11/2023
  * @author LAFORGE Mateo
  */
-void warnl(
-    const char *file_name, const char *fun_name, const char *format, ...) {
+void warnl(const char *file_name, const char *fun_name, const char *format, ...) {
 #ifdef DEBUG
     if (output == NULL) {
         fprintf(stderr,
-            "Warning: logger call to warnl while being not initialized!\nlast "
-            "call was from %s in %s\n",
-            fun_name, file_name);
+                "Warning: logger call to warnl while being not initialized!\nlast "
+                "call was from %s in %s\n",
+                fun_name, file_name);
         return;
     }
 #endif
+
     va_list args;
     va_start(args, format);
+    if (errno)
+        perror("Warnl with errno : ");
     // format de sortie dépendant
     if (console) {
         fprintf(output, YELLOW);
@@ -97,8 +98,7 @@ void printStackTrace() {
     void *buffer[64];
     int nbv = backtrace(buffer, sizeof(buffer));
     char **strings = backtrace_symbols(buffer, nbv);
-    for (int i = 1; i < nbv;
-         i++) { // démarre à 1 pour ignorer l'appel de cette fonction
+    for (int i = 1; i < nbv; i++) { // démarre à 1 pour ignorer l'appel de cette fonction
         fprintf(stderr, "%s\n", strings[i]);
     }
     free(strings);
@@ -108,13 +108,11 @@ void printStackTrace() {
  * @date 04/11/2023
  * @author LAFORGE Mateo
  */
-void exitl(const char *file_name, const char *fun_name, int exit_value,
-    char *format, ...) {
+void exitl(const char *file_name, const char *fun_name, int exit_value, char *format, ...) {
 #ifdef DEBUG
     printStackTrace();
     if (output == NULL) {
-        fprintf(stderr,
-            "Warning: logger call to exitl while being not initialized!\n");
+        fprintf(stderr, "Warning: logger call to exitl while being not initialized!\n");
         exit(EXIT_FAILURE);
     }
 #endif

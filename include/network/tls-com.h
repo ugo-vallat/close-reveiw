@@ -17,19 +17,21 @@ typedef enum e_mode { SERVER = 1, CLIENT = 2 } Mode;
 
 /**
  * @brief Initialise la structure TLSinfo
- * @param ip IP de destination
- * @param port Port de destination
+ * @param ip Serveur IP
+ * @param port Serveur port
+ * @param path_cert Chemin d'accès au certificat (NULL si mode CLIENT)
+ * @param path_key Chemin d'accès à la clé privée (NULL si mode CLIENT)
  * @return TLSInfos*
  * @note Structure malloc, utiliser deleteTLSInfos() pour supprimer
  */
-TLSInfos *initTLSInfos(const char *ip, const int port, Mode mode);
+TLSInfos *initTLSInfos(const char *ip, const int port, Mode mode, char *path_cert, char *path_key);
 
 /**
  * @brief Supprimer la structure TLSInfos
  *
  * @param infos structure à supprimer
  */
-void deleteTLSInfos(TLSInfos *infos);
+void deleteTLSInfos(TLSInfos **infos);
 
 /**
  * @brief Etablie un canal de communication sécurisé avec l'hôte distant

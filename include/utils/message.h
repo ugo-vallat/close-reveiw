@@ -6,7 +6,7 @@
 #define SIZE_MSG_DATA 2048
 
 typedef struct s_Msg {
-    unsigned char buffer[SIZE_MSG_DATA];
+    char buffer[SIZE_MSG_DATA];
     unsigned int size;
 } Msg;
 

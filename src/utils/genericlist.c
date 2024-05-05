@@ -71,19 +71,19 @@ void deleteGenList(ptrGenList *l, freefun fun) {
     testArgNull((*l), "genericlist.c", "deleteGenList", "*l");
 
     /* libération de la mémoire */
-    while (!genListSize((GenList*)l)) {
-        fun(genListPop((GenList*)l));
+    while (!genListSize((GenList *)l)) {
+        fun(genListPop((GenList *)l));
     }
     free((*l)->tab);
     free((*l));
     *l = NULL;
 }
 
-void clearGenList(GenList *l){
+void clearGenList(GenList *l) {
     testArgNull(l, "genericlist.c", "clearGenList", "l");
 
-    while (!genListSize((GenList*)l)) {
-        free(genListPop((GenList*)l));
+    while (!genListSize((GenList *)l)) {
+        free(genListPop((GenList *)l));
     }
 }
 
@@ -97,7 +97,6 @@ void clearGenList(GenList *l){
  */
 void adjustMemorySizeGenList(GenList *l, unsigned new_size) {
     testArgNull(l, "genericlist.c", "adjustMemorySizeGenList", "l");
-
 
     /* nouvelle taille de la liste */
     l->memory_size = new_size;
@@ -184,7 +183,6 @@ void *genListRemove(GenList *l, unsigned i) {
  */
 bool genListIsEmpty(GenList *l) {
     testArgNull(l, "genericlist.c", "listEmpty", "l");
-
 
     return l->size == 0;
 }

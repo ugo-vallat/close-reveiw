@@ -1,7 +1,7 @@
-#include <utils/message.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <utils/message.h>
 
 Msg *init_message(const char *string) {
     Msg *message = malloc(sizeof(Msg));

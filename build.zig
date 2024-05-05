@@ -8,6 +8,8 @@ pub fn build(b: *std.Build) void {
         "network/tls-com.c",
         "network/packet.c",
         "utils/message.c",
+        "utils/genericlist.c",
+        "utils/logger.c",
     };
     const c_include_list_server = &.{
         "placeholder.c",
@@ -15,7 +17,11 @@ pub fn build(b: *std.Build) void {
     const c_include_list_client = &.{
         "placeholder.c",
     };
-    const flags = &.{};
+    const flags = &.{
+        "-g",
+        "-pedantic",
+        "-Wextra",
+    };
 
     const server = b.addExecutable(.{
         .name = "close-review-server",
