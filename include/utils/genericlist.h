@@ -47,7 +47,7 @@ GenList *createGenList(unsigned memory_size);
  *
  * @param[in] l liste à supprimer
  */
-void deleteGenList(ptrGenList *l, freefun);
+void deleteGenList(ptrGenList *l, freefun fun);
 
 /*
  @brief Supprume les elment de la liste

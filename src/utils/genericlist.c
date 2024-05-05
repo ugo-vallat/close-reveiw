@@ -65,14 +65,14 @@ GenList *createGenList(unsigned memory_size) {
 /**
  * @author Ugo VALLAT
  */
-void deleteGenList(ptrGenList *l, freefun) {
+void deleteGenList(ptrGenList *l, freefun fun) {
     /* test l != NULL */
     testArgNull(l, "genericlist.c", "deleteGenList", "l");
     testArgNull((*l), "genericlist.c", "deleteGenList", "*l");
 
     /* libération de la mémoire */
     while (!genListSize((GenList*)l)) {
-        free(genListPop((GenList*)l));
+        fun(genListPop((GenList*)l));
     }
     free((*l)->tab);
     free((*l));
