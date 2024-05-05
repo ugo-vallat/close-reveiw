@@ -18,9 +18,7 @@
 
 #ifndef __GENLIST_H__
 #define __GENLIST_H__
-#include <errno.h>
 #include <stdbool.h>
-#include <stdio.h>
 
 /*------------------------------------------------------------------*/
 /*                     STRUCTURE LIST GENERIC                       */
@@ -29,9 +27,9 @@
 /* Définition opaque de la structure list */
 typedef struct s_gen_list GenList;
 typedef GenList *ptrGenList;
+typedef void (*freefun)(void*);
 
 /**
- * @date  5/11/2023
  * @brief Crée une liste vide
  *
  * @param[in] memory_size Espace mémoire initial (en nombre d'éléments)
@@ -41,18 +39,24 @@ typedef GenList *ptrGenList;
  */
 GenList *createGenList(unsigned memory_size);
 
+
 /**
- * @date  5/11/2023
  * @brief Supprime la liste mais ne supprime pas la donées pointée
  * @pre l != NULL
  * @pre *l != NULL
  *
  * @param[in] l liste à supprimer
  */
-void deleteGenList(ptrGenList *l);
+void deleteGenList(ptrGenList *l, freefun);
+
+/*
+ @brief Supprume les elment de la liste
+
+*/
+void clearGenList(GenList *l);
+
 
 /**
- * @date  5/11/2023
  * @brief Ajoute l'élément à la fin de la liste
  *
  * @param[in] l Pointeur vers la liste
@@ -62,7 +66,6 @@ void deleteGenList(ptrGenList *l);
 void genListAdd(GenList *l, void *v);
 
 /**
- * @date  5/11/2023
  * @brief Insert une valeur à la position i
  *
  * @param[in] l Pointeur vers la liste
@@ -75,7 +78,6 @@ void genListAdd(GenList *l, void *v);
 void genListInsert(GenList *l, void *v, unsigned i);
 
 /**
- * @date 5/11/2023
  * @brief Supprime le dernier élément de la liste
  *
  * @param[in] l list
@@ -87,7 +89,6 @@ void genListInsert(GenList *l, void *v, unsigned i);
 void* genListPop(GenList *l);
 
 /**
- * @date  5/11/2023
  * @brief Supprime l'élément à la position i
  *
  * @param[in] l Pointeur vers la liste
@@ -114,7 +115,6 @@ void *genListGet(GenList *l, unsigned i);
 
 /**
  * @author VALLAT Ugo
- * @date 5/11/2023
  * @brief Change la valeur à la position i par une nouvelle valeur
  *
  * @param[in] l Pointeur vers la liste
@@ -125,7 +125,6 @@ void *genListGet(GenList *l, unsigned i);
 void genListSet(GenList *l, void *v, unsigned i);
 
 /**
- * @date 5/11/2023
  *
  * @brief Renvoie si la liste est vide
  *
@@ -134,10 +133,9 @@ void genListSet(GenList *l, void *v, unsigned i);
  *
  * @return true si vide, false sinon
  */
-bool genListEmpty(GenList *l);
+bool genListIsEmpty(GenList *l);
 
 /**
- * @date 18/12/2023
  * @author LAFORGE Mateo
  * @brief Cherche un élément e dans une liste l et renvoie un booléen correspondant
  * 
@@ -149,7 +147,6 @@ bool genListEmpty(GenList *l);
 bool genListContains(GenList *l, void* e);
 
 /**
- * @date  5/11/2023
  * @brief Renvoie la taille de la liste (position + 1 du dernier élément)
  *
  * @param[in] l Pointeur vers la liste
@@ -162,7 +159,6 @@ bool genListContains(GenList *l, void* e);
 unsigned genListSize(GenList *l);
 
 /**
- * @date 30/10/2023
  * @brief Copie la liste en entrée
  *
  * @param[in] l Pointeur de la liste à copier
@@ -172,77 +168,5 @@ unsigned genListSize(GenList *l);
  *
  */
 GenList *genListCopy(GenList *l);
-
-
-/*------------------------------------------------------------------*/
-/*                         ITERATEUR                                */
-/*------------------------------------------------------------------*/
-
-typedef struct s_gen_list_ite GenListIte;
-typedef struct s_gen_list_ite *ptrGenListIte;
-
-/* l'itérateur commence au début de la liste */
-#define FROM_BEGIN 1
-/* l'itérateur commence à la fin de la liste */
-#define FROM_END 0
-
-/**
- * @date 5/11/2023
- * @brief Crée un itérateur sur la liste passée en entrée qui la parcours
- * depuis le début ( @ref FROM_BEGIN) ou la fin ( @ref FROM_END)
- *
- * @param[in] l liste à parcourrir
- * @param[in] dir sens de parcours de l'itérateur ( @ref FROM_BEGIN ou @ref FROM_END)
- * @pre l != NULL
- *
- * @return pointeur vers l'itérateur
- * @note Une copie de la liste est faite au moment de la création, toute modification
- * de la liste ne sera pas visible par l'itérateur
- **/
-GenListIte *createGenListIte(GenList *l, int dir);
-
-/**
- * @date 5/11/2023
- * @brief Renvoie si il reste des éléments à parcourir dans la liste
- *
- * @param[in] ite pointeur vers l'itérateur
- * @pre ite != NULL
- *
- * @return true si il reste des éléments, sinon false
- **/
-bool genListIteHasNext(GenListIte *ite);
-
-/**
- * @date 5/11/2023
- * @brief Décale l'itérateur sur le prochain élément et renvoie sa valeur
- *
- * @param[in] ite pointeur vers l'itérateur
- * @pre ite != NULL
- * @pre genListIteHasNext(ite) == true
- */
-void genListIteNext(GenListIte *ite);
-
-/**
- * @date 5/11/2023
- * @brief Renvoie la valeur courrante
- *
- * @param[in] ite pointeur vers l'itérateur
- * @pre ite != NULL
- *
- * @pre doit être sur un élément
- *
- * @return élément courant
- */
-void *genListIteGetValue(GenListIte *ite);
-
-/**
- * @date 5/11/2023
- * @brief Supprime l'itérateur et libère la mémoire
- *
- * @param[in] ite pointeur vers l'itérateur
- * @pre ite != NULL
- * @pre *ite != NULL
- **/
-void deleteGenListIte(ptrGenListIte *ite);
 
 #endif

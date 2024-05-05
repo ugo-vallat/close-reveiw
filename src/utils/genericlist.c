@@ -16,20 +16,26 @@
  * message d'erreur
  */
 
-#include <asm-generic/errno-base.h>
-#include <errno.h>
 #include <malloc.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <utils/genericlist.h>
 #include <utils/logger.h>
 
+/*-----------------------------------------------------------------*/
+/*                       UTILS                                     */
+/*-----------------------------------------------------------------*/
+
+void testArgNull(void *arg, char *file, char *fun, char *name) {
+    if (arg == NULL)
+        exitl(file, "hisArgNull", EXIT_FAILURE, "[%s in %s] %s : argument NULL\n", fun, file, name);
+}
+
 /*------------------------------------------------------------------*/
 /*                     STRUCTURE LIST GENERIC                       */
 /*------------------------------------------------------------------*/
 
 /**
- * @date  1/11/2023
  * @author Ugo VALLAT
  * @brief  Définition de la structure list
  */
@@ -40,7 +46,6 @@ struct s_gen_list {
 };
 
 /**
- * @date  1/11/2023
  * @author Ugo VALLAT
  */
 GenList *createGenList(unsigned memory_size) {
@@ -58,24 +63,31 @@ GenList *createGenList(unsigned memory_size) {
 }
 
 /**
- * @date  1/11/2023
  * @author Ugo VALLAT
  */
-void deleteGenList(ptrGenList *l) {
-#ifdef DEBUG
+void deleteGenList(ptrGenList *l, freefun) {
     /* test l != NULL */
     testArgNull(l, "genericlist.c", "deleteGenList", "l");
     testArgNull((*l), "genericlist.c", "deleteGenList", "*l");
-#endif
 
     /* libération de la mémoire */
+    while (!genListSize((GenList*)l)) {
+        free(genListPop((GenList*)l));
+    }
     free((*l)->tab);
     free((*l));
     *l = NULL;
 }
 
+void clearGenList(GenList *l){
+    testArgNull(l, "genericlist.c", "clearGenList", "l");
+
+    while (!genListSize((GenList*)l)) {
+        free(genListPop((GenList*)l));
+    }
+}
+
 /**
- * @date  1/11/2023
  * @author Ugo VALLAT
  * @brief Modifie l'espace mémoire aloué au tableau
  *
@@ -84,9 +96,8 @@ void deleteGenList(ptrGenList *l) {
  * @pre l != NULL
  */
 void adjustMemorySizeGenList(GenList *l, unsigned new_size) {
-#ifdef DEBUG
     testArgNull(l, "genericlist.c", "adjustMemorySizeGenList", "l");
-#endif
+
 
     /* nouvelle taille de la liste */
     l->memory_size = new_size;
@@ -98,14 +109,10 @@ void adjustMemorySizeGenList(GenList *l, unsigned new_size) {
 }
 
 /**
- * @date  1/11/2023
  * @author Ugo VALLAT
  */
 void genListAdd(GenList *l, void *v) {
-#ifdef DEBUG
-    /* test l != NULL */
     testArgNull(l, "genericlist.c", "genListAdd", "l");
-#endif
 
     /* agrandissement de la liste si pleine */
     if (l->size == l->memory_size)
@@ -117,16 +124,13 @@ void genListAdd(GenList *l, void *v) {
 }
 
 /**
- * @date  1/11/2023
  * @author Ugo VALLAT
  */
 void genListInsert(GenList *l, void *v, unsigned i) {
-#ifdef DEBUG
     /* vérification paramêtres */
     testArgNull(l, "genericlist.c", "genListInsert", "l");
     if (i > l->size)
         exitl("genericlist.c", "genListInsert", EXIT_FAILURE, "position (%d) invalide", i);
-#endif
 
     /* agrandissement de la liste si pleine */
     if (l->size >= l->memory_size)
@@ -142,16 +146,13 @@ void genListInsert(GenList *l, void *v, unsigned i) {
 }
 
 /**
- * @date  1/11/2023
  * @author Ugo VALLAT
  */
 void *genListPop(GenList *l) {
-#ifdef DEBUG
     /* vérification paramêtre */
     testArgNull(l, "genericlist.c", "listPop", "l");
     if (l->size <= 0)
         exitl("list.c", "listPop", EXIT_FAILURE, "liste déjà vide");
-#endif
 
     /* suppression de l'élément */
     void *elem = l->tab[l->size - 1];
@@ -161,16 +162,13 @@ void *genListPop(GenList *l) {
 }
 
 /**
- * @date  1/11/2023
  * @author Ugo VALLAT
  */
 void *genListRemove(GenList *l, unsigned i) {
-#ifdef DEBUG
     /* vérification paramêtres */
     testArgNull(l, "genericlist.c", "genListRemove", "l");
     if (i >= l->size)
         exitl("genericlist.c", "genListRemove", EXIT_FAILURE, "position (%d) invalide", i);
-#endif
 
     void *elem = l->tab[i];
     /* suppression de l'élément */
@@ -182,25 +180,20 @@ void *genListRemove(GenList *l, unsigned i) {
 }
 
 /**
- * @date  1/11/2023
  * @author Ugo VALLAT
  */
-bool genListEmpty(GenList *l) {
-#ifdef DEBUG
+bool genListIsEmpty(GenList *l) {
     testArgNull(l, "genericlist.c", "listEmpty", "l");
-#endif
+
 
     return l->size == 0;
 }
 
 /**
- * @date 18/12/2023
  * @author LAFORGE Mateo
  */
 bool genListContains(GenList *l, void *e) {
-#ifdef DEBUG
     testArgNull(l, "genericlist.c", "listContains", "l");
-#endif
     for (unsigned int i = 0; i < genListSize(l); i++)
         if (genListGet(l, i) == e)
             return true;
@@ -208,26 +201,20 @@ bool genListContains(GenList *l, void *e) {
 }
 
 /**
- * @date  1/11/2023
  * @author Ugo VALLAT
  */
 unsigned genListSize(GenList *l) {
-#ifdef DEBUG
     testArgNull(l, "genericlist.c", "genListSize", "l");
-#endif
 
     return l->size;
 }
 
 /**
- * @date  1/11/2023
  * @author Ugo VALLAT
  */
 GenList *genListCopy(GenList *l) {
-#ifdef DEBUG
     /* vérification paramêtre */
     testArgNull(l, "genericlist.c", "listCopy", "l");
-#endif
 
     /* création nouvelle liste */
     GenList *new = createGenList(l->size);
@@ -240,153 +227,25 @@ GenList *genListCopy(GenList *l) {
 }
 
 /**
- * @date  1/11/2023
  * @author Ugo VALLAT
  */
 void *genListGet(GenList *l, unsigned i) {
-#ifdef DEBUG
     /* vérification paramêtre */
     testArgNull(l, "genericlist.c", "genListGet", "l");
     if (i >= l->size)
         exitl("genericlist.c", "genListGet", EXIT_FAILURE, "position (%d) invalide", i);
-#endif
 
     return l->tab[i];
 }
 
 /**
- * @date  1/11/2023
  * @author Ugo VALLAT
  */
 void genListSet(GenList *l, void *v, unsigned i) {
-#ifdef DEBUG
     /* vérification paramêtre */
     testArgNull(l, "genericlist.c", "genListSet", "l");
     if (i >= l->size)
         exitl("genericlist.c", "genListSet", EXIT_FAILURE, "position (%d) invalide", i);
-#endif
 
     l->tab[i] = v;
-}
-
-/*------------------------------------------------------------------*/
-/*                         ITERATEUR                                */
-/*------------------------------------------------------------------*/
-
-/**
- * @date  1/11/2023
- * @author Ugo VALLAT
- * @brief Définition de la structure list_ite
- */
-struct s_gen_list_ite {
-    GenList *list;          /* liste à parcourir */
-    int cur;                /* position actuelle */
-    unsigned (*fnext)(int); /* focntion de déplcament */
-    bool next;              /* appel à fonction next */
-};
-
-/**
- * @date  1/11/2023
- * @author Ugo VALLAT
- */
-unsigned next_forward_gen(int i) {
-    return i + 1;
-}
-
-/**
- * @date  1/11/2023
- * @author Ugo VALLAT
- */
-unsigned next_backward_gen(int i) {
-    return i - 1;
-}
-
-/**
- * @date  1/11/2023
- * @author Ugo VALLAT
- */
-GenListIte *createGenListIte(GenList *l, int dir) {
-#ifdef DEBUG
-    testArgNull(l, "genericlist.c", "createGenListIte", "l");
-#endif
-
-    /* création de l'itérateur */
-    GenListIte *ite = malloc(sizeof(GenListIte));
-
-    /* copie de la liste */
-    ite->list = genListCopy(l);
-    if (errno)
-        return NULL;
-
-    /* Initialisation des paramêtres */
-    if (dir == FROM_BEGIN) {
-        ite->fnext = next_forward_gen;
-        ite->next = false;
-        ite->cur = -1;
-    } else if (dir == FROM_END) {
-        ite->fnext = next_backward_gen;
-        ite->next = false;
-        ite->cur = l->size;
-    } else {
-        exitl("genericlist.c", "createGenListIte", EXIT_FAILURE, "sens de parcours invalide");
-        free(ite);
-        return NULL;
-    }
-    return ite;
-}
-
-/**
- * @date  1/11/2023
- * @author Ugo VALLAT
- */
-bool genListIteHasNext(GenListIte *ite) {
-#ifdef DEBUG
-    testArgNull(ite, "genericlist.c", "genListIteHasNext", "ite");
-#endif
-
-    unsigned next = ite->fnext(ite->cur);
-    return (next < ite->list->size);
-}
-
-/**
- * @date  1/11/2023
- * @author Ugo VALLAT
- */
-void genListIteNext(GenListIte *ite) {
-#ifdef DEBUG
-    testArgNull(ite, "genericlist.c", "genListIteNext", "ite");
-    if (!genListIteHasNext(ite))
-        exitl("genericlist.c", "genListIteNext", EXIT_FAILURE, "aucun élément à lire");
-#endif
-
-    ite->cur = ite->fnext(ite->cur);
-    ite->next = true;
-}
-
-/**
- * @date  1/11/2023
- * @author Ugo VALLAT
- */
-void *genListIteGetValue(GenListIte *ite) {
-#ifdef DEBUG
-    testArgNull(ite, "genericlist.c", "genListIteGetValue", "ite");
-    if (!ite->next)
-        exitl("genericlist.c", "genListIteGetValue", EXIT_FAILURE, "lecture sans appel à next");
-#endif
-
-    return genListGet(ite->list, ite->cur);
-}
-
-/**
- * @date  1/11/2023
- * @author Ugo VALLAT
- */
-void deleteGenListIte(ptrGenListIte *ite) {
-#ifdef DEBUG
-    testArgNull(ite, "genericlist.c", "genListIteGetValue", "ite");
-#endif
-
-    deleteGenList(&((*ite)->list));
-    free((*ite));
-    *ite = NULL;
 }
