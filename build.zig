@@ -30,6 +30,9 @@ pub fn build(b: *std.Build) void {
     });
     server.addCSourceFile(.{ .file = .{ .path = "src/server/main.c" }, .flags = flags });
     server.addIncludePath(.{ .path = "include/" });
+    if (b.graph.host.result.os.tag == .macos)
+        server.addLibraryPath(.{ .path = "/opt/homebrew/Cellar/openssl@3/3.3.0/lib/" });
+    server.linkSystemLibrary("openssl");
     server.addCSourceFiles(.{ .root = .{ .path = "src/" }, .files = c_include_list, .flags = flags });
     server.addCSourceFiles(.{ .root = .{ .path = "src/server/" }, .files = c_include_list_server, .flags = flags });
 
@@ -40,6 +43,9 @@ pub fn build(b: *std.Build) void {
     });
     client.addCSourceFile(.{ .file = .{ .path = "src/client/main.c" }, .flags = flags });
     client.addIncludePath(.{ .path = "include/" });
+    if (b.graph.host.result.os.tag == .macos)
+        client.addLibraryPath(.{ .path = "/opt/homebrew/Cellar/openssl@3/3.3.0/lib/" });
+    client.linkSystemLibrary("openssl");
     client.addCSourceFiles(.{ .root = .{ .path = "src/" }, .files = c_include_list, .flags = flags });
     client.addCSourceFiles(.{ .root = .{ .path = "src/client/" }, .files = c_include_list_client, .flags = flags });
 

@@ -1,10 +1,9 @@
-
-#include "utils/genericlist.h"
 #include <network/packet.h>
 #include <network/tls-com.h>
 #include <openssl/ssl.h>
 #include <string.h>
 #include <unistd.h>
+#include <utils/genericlist.h>
 #include <utils/logger.h>
 
 #define ERROR_BUFF_SIZE 512

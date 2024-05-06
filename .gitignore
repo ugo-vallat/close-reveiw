@@ -6,5 +6,3 @@ zig-out/
 .cache/
 compile_commands.json
 
-# other
-compile.sh

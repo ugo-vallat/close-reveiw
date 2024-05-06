@@ -16,7 +16,6 @@
  * message d'erreur
  */
 
-#include <malloc.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <utils/genericlist.h>
