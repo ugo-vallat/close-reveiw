@@ -91,7 +91,7 @@ int openComTLS(TLSInfos *infos) {
     struct sockaddr_in serv_addr, cli_addr;
 
     /* Open socket */
-    if (infos->sockfd) {
+    if (infos->sockfd >= 0) {
         warnl("tls-com.c", "openComTLS", "socket already open");
     } else {
         infos->sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -117,9 +117,9 @@ int openComTLS(TLSInfos *infos) {
     /* init context*/
     if (infos->ctx == NULL) {
         if (infos->mode == SERVER) {
-            infos->ctx = SSL_CTX_new(TLS_client_method());
-        } else {
             infos->ctx = SSL_CTX_new(TLS_server_method());
+        } else {
+            infos->ctx = SSL_CTX_new(TLS_client_method());
         }
         if (infos->ctx == NULL) {
             warnl("tls-com.c", "openComTLS", "error context");
@@ -131,13 +131,13 @@ int openComTLS(TLSInfos *infos) {
         if (infos->mode == SERVER) {
             ret = SSL_CTX_use_certificate_file(infos->ctx, infos->path_cert, SSL_FILETYPE_PEM);
             if (ret != 1) {
-                warnl("tls-com.c", "openComTLS", "error add cert file");
+                warnl("tls-com.c", "openComTLS", "error add cert file (%s)", infos->path_cert);
                 ERR_print_errors_fp(stderr);
                 return -1;
             }
-            ret = SSL_CTX_use_PrivateKey_file(infos->ctx, infos->path_cert, SSL_FILETYPE_PEM);
+            ret = SSL_CTX_use_PrivateKey_file(infos->ctx, infos->path_key, SSL_FILETYPE_PEM);
             if (ret != 1) {
-                warnl("tls-com.c", "openComTLS", "error add key file");
+                warnl("tls-com.c", "openComTLS", "error add key file(%s)", infos->path_key);
                 ERR_print_errors_fp(stderr);
                 return -1;
             }
@@ -201,8 +201,6 @@ int openComTLS(TLSInfos *infos) {
             return -1;
         }
     }
-
-    printl("Connection established successfully");
     return 0;
 }
 
@@ -216,15 +214,21 @@ int closeComTLS(TLSInfos *infos) {
     if (infos->ssl) {
         ret = SSL_shutdown(infos->ssl);
         if (ret == 0) {
-            warnl("tls-com.c", "closeComTLS", "SSL_shutdown return 0");
+            /* === bidirectional shutdown handshake not implemented yet === */
             Packet p;
-            SSL_read(infos->ssl, &p, sizeof(p));
-            ret = SSL_shutdown(infos->ssl);
-            if (ret != 1)
-                warnl("tls-com.c", "closeComTLS", "SSL_shutdown return %d", ret);
+            while (SSL_read(infos->ssl, &p, sizeof(Packet)) > 0) {
+                printf("Packet not read : <%s>\n", p.msg.buffer);
+            }
+            // warnl("tls-com.c", "closeComTLS", "SSL_shutdown return 0");
+            // Packet p;
+            // SSL_read(infos->ssl, &p, sizeof(p));
+            // ret = SSL_shutdown(infos->ssl);
+            // if (ret != 1)
+            //     warnl("tls-com.c", "closeComTLS", "SSL_shutdown retry return %d", ret);
         } else if (ret < 0) {
-            warnl("tls-com.c", "closeComTLS", "SSL_shutdown return %d", ret);
-            ret = SSL_get_error(infos->ssl, ret);
+            int retError = SSL_get_error(infos->ssl, ret);
+            warnl("tls-com.c", "closeComTLS", "SSL_shutdown return %d - %d", ret, retError);
+            ERR_print_errors_fp(stderr);
         }
         SSL_free(infos->ssl);
         infos->ssl = NULL;
@@ -239,7 +243,7 @@ int closeComTLS(TLSInfos *infos) {
     /* close socket */
     if (infos->sockfd != -1) {
         if (close(infos->sockfd) != 0)
-            warnl("tls-com.c", "deleteTLSInfos", "error close socket");
+            warnl("tls-com.c", "closeComTLS", "error close socket");
         infos->sockfd = -1;
     }
     return 0;
@@ -277,6 +281,7 @@ int sendPacket(TLSInfos *infos, Packet *p) {
                 code = SSL_get_error(infos->ssl, ret);
                 ERR_error_string_n(code, buff, sizeof(buff));
                 warnl("tls-com.c", "sendPacket", "SSL_write : %s", buff);
+                return -1;
             }
         } else {
             return -1;

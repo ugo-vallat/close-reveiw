@@ -71,8 +71,8 @@ void deleteGenList(ptrGenList *l, freefun fun) {
     testArgNull((*l), "genericlist.c", "deleteGenList", "*l");
 
     /* libération de la mémoire */
-    while (!genListSize((GenList *)l)) {
-        fun(genListPop((GenList *)l));
+    while (genListSize((GenList *)(*l))) {
+        fun(genListPop((GenList *)(*l)));
     }
     free((*l)->tab);
     free((*l));

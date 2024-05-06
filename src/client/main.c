@@ -17,33 +17,30 @@ int main(int argc, char *argv[]) {
         printl("usage : %s <ip_server> <port_server>\n", argv[0]);
         return 1;
     }
-    port = atoi(argv[1]);
-    strncpy(ip, argv[2], CHAR_IP_SIZE);
+    strncpy(ip, argv[1], CHAR_IP_SIZE);
+    port = atoi(argv[2]);
+    printf(" > IP : %s \n > Port : %d\n", ip, port);
 
     printf("[CLIENT] Create struct TLSInfos...\n");
     TLSInfos *infos = initTLSInfos(ip, port, CLIENT, NULL, NULL);
 
-    printf("[CLIENT] Ready ! Go ? (Y/n)\n");
-    char buff[256];
-    fscanf(stdout, "%255s", buff);
-    if (strcmp(buff, "") != 0 && strcmp(buff, "y") != 0 && strcmp(buff, "Y") != 0) {
-        printf("[CLIENT] Stopping connection\n");
-        deleteTLSInfos(&infos);
-        return 0;
-    }
+    printf("[CLIENT] Ready...\n");
+
     if (openComTLS(infos) != 0) {
         warnl("main", "main", "Echec connection");
+        return 1;
     }
     printf("[CLIENT] Connected...\n");
-    sleep(1);
-    Packet p;
-    p.type = TXT;
-    p.msg.size = 18;
-    strncpy(p.msg.buffer, "Hello from client", SIZE_MSG_DATA);
-    if (sendPacket(infos, &p) != 0) {
+    Packet *p = malloc(sizeof(Packet));
+    p->type = TXT;
+    p->msg.size = 18;
+    strncpy(p->msg.buffer, "Hello from client", SIZE_MSG_DATA);
+    if (sendPacket(infos, p) != 0) {
         warnl("main", "main", "echec envoie");
+        return 1;
     }
     printf("[CLIENT] Packet sended\n");
+    // sleep(1);
     deleteTLSInfos(&infos);
     printf("[CLIENT] TLSInfo deleted\n");
     close_logger();

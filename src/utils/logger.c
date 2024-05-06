@@ -52,6 +52,7 @@ void printl(const char *format, ...) {
     va_list args;
     va_start(args, format);
     vfprintf(output, format, args);
+    fprintf(output, "\n");
     fflush(output); // intégrité des logs
     va_end(args);
 }
@@ -78,11 +79,14 @@ void warnl(const char *file_name, const char *fun_name, const char *format, ...)
     // format de sortie dépendant
     if (console) {
         fprintf(output, YELLOW);
+        fprintf(output, "[warnl] %s > %s : ", file_name, fun_name);
         vfprintf(output, format, args);
         fprintf(output, RSTC);
+        fprintf(output, "\n");
     } else {
         fprintf(output, "[warnl] %s > %s : ", file_name, fun_name);
         vfprintf(output, format, args);
+        fprintf(output, "\n");
     }
     fflush(output); // intégrité des logs
     va_end(args);
@@ -126,9 +130,11 @@ void exitl(const char *file_name, const char *fun_name, int exit_value, char *fo
         fprintf(output, "[exitl] %s > %s : ", file_name, fun_name);
         vfprintf(output, format, args);
         fprintf(output, RSTC);
+        fprintf(output, "\n");
     } else {
         fprintf(output, "[exitl] %s > %s : ", file_name, fun_name);
         vfprintf(output, format, args);
+        fprintf(output, "\n");
     }
     va_end(args);
     close_logger();

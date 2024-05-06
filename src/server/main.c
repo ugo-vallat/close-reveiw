@@ -23,21 +23,25 @@ int main(int argc, char *argv[]) {
         printl("usage : %s <ip_server> <port_server>\n", argv[0]);
         return 1;
     }
-    port = atoi(argv[1]);
-    strncpy(ip, argv[2], CHAR_IP_SIZE);
+    port = atoi(argv[2]);
+    strncpy(ip, argv[1], CHAR_IP_SIZE);
+    printf(" > IP : %s \n > Port : %d\n", ip, port);
 
     printf("[SERVER] Create struct TLSInfos...\n");
     TLSInfos *infos = initTLSInfos(ip, port, SERVER, CERT_PATH, KEY_PATH);
 
+    printf("[SERVER] Open tls com...\n");
     if (openComTLS(infos) != 0) {
         warnl("main", "main", "Echec connection");
+        return 1;
     }
     printf("[SERVER] Connected...\n");
-    Packet p;
-    if (sendPacket(infos, &p) != 0) {
+    Packet *p;
+    if (receivePacket(infos, &p) != 0) {
         warnl("main", "main", "echec réception");
+        return 1;
     }
-    printf("[SERVER] Packet received : <%s>\n", p.msg.buffer);
+    printf("[SERVER] Packet received : <%s>\n", p->msg.buffer);
     deleteTLSInfos(&infos);
     printf("[SERVER] TLSInfo deleted\n");
     close_logger();
