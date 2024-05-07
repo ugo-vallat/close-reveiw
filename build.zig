@@ -56,5 +56,5 @@ pub fn build(b: *std.Build) void {
     server_run_step.dependOn(&server_run_cmd.step);
 
     const client_run_step = b.step("client-run", "Run the Client CLI");
-    client_run_step.dependOn(&server_run_cmd.step);
+    client_run_step.dependOn(&client_run_cmd.step);
 }
