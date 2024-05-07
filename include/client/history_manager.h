@@ -51,6 +51,13 @@ int readHistory(HistoryInfo *info, int nb_message, GenList *l);
 int deleteHistory(HistoryInfo *info);
 
 /**
+ * @brief delete all history
+ * @param path_history_dir path to where the history is save
+ * @return 0 en cas de succee, un code d'erreur sinon
+ */
+int deleteAllHistory(char *path_history_dir);
+
+/**
  * @brief export the directory to a dest_file.zip
  * @param[in] path_history_dir path to where the history is save
  * @param[in] dest_file name of the file create, can contain a path
