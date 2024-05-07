@@ -16,62 +16,58 @@ typedef struct s_tls_infos TLSInfos;
 typedef enum e_mode { SERVER = 1, CLIENT = 2 } Mode;
 
 /**
- * @brief Initialise la structure TLSinfo
- * @param ip Serveur IP
- * @param port Serveur port
- * @param path_cert Chemin d'accès au certificat (NULL si mode CLIENT)
- * @param path_key Chemin d'accès à la clé privée (NULL si mode CLIENT)
+ * @brief Malloc and fill TLSInfos
+ * @param[in] ip Server IP
+ * @param[in] port Server port
+ * @param[in] path_cert Path to server's certificate (NULL if CLIENT mode)
+ * @param[in] path_key Path to server's private key (NULL if CLIENT mode)
  * @return TLSInfos*
- * @note Structure malloc, utiliser deleteTLSInfos() pour supprimer
+ * @note Use deleteTLSInfos() to delete this structure
  */
 TLSInfos *initTLSInfos(const char *ip, const int port, Mode mode, char *path_cert, char *path_key);
 
 /**
- * @brief Supprimer la structure TLSInfos
+ * @brief Delete structure TLSInfos and free memory
  *
- * @param infos structure à supprimer
+ * @param[in] infos Structure to delete
  */
 void deleteTLSInfos(TLSInfos **infos);
 
 /**
- * @brief Etablie un canal de communication sécurisé avec l'hôte distant
- *
- * @param infos Information sur l'appareil distant
- * @return 0 en cas de succès, -1 sinon
+ * @brief Establishes a secure communication channel with the remote host
+ * @param[in] infos Information about the remote device
+ * @return 0 on success, -1 otherwise
  */
 int openComTLS(TLSInfos *infos);
 
 /**
- * @brief Ferme le canal de communication
- *
- * @param infos Canal à fermer
- * @return 0 en cas de succès, -1 sinon
+ * @brief Closes the communication channel
+ * @param[in] infos Channel to close
+ * @return 0 on success, -1 otherwise
  */
 int closeComTLS(TLSInfos *infos);
 
 /**
- * @brief Envoie le paquet à l'hôte distant
- *
- * @param infos Canal de communication
- * @param p Paquet à envoyer
- * @return 0 en cas de succès, -1 sinon
+ * @brief Sends the packet to the remote host
+ * @param[in] infos Communication channel
+ * @param[in] p Packet to send
+ * @return 0 on success, -1 otherwise
  */
 int sendPacket(TLSInfos *infos, Packet *p);
 
 /**
- * @brief Indique si des paquets ont été reçus
- *
- * @param infos Canal de communication
- * @return true si des paquets sont en attentes, false sinon
+ * @brief Indicates if packets have been received
+ * @param[in] infos Communication channel
+ * @return true if packets are pending, false otherwise
  */
 bool isBufferPacketEmpty(TLSInfos *infos);
 
 /**
- * @brief Stock dans p le paquet reçu le plus ancien
+ * @brief Stores the oldest received packet in p
  *
- * @param infos Canal de communication
- * @param p Buffer pour récupérer le paquet
- * @return 0 en cas de succès, -1 sinon
+ * @param[in] infos Communication channel
+ * @param[out] p Buffer to retrieve the packet
+ * @return 0 on success, -1 otherwise
  */
 int receivePacket(TLSInfos *infos, Packet **p);
 
