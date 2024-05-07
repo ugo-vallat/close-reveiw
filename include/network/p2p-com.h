@@ -42,8 +42,10 @@ void requestP2PConnection(TLSInfos *infos, int id_user);
  * @brief Accept / Refuse connection request
  *
  * @param[in] infos TEMPORARY channel with server
+ * @param[in] id_user ID of the user to accept/refuse
+ * @param[in] accept True to accept, false otherwise
  */
-void acceptP2PConnection(TLSInfos *infos);
+void acceptP2PConnection(TLSInfos *infos, int id_user, bool accept);
 
 /**
  * @brief Send list of methods available on this host to establish a P2P connection
