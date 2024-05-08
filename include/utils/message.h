@@ -3,9 +3,14 @@
 
 #include <stdbool.h>
 
+#define SIZE_DATE 8
+#define SIZE_TIME 5
 #define SIZE_MSG_DATA 2048
 
 typedef struct s_Msg {
+    char sender[30];
+    char date[SIZE_DATE];
+    char time[SIZE_TIME];
     char buffer[SIZE_MSG_DATA];
     unsigned int size;
 } Msg;
