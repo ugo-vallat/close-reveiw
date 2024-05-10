@@ -11,13 +11,9 @@ pub fn build(b: *std.Build) void {
         "placeholder.c",
     };
     const c_include_list_client = &.{
-        "interface/tui.c",
+        "placeholder.c",
     };
-    const flags = &.{
-        "-g",
-        "-pedantic",
-        "-Wextra",
-    };
+    const flags = &.{};
 
     const server = b.addExecutable(.{
         .name = "close-review-server",
@@ -34,8 +30,6 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
         .target = b.graph.host,
     });
-    client.linkSystemLibrary("ncurses");
-    client.linkSystemLibrary("menu");
     client.addCSourceFile(.{ .file = .{ .path = "src/client/main.c" }, .flags = flags });
     client.addIncludePath(.{ .path = "include/" });
     client.addCSourceFiles(.{ .root = .{ .path = "src/" }, .files = c_include_list, .flags = flags });
