@@ -11,7 +11,7 @@ pub fn build(b: *std.Build) void {
         "placeholder.c",
     };
     const c_include_list_client = &.{
-        "interface/terminal.c",
+        "interface/tui.c",
     };
     const flags = &.{
         "-g",
