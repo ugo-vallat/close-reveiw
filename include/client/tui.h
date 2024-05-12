@@ -8,11 +8,6 @@ typedef enum { NORMAL_MODE, COMMAND_MODE, INSERT_MODE, SEARCH_MODE } Mode;
 
 typedef enum { QUIT, UNKNOWN } Command;
 
-/**
- * @brief Simple function to clear the screen Using ANSI
- */
-void clearScreen(void);
-
 void startTUI(void);
 
-#endif
+#endif // !__TUI_H__

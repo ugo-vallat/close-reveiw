@@ -1,8 +1,5 @@
-#include <client/interface/tui.h>
-#include <curses.h>
-#include <menu.h>
+#include <client/tui.h>
 #include <ncurses.h>
-#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -12,12 +9,9 @@ Command stringToCommand(char command[COMMAND_MAX_SIZE]) {
     return UNKNOWN;
 }
 
-void clearScreen(void) {
-    printf("\033[2J\033[1;1H");
-}
-
 void startTUI(void) {
     initscr();
+    clear();
     cbreak();
     noecho();
     keypad(stdscr, TRUE);

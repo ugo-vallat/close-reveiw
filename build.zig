@@ -11,7 +11,8 @@ pub fn build(b: *std.Build) void {
         "placeholder.c",
     };
     const c_include_list_client = &.{
-        "interface/tui.c",
+        "tui.c",
+        "config.c",
     };
     const flags = &.{
         "-g",
@@ -35,7 +36,6 @@ pub fn build(b: *std.Build) void {
         .target = b.graph.host,
     });
     client.linkSystemLibrary("ncurses");
-    client.linkSystemLibrary("menu");
     client.addCSourceFile(.{ .file = .{ .path = "src/client/main.c" }, .flags = flags });
     client.addIncludePath(.{ .path = "include/" });
     client.addCSourceFiles(.{ .root = .{ .path = "src/" }, .files = c_include_list, .flags = flags });
