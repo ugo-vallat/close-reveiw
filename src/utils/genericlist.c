@@ -16,8 +16,14 @@
  * message d'erreur
  */
 
+// #define _POSIX_C_SOURCE 200809L
+// #define _GNU_SOURCE
+
+#include <bits/pthreadtypes.h>
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <sys/types.h>
 #include <utils/genericlist.h>
 #include <utils/logger.h>
 
@@ -39,9 +45,10 @@ void testArgNull(void *arg, char *file, char *fun, char *name) {
  * @brief  Définition de la structure list
  */
 struct s_gen_list {
-    unsigned memory_size; /* Taille du tableau en mémoire */
-    unsigned size;        /* taille de la liste (nombre éléments) */
-    void **tab;           /* tableau des poiteur (générique) */
+    unsigned memory_size;  /* Taille du tableau en mémoire */
+    unsigned size;         /* taille de la liste (nombre éléments) */
+    pthread_mutex_t mutex; /* mutex d'accès à la liste */
+    void **tab;            /* tableau des poiteur (générique) */
 };
 
 /**
@@ -58,6 +65,9 @@ GenList *createGenList(unsigned memory_size) {
 
     l->memory_size = memory_size;
     l->size = 0;
+    if (pthread_mutex_init(&(l->mutex), NULL) != 0) {
+        exitl("genericlist.c", "createGenList", EXIT_FAILURE, "erreur init mutex");
+    }
     return l;
 }
 
@@ -80,10 +90,12 @@ void deleteGenList(ptrGenList *l, freefun fun) {
 
 void clearGenList(GenList *l) {
     testArgNull(l, "genericlist.c", "clearGenList", "l");
+    pthread_mutex_lock(&(l->mutex));
 
-    while (!genListSize((GenList *)l)) {
+    while (!genListIsEmpty(l)) {
         free(genListPop((GenList *)l));
     }
+    pthread_mutex_unlock(&(l->mutex));
 }
 
 /**
@@ -111,7 +123,7 @@ void adjustMemorySizeGenList(GenList *l, unsigned new_size) {
  */
 void genListAdd(GenList *l, void *v) {
     testArgNull(l, "genericlist.c", "genListAdd", "l");
-
+    pthread_mutex_lock(&(l->mutex));
     /* agrandissement de la liste si pleine */
     if (l->size == l->memory_size)
         adjustMemorySizeGenList(l, l->memory_size + 8);
@@ -119,6 +131,7 @@ void genListAdd(GenList *l, void *v) {
     /* Ajout de la valeur */
     l->tab[l->size] = v;
     l->size++;
+    pthread_mutex_unlock(&(l->mutex));
 }
 
 /**
@@ -127,6 +140,7 @@ void genListAdd(GenList *l, void *v) {
 void genListInsert(GenList *l, void *v, unsigned i) {
     /* vérification paramêtres */
     testArgNull(l, "genericlist.c", "genListInsert", "l");
+    pthread_mutex_lock(&(l->mutex));
     if (i > l->size)
         exitl("genericlist.c", "genListInsert", EXIT_FAILURE, "position (%d) invalide", i);
 
@@ -141,6 +155,7 @@ void genListInsert(GenList *l, void *v, unsigned i) {
     /* ajoute le nouvel élément */
     l->tab[i] = v;
     l->size++;
+    pthread_mutex_unlock(&(l->mutex));
 }
 
 /**
@@ -149,6 +164,7 @@ void genListInsert(GenList *l, void *v, unsigned i) {
 void *genListPop(GenList *l) {
     /* vérification paramêtre */
     testArgNull(l, "genericlist.c", "listPop", "l");
+    pthread_mutex_lock(&(l->mutex));
     if (l->size <= 0)
         exitl("list.c", "listPop", EXIT_FAILURE, "liste déjà vide");
 
@@ -156,6 +172,7 @@ void *genListPop(GenList *l) {
     void *elem = l->tab[l->size - 1];
     l->size--;
     adjustMemorySizeGenList(l, l->size);
+    pthread_mutex_unlock(&(l->mutex));
     return elem;
 }
 
@@ -165,6 +182,7 @@ void *genListPop(GenList *l) {
 void *genListRemove(GenList *l, unsigned i) {
     /* vérification paramêtres */
     testArgNull(l, "genericlist.c", "genListRemove", "l");
+    pthread_mutex_lock(&(l->mutex));
     if (i >= l->size)
         exitl("genericlist.c", "genListRemove", EXIT_FAILURE, "position (%d) invalide", i);
 
@@ -174,6 +192,7 @@ void *genListRemove(GenList *l, unsigned i) {
         l->tab[j] = l->tab[j + 1];
     l->size--;
     adjustMemorySizeGenList(l, l->size);
+    pthread_mutex_unlock(&(l->mutex));
     return elem;
 }
 
@@ -191,9 +210,13 @@ bool genListIsEmpty(GenList *l) {
  */
 bool genListContains(GenList *l, void *e) {
     testArgNull(l, "genericlist.c", "listContains", "l");
+    pthread_mutex_lock(&(l->mutex));
     for (unsigned int i = 0; i < genListSize(l); i++)
-        if (genListGet(l, i) == e)
+        if (genListGet(l, i) == e) {
+            pthread_mutex_unlock(&(l->mutex));
             return true;
+        }
+    pthread_mutex_unlock(&(l->mutex));
     return false;
 }
 
@@ -202,7 +225,6 @@ bool genListContains(GenList *l, void *e) {
  */
 unsigned genListSize(GenList *l) {
     testArgNull(l, "genericlist.c", "genListSize", "l");
-
     return l->size;
 }
 
@@ -212,6 +234,7 @@ unsigned genListSize(GenList *l) {
 GenList *genListCopy(GenList *l) {
     /* vérification paramêtre */
     testArgNull(l, "genericlist.c", "listCopy", "l");
+    pthread_mutex_lock(&(l->mutex));
 
     /* création nouvelle liste */
     GenList *new = createGenList(l->size);
@@ -220,6 +243,7 @@ GenList *genListCopy(GenList *l) {
     for (unsigned i = 0; i < l->size; i++)
         genListAdd(new, l->tab[i]);
 
+    pthread_mutex_unlock(&(l->mutex));
     return new;
 }
 
@@ -229,10 +253,12 @@ GenList *genListCopy(GenList *l) {
 void *genListGet(GenList *l, unsigned i) {
     /* vérification paramêtre */
     testArgNull(l, "genericlist.c", "genListGet", "l");
+    pthread_mutex_lock(&(l->mutex));
     if (i >= l->size)
         exitl("genericlist.c", "genListGet", EXIT_FAILURE, "position (%d) invalide", i);
-
-    return l->tab[i];
+    void *ret = l->tab[i];
+    pthread_mutex_unlock(&(l->mutex));
+    return ret;
 }
 
 /**
@@ -241,8 +267,10 @@ void *genListGet(GenList *l, unsigned i) {
 void genListSet(GenList *l, void *v, unsigned i) {
     /* vérification paramêtre */
     testArgNull(l, "genericlist.c", "genListSet", "l");
+    pthread_mutex_lock(&(l->mutex));
     if (i >= l->size)
         exitl("genericlist.c", "genListSet", EXIT_FAILURE, "position (%d) invalide", i);
 
     l->tab[i] = v;
+    pthread_mutex_unlock(&(l->mutex));
 }

@@ -11,16 +11,15 @@ pub fn build(b: *std.Build) void {
         "utils/genericlist.c",
         "utils/logger.c",
     };
-    const c_include_list_server = &.{
-        "placeholder.c",
-    };
-    const c_include_list_client = &.{
-        "placeholder.c",
-    };
+    const c_include_list_server = &.{};
+    const c_include_list_client = &.{};
     const flags = &.{
         "-g",
         "-pedantic",
         "-Wextra",
+        "-pthread",
+        "-D__USE_UNIX98",
+        "-D__USE_XOPEN2K",
     };
 
     const server = b.addExecutable(.{

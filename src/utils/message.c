@@ -26,7 +26,7 @@ bool append_string(Msg *dest, const char *string) {
     size_t size_str = strnlen(string, SIZE_MSG_DATA);
     if ((dest->size + size_str) >= SIZE_MSG_DATA)
         return false;
-    for (int i = 0; i < size_str; i++) {
+    for (unsigned i = 0; i < size_str; i++) {
         dest->buffer[dest->size + i] = string[i];
     }
     dest->size += size_str;
@@ -37,7 +37,7 @@ bool append_string(Msg *dest, const char *string) {
 bool append_message(Msg *dest, const Msg *src) {
     if ((dest->size + src->size) >= SIZE_MSG_DATA)
         return false;
-    for (int i = 0; i < src->size; i++) {
+    for (unsigned i = 0; i < src->size; i++) {
         dest->buffer[dest->size + i] = src->buffer[i];
     }
     dest->size += src->size;

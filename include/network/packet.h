@@ -19,4 +19,6 @@ typedef struct s_Packet {
 
 void packetDelete(void *p);
 
+Packet *packetCopy(Packet *p);
+
 #endif
