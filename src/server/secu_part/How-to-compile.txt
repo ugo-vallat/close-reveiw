@@ -1,0 +1,3 @@
+How-to-compile : 
+gcc test_mysql.c -o outputfile `mysql_config --cflags --libs`
+gcc passlist_to_hashlist.c -o outputfile -lcrypto
