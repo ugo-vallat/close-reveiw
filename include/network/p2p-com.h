@@ -1,24 +1,64 @@
 #ifndef __P2P_COM_H__
 #define __P2P_COM_H__
 
+#include <network/gestionary-com.h>
+#include <network/p2p-msg.h>
 #include <network/tls-com.h>
+#include <utils/genericlist.h>
 
-typedef struct s_P2P_info P2PInfos;
+typedef struct s_P2P_info P2P_infos;
 
 /**
- * @brief Malloc and fill P2PInfos
+ * @brief Malloc and fill P2P_infos
  *
- * @return P2PInfos*
- * @note Use deleteP2PInfos() to delete this structure
+ * @return P2P_infos*
+ * @note Use deleteP2P_infos() to delete this structure
  */
-P2PInfos *initP2PInfos();
+P2P_infos *createP2P_infos(Gestionary_com *gestionary);
 
 /**
- * @brief Delete structure P2PInfos and free memory
+ * @brief Delete structure P2P_infos and free memory
  *
  * @param infos Structure to delete
  */
-void deleteP2PInfos(P2PInfos **infos);
+void deleteP2P_infos(P2P_infos **infos);
+
+/**
+ * @brief Return the id list of known user connected
+ *
+ * @param infos P2P_infos
+ * @return GenList* of user id (char[SIZE_NAME])
+ */
+GenList *p2pGetListUserConnected(P2P_infos *infos);
+
+/**
+ * @brief Return the id of user that requested to connect
+ *
+ * @param infos P2P_infos
+ * @return char[SIZE_NAME] if there is a request, NULL otherwise
+ */
+char *p2pGetRequestConnection(P2P_infos *infos);
+
+/**
+ * @brief Send a connection P2P request to the server
+ *
+ * @param[in] infos TEMPORARY channel with server
+ * @param[in] id_user ID of the user to connect with
+ * @param[out] gest Return the gestionary if connection successed
+ * @return 1 if success connection, 0 if echec connection, -1 otherwise
+ */
+int p2pSendRequestConnection(P2P_infos *infos, char *id_user, Gestionary_com **gest);
+
+/**
+ * @brief Accept / Refuse connection request
+ *
+ * @param[in] infos TEMPORARY channel with server
+ * @param[in] id_user ID of the user to accept/refuse
+ * @param[in] accept True to accept, false otherwise
+ * @param[out] gest Return the gestionary if connection successed
+ * @return 1 if success connection, 0 if echec connection, -1 otherwise
+ */
+int p2pAcceptConnection(P2P_infos *infos, char *id_user, bool accept, Gestionary_com **gest);
 
 /**
  * @brief Add a port forwarding in the NAT table of the local network
@@ -28,54 +68,6 @@ void deleteP2PInfos(P2PInfos **infos);
  * @return if port_in == -1, return the public port forwarded else 0, -1 if error
  * @note if port_in == -1, try to find a free port to use and return it
  */
-int forwardPortWithUpnp(int port_in, int port_out, long time);
-
-/**
- * @brief Send a connection P2P request to the server
- *
- * @param[in] infos TEMPORARY channel with server
- * @param[in] id_user ID of the user to connect with
- */
-void requestP2PConnection(TLSInfos *infos, int id_user);
-
-/**
- * @brief Accept / Refuse connection request
- *
- * @param[in] infos TEMPORARY channel with server
- * @param[in] id_user ID of the user to accept/refuse
- * @param[in] accept True to accept, false otherwise
- */
-void acceptP2PConnection(TLSInfos *infos, int id_user, bool accept);
-
-/**
- * @brief Send list of methods available on this host to establish a P2P connection
- *
- * @param[in] infos TEMPORARY channel with server
- */
-void sendMethodsEnable(TLSInfos *infos);
-
-/**
- * @brief Create a Certificate Auto Certified used by the server mode
- *
- * @return path of the cert file
- */
-char *createCertificateAutoCert();
-
-/**
- * @brief Setup host as server and wait the remote host to connect
- *
- * @param[in] port Port to bind
- * @return TLSInfos * on success, NULL otherwise
- */
-TLSInfos *connectToPeerServerMode(int port);
-
-/**
- * @brief Setup host as client and try to connect with the remote host
- *
- * @param[in] ip IP of the remote host
- * @param[in] port Port of remote host
- * @return TLSInfos * on success, NULL otherwise
- */
-TLSInfos *connectToPeerClientMode(char *ip, int port);
+int p2pForwardPortWithUpnp(int port_in, int port_out, long time);
 
 #endif

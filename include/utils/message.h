@@ -2,10 +2,12 @@
 #define MESSAGE_H
 
 #include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
 
-#define SIZE_DATE 8
-#define SIZE_TIME 5
-#define SIZE_MSG_DATA 2048
+#define SIZE_DATE 20
+#define SIZE_TIME 20
+#define SIZE_MSG_DATA 1024
 #define SIZE_NAME 30
 
 typedef struct s_Msg {
@@ -13,19 +15,26 @@ typedef struct s_Msg {
     char date[SIZE_DATE];
     char time[SIZE_TIME];
     char buffer[SIZE_MSG_DATA];
-    unsigned int size;
 } Msg;
 
-Msg *init_message(const char *string);
+Msg *createMsg(char *sender, const char *string);
 
-unsigned int get_size(Msg *message);
+void deleteMsg(Msg *msg);
 
-bool append_string(Msg *dest, const char *src);
+void deleteMsgGen(void *msg);
 
-bool append_message(Msg *dest, const Msg *src);
+char *msgGetSender(Msg *msg);
 
-void print_message(Msg *message);
+char *msgGetDate(Msg *msg);
 
-void deinit_message(Msg *message);
+char *msgGetTime(Msg *msg);
+
+char *msgGetBuffer(Msg *msg);
+
+Msg *msgFromChar(char *data);
+
+char *msgToChar(Msg *msg);
+
+void printMsg(Msg *msg);
 
 #endif

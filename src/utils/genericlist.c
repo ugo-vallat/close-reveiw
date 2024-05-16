@@ -22,6 +22,7 @@
 #include <bits/pthreadtypes.h>
 #include <pthread.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <utils/genericlist.h>
@@ -54,7 +55,7 @@ struct s_gen_list {
 /**
  * @author Ugo VALLAT
  */
-GenList *createGenList(unsigned memory_size) {
+GenList *initGenList(unsigned memory_size) {
     GenList *l = malloc(sizeof(GenList));
     if (l == NULL)
         exitl("genericlist.c", "createGenList", EXIT_FAILURE, "erreur malloc list");
@@ -74,7 +75,7 @@ GenList *createGenList(unsigned memory_size) {
 /**
  * @author Ugo VALLAT
  */
-void deleteGenList(ptrGenList *l, freefun fun) {
+void deinitGenList(ptrGenList *l, freefun fun) {
     /* test l != NULL */
     testArgNull(l, "genericlist.c", "deleteGenList", "l");
     testArgNull((*l), "genericlist.c", "deleteGenList", "*l");
@@ -88,12 +89,12 @@ void deleteGenList(ptrGenList *l, freefun fun) {
     *l = NULL;
 }
 
-void clearGenList(GenList *l) {
+void genListClear(GenList *l, freefun fun) {
     testArgNull(l, "genericlist.c", "clearGenList", "l");
     pthread_mutex_lock(&(l->mutex));
 
     while (!genListIsEmpty(l)) {
-        free(genListPop((GenList *)l));
+        fun(genListPop(l));
     }
     pthread_mutex_unlock(&(l->mutex));
 }
@@ -225,7 +226,10 @@ bool genListContains(GenList *l, void *e) {
  */
 unsigned genListSize(GenList *l) {
     testArgNull(l, "genericlist.c", "genListSize", "l");
-    return l->size;
+    pthread_mutex_lock(&(l->mutex));
+    unsigned size = l->size;
+    pthread_mutex_unlock(&(l->mutex));
+    return size;
 }
 
 /**
@@ -272,5 +276,21 @@ void genListSet(GenList *l, void *v, unsigned i) {
         exitl("genericlist.c", "genListSet", EXIT_FAILURE, "position (%d) invalide", i);
 
     l->tab[i] = v;
+    pthread_mutex_unlock(&(l->mutex));
+}
+
+void genListPrintl(GenList *l, printGen fun) {
+    testArgNull(l, "genericlist.c", "genListPrintl", "l");
+    testArgNull(l, "genericlist.c", "genListPrintl", "fun");
+
+    char *desc;
+    pthread_mutex_lock(&(l->mutex));
+    printl("{");
+    for (unsigned i = 0; i < genListSize(l); i++) {
+        desc = fun(l->tab[i]);
+        printl("\t %s ,\n", desc);
+        free(desc);
+    }
+    printl("}\n");
     pthread_mutex_unlock(&(l->mutex));
 }

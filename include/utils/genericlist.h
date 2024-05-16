@@ -39,7 +39,7 @@ typedef void (*freefun)(void *);
  * @return pointeur vers la liste
  * @note Alloue la mémoire mais n'est pas initialisée (taille liste = 0)
  */
-GenList *createGenList(unsigned memory_size);
+GenList *initGenList(unsigned memory_size);
 
 /**
  * @brief Supprime la liste mais ne supprime pas la donées pointée
@@ -48,13 +48,15 @@ GenList *createGenList(unsigned memory_size);
  *
  * @param[in] l liste à supprimer
  */
-void deleteGenList(ptrGenList *l, freefun fun);
+void deinitGenList(ptrGenList *l, freefun fun);
 
-/*
- @brief Supprume les elment de la liste
-
-*/
-void clearGenList(GenList *l);
+/**
+ * @brief Remove all elements from the list and free memory
+ *
+ * @param l List to clear
+ * @param fun Fun to free data
+ */
+void genListClear(GenList *l, freefun fun);
 
 /**
  * @brief Ajoute l'élément à la fin de la liste
@@ -168,5 +170,19 @@ unsigned genListSize(GenList *l);
  *
  */
 GenList *genListCopy(GenList *l);
+
+/**
+ * @brief Return a description of the element (toString)
+ *
+ */
+typedef char *(*printGen)(void *);
+
+/**
+ * @brief Display elements of genList in the logger
+ *
+ * @param l List to display
+ * @param fun Function to display elements
+ */
+void genListPrintl(GenList *l, printGen fun);
 
 #endif

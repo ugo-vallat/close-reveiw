@@ -10,11 +10,11 @@
 
 #define PACKET_BUFF_SIZE 512
 
-#define CHAR_IP_SIZE 32
+#define SIZE_IP_CHAR 32
 
 typedef struct s_tls_infos TLS_infos;
 
-typedef enum e_mode { SERVER = 1, CLIENT = 2 } Mode;
+typedef enum e_mode { SERVER = 1, CLIENT = 2, MAIN_SERVER = 3 } Mode;
 
 typedef enum e_tls_error {
     TLS_SUCCESS = 0,       /* success */
@@ -41,14 +41,23 @@ TLS_infos *initTLSInfos(const char *ip, const int port, Mode mode, char *path_ce
  *
  * @param[in] infos Structure to delete
  */
-TLS_error deleteTLSInfos(TLS_infos **infos);
+TLS_error deinitTLSInfos(TLS_infos **infos);
 
 /**
  * @brief Establishes a secure communication channel with the remote host
  * @param[in] infos Information about the remote device
+ * @param[in] timeout Set timeout in server mode
  * @return TLS_error
  */
-int openComTLS(TLS_infos *infos);
+int tlsOpenCom(TLS_infos *infos, struct timeval *timeout);
+
+/**
+ * @brief Accept new TLS connection from client (only for main server)
+ *
+ * @param[in] infos Infos server
+ * @return TLS_infos*
+ */
+TLS_infos *tlsAcceptCom(TLS_infos *infos);
 
 /**
  * @brief Closes the communication channel
@@ -56,7 +65,7 @@ int openComTLS(TLS_infos *infos);
  * @param[out] lastReceived List of last packets received (NULL if ignored)
  * @return TLS_error
  */
-TLS_error closeComTLS(TLS_infos *infos, GenList **lastReceived);
+TLS_error tlsCloseCom(TLS_infos *infos, GenList **lastReceived);
 
 /**
  * @brief Sends the packet to the remote host
@@ -64,14 +73,14 @@ TLS_error closeComTLS(TLS_infos *infos, GenList **lastReceived);
  * @param[in] p Packet to send
  * @return TLS_error
  */
-TLS_error sendPacket(TLS_infos *infos, Packet *p);
+TLS_error tslSendPacket(TLS_infos *infos, Packet *p);
 
 /**
  * @brief Indicates if packets have been received
  * @param[in] infos Communication channel
  * @return true if packets are pending, false otherwise
  */
-bool isPacketReceived(TLS_infos *infos);
+bool tlsIsPacketReceived(TLS_infos *infos);
 
 /**
  * @brief Stores the oldest received packet in p
@@ -80,6 +89,6 @@ bool isPacketReceived(TLS_infos *infos);
  * @param[out] p Buffer to retrieve the packet
  * @return TLS_error
  */
-TLS_error receivePacket(TLS_infos *infos, Packet **p);
+TLS_error tlsReceivePacket(TLS_infos *infos, Packet **p);
 
 #endif
