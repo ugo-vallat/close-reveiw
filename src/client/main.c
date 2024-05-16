@@ -16,7 +16,8 @@ int main(void) {
         exit(EXIT_FAILURE);
     }
 
-    t_addr server, user;
+    t_addr_serv server;
+    t_addr_user user;
     t_history history;
     t_conf_ssl conf_ssl;
 
@@ -25,7 +26,8 @@ int main(void) {
     }
 
     printf("User IP: %s\n", user.ip);
-    printf("User Port: %d\n", user.port);
+    printf("User Local Port: %d\n", user.local_port);
+    printf("User Public Port: %d\n", user.public_port);
     printf("Server IP: %s\n", server.ip);
     printf("Server Port: %d\n", server.port);
     printf("History User Consent: %s\n", history.user_consent ? "true" : "false");
@@ -34,5 +36,6 @@ int main(void) {
     printf("SSL Key Path: %s\n", conf_ssl.key);
 
     fclose(config);
+
     return EXIT_SUCCESS;
 }

@@ -24,7 +24,7 @@ bool getConfigFilePath(char config_file[DIRECTORY_MAX_SIZE]) {
     return true;
 }
 
-bool setConfig(FILE *config, t_addr *user, t_addr *server, t_history *history,
+bool setConfig(FILE *config, t_addr_user *user, t_addr_serv *server, t_history *history,
                t_conf_ssl *conf_ssl) {
     char header[BUFFER_SIZE];
     char token[BUFFER_SIZE];
@@ -35,8 +35,10 @@ bool setConfig(FILE *config, t_addr *user, t_addr *server, t_history *history,
                 if (fscanf(config, "ip = \"%15[^\"]\"\n", user->ip) != 1) {
                     // User Configuration isn't mandatory
                     user->ip[0] = '\0';
-                    user->port = -1;
-                } else if (fscanf(config, "port = %d\n", &user->port) != 1) {
+                    user->local_port = -1;
+                    user->public_port = -1;
+                } else if (fscanf(config, "local_port = %d\n", &user->local_port) != 1 ||
+                           fscanf(config, "public_port = %d\n", &user->public_port) != 1) {
                     perror("Error reading user section");
                     return false;
                 }

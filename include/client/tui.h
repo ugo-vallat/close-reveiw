@@ -1,13 +1,33 @@
 #ifndef __TUI_H__
 #define __TUI_H__
 
+#include <stdbool.h>
+
 #define COMMAND_MAX_SIZE 32
-#define ESCAPE_KEY 27
+#define NB_COMMANDS 8
+#define SIZE_NAME 30
+#define SIZE_DATA_PACKET 2048
 
-typedef enum { NORMAL_MODE, COMMAND_MODE, INSERT_MODE, SEARCH_MODE } Mode;
+typedef enum {
+    LIST = 0,
+    REQUEST = 1,
+    CONNECT = 2,
+    ACCEPT = 3,
+    REJECT = 4,
+    CLOSE = 5,
+    QUIT = 6,
+    HELP = 7,
+    UNKNOWN = 8
+} Command;
 
-typedef enum { QUIT, UNKNOWN } Command;
+Command get_command_type(char *command);
 
-void startTUI(void);
+bool is_valid_character(unsigned char character);
+
+bool is_valid_user_id(char *user_id);
+
+void print_messages(char *user, char *message);
+
+char *get_user_input(char *user);
 
 #endif // !__TUI_H__

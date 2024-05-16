@@ -35,7 +35,6 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
         .target = b.graph.host,
     });
-    client.linkSystemLibrary("ncurses");
     client.addCSourceFile(.{ .file = .{ .path = "src/client/main.c" }, .flags = flags });
     client.addIncludePath(.{ .path = "include/" });
     client.addCSourceFiles(.{ .root = .{ .path = "src/" }, .files = c_include_list, .flags = flags });

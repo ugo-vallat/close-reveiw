@@ -11,7 +11,13 @@
 typedef struct {
     char ip[CHAR_IP_SIZE];
     int port;
-} t_addr;
+} t_addr_serv;
+
+typedef struct {
+    char ip[CHAR_IP_SIZE];
+    int local_port;
+    int public_port;
+} t_addr_user;
 
 typedef struct {
     bool user_consent;
@@ -25,7 +31,7 @@ typedef struct {
 
 bool getConfigFilePath(char config_file[DIRECTORY_MAX_SIZE]);
 
-bool setConfig(FILE *config, t_addr *user, t_addr *server, t_history *history,
+bool setConfig(FILE *config, t_addr_user *user, t_addr_serv *server, t_history *history,
                t_conf_ssl *conf_ssl);
 
 #endif // !__CONFIG_H__
