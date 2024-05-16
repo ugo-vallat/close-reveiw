@@ -6,3 +6,5 @@ zig-out/
 .cache/
 compile_commands.json
 
+# Config File
+config.toml
