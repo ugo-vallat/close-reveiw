@@ -5,7 +5,7 @@ const std = @import("std");
 // runner.
 pub fn build(b: *std.Build) void {
     const c_include_list = &.{
-        "network/gestionary-com.c",
+        "network/gestionary.c",
         "network/p2p-com.c",
         "network/p2p-msg.c",
         "network/packet.c",
