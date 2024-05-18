@@ -1,40 +1,52 @@
 #ifndef __TLS_COM_H__
 #define __TLS_COM_H__
 
-#include "utils/genericlist.h"
-#include <arpa/inet.h>
-#include <network/packet.h>
-#include <openssl/err.h>
+#include <network/manager.h>
 #include <openssl/ssl.h>
-#include <stdbool.h>
 
-#define PACKET_BUFF_SIZE 512
+typedef void (*funPacketManager)(Manager *manager, Packet *packet);
 
-#define SIZE_IP_CHAR 32
+typedef enum e_tls_mode { TLS_SERVER = 1, TLS_CLIENT = 2, TLS_MAIN_SERVER = 3 } TLS_mode;
 
-typedef struct s_tls_infos TLS_infos;
+typedef struct s_tls_infos { /* info */
+    char *ip;
+    int port;
+    TLS_mode mode;
+    char *path_cert;
+    char *path_key;
+    bool end;
 
-typedef enum e_mode { SERVER = 1, CLIENT = 2, MAIN_SERVER = 3 } Mode;
+    /* structures */
+    SSL_CTX *ctx;
+    SSL *ssl;
+    int sockfd;
+
+    /* packetManager */
+    funPacketManager P2Pmanager;
+    funPacketManager MSGmanager;
+
+} TLS_infos;
 
 typedef enum e_tls_error {
     TLS_SUCCESS = 0,       /* success */
     TLS_ERROR = -1,        /* undifined error, check logs for more informations */
     TLS_NULL_POINTER = -2, /* a parameter was NULL */
-    TLS_CLOSE = -3,        /* communication is close, you should call closeComTLS */
-    TLS_DISCONNECTED = -4, /* not connected to the peer, call openComTLS */
-    TLS_RETRY = -5         /* retry later */
 } TLS_error;
 
 /**
  * @brief Malloc and fill TLS_infos
  * @param[in] ip Server IP
  * @param[in] port Server port
+ * @param[in] mode Mode for connection establishment
  * @param[in] path_cert Path to server's certificate (NULL if CLIENT mode)
  * @param[in] path_key Path to server's private key (NULL if CLIENT mode)
+ * @param[in] MSGmanager Manager of Msg Packets
+ * @param[in] P2Pmanager Manager of P2P_msg Packets
  * @return TLS_infos*
  * @note Use deleteTLSInfos() to delete this structure
  */
-TLS_infos *initTLSInfos(const char *ip, const int port, Mode mode, char *path_cert, char *path_key);
+TLS_infos *initTLSInfos(const char *ip, const int port, TLS_mode mode, char *path_cert,
+                        char *path_key, funPacketManager MSGmanager, funPacketManager P2Pmanager);
 
 /**
  * @brief Delete structure TLS_infos and free memory
@@ -49,7 +61,7 @@ TLS_error deinitTLSInfos(TLS_infos **infos);
  * @param[in] timeout Set timeout in server mode
  * @return TLS_error
  */
-int tlsOpenCom(TLS_infos *infos, struct timeval *timeout);
+TLS_error tlsOpenCom(TLS_infos *infos, struct timeval *timeout);
 
 /**
  * @brief Accept new TLS connection from client (only for main server)
@@ -60,35 +72,12 @@ int tlsOpenCom(TLS_infos *infos, struct timeval *timeout);
 TLS_infos *tlsAcceptCom(TLS_infos *infos);
 
 /**
- * @brief Closes the communication channel
- * @param[in] infos Channel to close
- * @param[out] lastReceived List of last packets received (NULL if ignored)
- * @return TLS_error
- */
-TLS_error tlsCloseCom(TLS_infos *infos, GenList **lastReceived);
-
-/**
- * @brief Sends the packet to the remote host
- * @param[in] infos Communication channel
- * @param[in] p Packet to send
- * @return TLS_error
- */
-TLS_error tslSendPacket(TLS_infos *infos, Packet *p);
-
-/**
- * @brief Indicates if packets have been received
- * @param[in] infos Communication channel
- * @return true if packets are pending, false otherwise
- */
-bool tlsIsPacketReceived(TLS_infos *infos);
-
-/**
- * @brief Stores the oldest received packet in p
+ * @brief Close the TLS Manager module (SERVER or PEER) and shutdown communication
  *
- * @param[in] infos Communication channel
- * @param[out] p Buffer to retrieve the packet
+ * @param[in] Manager manager
+ * @param[in] module TLS module to close
  * @return TLS_error
  */
-TLS_error tlsReceivePacket(TLS_infos *infos, Packet **p);
+TLS_error tlsCloseTLSManagerModule(Manager *manager, Manager_module module);
 
 #endif

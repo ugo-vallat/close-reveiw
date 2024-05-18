@@ -2,8 +2,8 @@
 #define __HISTORY_MANAGER_H__
 
 #include <stdbool.h>
-#include <utils/genericlist.h>
-#include <utils/message.h>
+#include <types/genericlist.h>
+#include <types/message.h>
 
 typedef struct s_history_info HistoryInfo;
 

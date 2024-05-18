@@ -1,28 +1,32 @@
 #ifndef __PACKET_H__
 #define __PACKET_H__
 
-#include <utils/message.h>
+#include <types/message.h>
+#include <types/p2p-msg.h>
+#include <utils/const-define.h>
 #include <utils/token.h>
 
-#define SIZE_DATA_PACKET 4096
+typedef enum e_packet_type { PACKET_TXT, PACKET_MSG, PACKET_P2P_MSG } Packet_type;
 
-typedef enum e_Packet_type { MSG = 1, P2P = 2, TXT = 3 } Packet_type;
-
-typedef struct s_Packet {
+typedef struct s_packet {
     Packet_type type;
-    unsigned long size;
-    unsigned char data[SIZE_DATA_PACKET];
+    union {
+        char txt[SIZE_TXT];
+        Msg msg;
+        P2P_msg p2p;
+    };
 } Packet;
 
 /**
  * @brief Create a Packet object that can contain an object in the Packet_type enum
  *
- * @param type Type of object contained in the packet
- * @param buff Object
- * @param size Size of object
  * @return Packet* if success, NULL otherwise
  */
-Packet *initPacket(Packet_type type, void *buff, unsigned long size);
+Packet *initPacketTXT(char *txt);
+
+Packet *initPacketMsg(Msg *msg);
+
+Packet *initPacketP2PMsg(P2P_msg *msg);
 
 /**
  * @brief Delete packet

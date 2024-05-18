@@ -1,7 +1,7 @@
 #ifndef __TMP_COMMAND_H__
 #define __TMP_COMMAND_H__
 
-#include <utils/genericlist.h>
+#include <types/genericlist.h>
 
 #define SIZE_CMD_RES 1024
 

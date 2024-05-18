@@ -1,38 +1,31 @@
 #ifndef __P2P_MSG_H__
 #define __P2P_MSG_H__
 
-#include "network/tls-com.h"
-#include "utils/message.h"
-
-#define MAX_ONLINE 8
+#include <types/genericlist.h>
+#include <utils/const-define.h>
 
 typedef enum e_p2p_msg_type {
     /* connection server */
-    ID_USER,
+    P2P_USER_ID,
 
     /* Connection p2p init */
-    ACCEPT_CONNECTION,
-    REJECT_CONNECTION,
-    REQUEST_CONNECTION,
-    REQUEST_LIST_ONLINE,
-    RESPONSE_LIST_ONLINE,
-    REQUEST_PEER_REQUEST,
-    RESPONSE_PEER_REQUEST,
+    P2P_ACCEPT,
+    P2P_REJECT,
+    P2P_REQUEST_IN,
+    P2P_REQUEST_OUT,
+    P2P_GET_AVAILABLE,
+    P2P_AVAILABLE,
 
     /* send informations */
-    REQUEST_INFO_COM,
-    RESPONSE_INFO_COM,
+    P2P_GET_INFOS,
+    P2P_INFOS,
 
     /* Method to try */
-    CON_SUCCESS,
-    CON_FAILURE,
-    CON_ABORTED,
-    TRY_SERVER_MODE,
-    TRY_CLIENT_MODE,
+    P2P_CON_SUCCESS,
+    P2P_CON_FAILURE,
+    P2P_TRY_SERVER_MODE,
+    P2P_TRY_CLIENT_MODE,
 
-    /* if packet received invalid */
-    INVALID_PACKET,
-    UNDIFINED_P2P_TYPE
 } P2P_msg_type;
 
 typedef struct s_p2p_msg {
@@ -56,26 +49,13 @@ typedef struct s_p2p_msg {
 } P2P_msg;
 
 /**
- * @brief Create struct P2P_msg
+ * @brief Init struct P2P_msg
  *
- * @param[in] type Type of the message
- * @return P2P_msg*
+ * @param msg P2P_msg* to init
+ * @param type Type of the message
+ * @return O if success, -1 otherwise
  */
-P2P_msg *initP2PMsg(P2P_msg_type type);
-
-/**
- * @brief Delete the message and free memory
- *
- * @param[in] msg Message to delete
- */
-void deinitP2PMsg(P2P_msg *msg);
-
-/**
- * @brief Delete P2P_msg passed as a void*
- *
- * @param[in] msg P2P_msg
- */
-void deinitP2PMsgGen(void *msg);
+int initP2PMsg(P2P_msg *msg, P2P_msg_type type);
 
 /**
  * @brief Copy the message in a new structure
@@ -85,9 +65,19 @@ void deinitP2PMsgGen(void *msg);
  */
 P2P_msg *p2pCopyMsg(P2P_msg *msg);
 
+/**
+ * @brief Convert P2P_msg into char*
+ *
+ * @param msg P2P_msg to convert
+ * @return char*
+ * @note max size = SIZE_TXT
+ */
+char *p2pMsgToTXT(P2P_msg *msg);
+
 /*
     Getteur on P2P_msg*
 */
+
 P2P_msg_type p2pMsgGetType(P2P_msg *msg);
 
 char *p2pMsgGetUserId(P2P_msg *msg);

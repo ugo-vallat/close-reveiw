@@ -5,14 +5,16 @@ const std = @import("std");
 // runner.
 pub fn build(b: *std.Build) void {
     const c_include_list = &.{
-        "network/gestionary.c",
+        "network/manager.c",
+        "network/chat.c",
         "network/p2p-com.c",
-        "network/p2p-msg.c",
-        "network/packet.c",
         "network/tls-com.c",
-        "utils/message.c",
-        "utils/genericlist.c",
+        "types/p2p-msg.c",
+        "types/packet.c",
+        "types/message.c",
+        "types/genericlist.c",
         "utils/logger.c",
+        "utils/token.c",
     };
     const c_include_list_server = &.{};
     const c_include_list_client = &.{};
