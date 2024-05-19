@@ -9,7 +9,8 @@ typedef enum e_manager_module {
     MANAGER_INPUT,  /* manager of the input thread (user input) */
     MANAGER_OUTPUT, /* manager of the output thread (user output) */
     MANAGER_SERVER, /* manager of the server communication thread */
-    MANAGER_PEER    /* manager of the p2p communication thread */
+    MANAGER_PEER,   /* manager of the p2p communication thread */
+    MANAGER_MAIN    /* manager of the main thread */
 } Manager_module;
 
 typedef enum e_manager_state {

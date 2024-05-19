@@ -2,6 +2,7 @@
 #define __TLS_COM_H__
 
 #include "types/genericlist.h"
+#include "utils/const-define.h"
 #include <network/manager.h>
 #include <openssl/ssl.h>
 
@@ -20,19 +21,15 @@ typedef void (*funTLSPacketReceivedManager)(Manager *manager, Manager_module mod
 /* function get the next packet to send */
 typedef TLS_error (*funTLSGetNextPacket)(Manager *manager, Manager_module module, Packet **packet);
 
-typedef struct s_client {
-
-} Client;
-
 typedef enum e_tls_mode { TLS_SERVER = 1, TLS_CLIENT = 2, TLS_MAIN_SERVER = 3 } TLS_mode;
 
 typedef struct s_tls_infos {
     /* info */
-    char *ip;
+    char ip[SIZE_IP_CHAR];
     int port;
     TLS_mode mode;
-    char *path_cert;
-    char *path_key;
+    char path_cert[SIZE_DIRECTORY];
+    char path_key[SIZE_DIRECTORY];
     bool open;
 
     /* structures */
@@ -133,6 +130,6 @@ TLS_error tlsSend(TLS_infos *infos, Packet *packet);
  * @param[out] packet Packet received, NULL if nothing
  * @return TLS_error
  */
-TLS_error tlsReaceiveNonBlocking(TLS_infos *infos, Packet **packet);
+TLS_error tlsReceiveNonBlocking(TLS_infos *infos, Packet **packet);
 
 #endif

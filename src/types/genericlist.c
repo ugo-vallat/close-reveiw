@@ -25,7 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
-#include <utils/genericlist.h>
+#include <types/genericlist.h>
 #include <utils/logger.h>
 
 /*-----------------------------------------------------------------*/
@@ -241,7 +241,7 @@ GenList *genListCopy(GenList *l) {
     pthread_mutex_lock(&(l->mutex));
 
     /* création nouvelle liste */
-    GenList *new = createGenList(l->size);
+    GenList *new = initGenList(l->size);
 
     /* copie des éléments */
     for (unsigned i = 0; i < l->size; i++)

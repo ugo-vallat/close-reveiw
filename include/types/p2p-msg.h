@@ -25,7 +25,6 @@ typedef enum e_p2p_msg_type {
     P2P_CON_FAILURE,
     P2P_TRY_SERVER_MODE,
     P2P_TRY_CLIENT_MODE,
-
 } P2P_msg_type;
 
 typedef struct s_p2p_msg {
@@ -51,28 +50,44 @@ typedef struct s_p2p_msg {
 /**
  * @brief Init struct P2P_msg
  *
- * @param msg P2P_msg* to init
- * @param type Type of the message
+ * @param[out] msg P2P_msg* to init
+ * @param[in] type Type of the message
  * @return O if success, -1 otherwise
  */
-int initP2PMsg(P2P_msg *msg, P2P_msg_type type);
+P2P_msg *initP2PMsg(P2P_msg_type type);
 
 /**
- * @brief Copy the message in a new structure
+ * @brief Deletes struct P2P_msg and free the memory
  *
- * @param[in] msg Message to copy
- * @return P2P_msg *
+ * @param msg P2P_msg to delete
  */
-P2P_msg *p2pCopyMsg(P2P_msg *msg);
+void deinitP2PMsg(P2P_msg **msg);
 
 /**
  * @brief Convert P2P_msg into char*
  *
- * @param msg P2P_msg to convert
+ * @param[in] msg P2P_msg to convert
  * @return char*
  * @note max size = SIZE_TXT
  */
 char *p2pMsgToTXT(P2P_msg *msg);
+
+/**
+ * @brief  Convert P2P_msg into char* and store it in txt
+ *
+ * @param[in] msg P2P_msg to convert
+ * @param[out] txt TXT buffer
+ * @note max size = SIZE_TXT
+ */
+void p2pMsgIntoTXT(P2P_msg *msg, char *txt);
+
+/**
+ * @brief Copy msg_src into msg_dst
+ *
+ * @param msg_dst Source message
+ * @param msg_src Destination message
+ */
+void p2pMsgCopy(P2P_msg *msg_dst, P2P_msg *msg_src);
 
 /*
     Getteur on P2P_msg*

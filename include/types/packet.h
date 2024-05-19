@@ -33,7 +33,7 @@ Packet *initPacketP2PMsg(P2P_msg *msg);
  *
  * @param p Packet to delete
  */
-void deinitPacket(Packet *p);
+void deinitPacket(Packet **p);
 
 /**
  * @brief Delete packet as void*

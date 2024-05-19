@@ -70,6 +70,6 @@ void assertl(bool assert, const char *file_name, const char *fun_name, int exit_
  * @brief Ferme le logger
  * @remark Ne fais rien si la sortie est stdout
  */
-void close_logger();
+void close_logger(void);
 
 #endif

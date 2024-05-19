@@ -16,4 +16,6 @@
 /* Type TXT */
 #define SIZE_TXT 2048
 
+#define SIZE_DIRECTORY 256
+
 #endif

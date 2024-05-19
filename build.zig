@@ -5,9 +5,9 @@ const std = @import("std");
 // runner.
 pub fn build(b: *std.Build) void {
     const c_include_list = &.{
-        "network/manager.c",
-        "network/chat.c",
-        "network/p2p-com.c",
+        // "network/manager.c",
+        // "network/chat.c",
+        // "network/p2p-com.c",
         "network/tls-com.c",
         "types/p2p-msg.c",
         "types/packet.c",
@@ -21,8 +21,11 @@ pub fn build(b: *std.Build) void {
     const flags = &.{
         "-g",
         "-pedantic",
+        "-rdynamic",
         "-Wextra",
+        "-Wall",
         "-pthread",
+        "-std=c99",
         "-D__USE_UNIX98",
         "-D__USE_XOPEN2K",
     };

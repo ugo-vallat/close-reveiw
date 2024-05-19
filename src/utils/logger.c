@@ -173,7 +173,7 @@ void assertl(bool assert, const char *file_name, const char *fun_name, int exit_
  * @date 04/11/2023
  * @author LAFORGE Mateo
  */
-void close_logger() {
+void close_logger(void) {
     if (output != NULL && output != stdout)
         fclose(output);
 }

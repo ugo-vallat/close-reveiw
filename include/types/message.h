@@ -16,20 +16,45 @@ typedef struct s_Msg {
 /**
  * @brief Init struct Msg
  *
- * @param msg Msg* to init
- * @param sender Sender of the message (size = SIZE_NAME)
- * @return O if success, -1 otherwise
+ * @param[in] sender Sender of the message (size = SIZE_NAME)
+ * @param[in] string String to store into the message (size = SIZE_MSG_DATA)
+ * @return Msg* or NULL if error
  */
-int initMsg(Msg *msg, char *sender, const char *string);
+Msg *initMsg(char *sender, const char *string);
+
+/**
+ * @brief Deletes struct Msg and free the memory
+ *
+ * @param[in] msg Msg to delete
+ */
+void deinitMsg(Msg **msg);
 
 /**
  * @brief Convert Msg into char*
  *
- * @param msg Msg to convert
+ * @param[in] msg Msg to convert
  * @return char*
  * @note max size = SIZE_TXT
  */
 char *msgToTXT(Msg *msg);
+
+/**
+ * @brief Convert Msg into char* and store it in txt
+ *
+ * @param[in] msg Msg to convert
+ * @param[out] txt TXT buffer
+ * @return char*
+ * @note max size = SIZE_TXT
+ */
+int msgIntoTXT(Msg *msg, char *txt);
+
+/**
+ * @brief Copy msg_src into msg_dst
+ *
+ * @param msg_dst Source message
+ * @param msg_src Destination message
+ */
+void msgCopy(Msg *msg_dst, Msg *msg_src);
 
 /* Msg getters */
 

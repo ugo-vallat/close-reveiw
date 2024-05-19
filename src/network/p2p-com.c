@@ -1,7 +1,3 @@
-#include "network/gestionary-com.h"
-#include "network/p2p-msg.h"
-#include "utils/genericlist.h"
-#include "utils/logger.h"
 #include <network/p2p-com.h>
 #include <network/packet.h>
 #include <network/tls-com.h>
