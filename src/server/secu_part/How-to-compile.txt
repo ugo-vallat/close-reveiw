@@ -1,0 +1,6 @@
+How-to-compile : 
+gcc test_mysql.c -o outputfile `mysql_config --cflags --libs`
+gcc src/server/secu_part/test_mysql.c -o outputfile src/server/secu_part/weak_password.c -lcrypto `mysql_config --cflags --lib
+
+s`
+gcc passlist_to_hashlist.c -o outputfile -lcrypto

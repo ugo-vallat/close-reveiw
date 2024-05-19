@@ -1,0 +1,3 @@
+libmysqlclient-dev
+libmariadb-dev-compat
+mysql-server
