@@ -4,11 +4,13 @@
 #include <network/manager.h>
 #include <openssl/ssl.h>
 
-typedef void (*funPacketManager)(Manager *manager, Packet *packet);
+/* function to write packets received in the manager */
+typedef void (*funPacketManagerOut)(Manager *manager, Packet *packet);
 
 typedef enum e_tls_mode { TLS_SERVER = 1, TLS_CLIENT = 2, TLS_MAIN_SERVER = 3 } TLS_mode;
 
-typedef struct s_tls_infos { /* info */
+typedef struct s_tls_infos {
+    /* info */
     char *ip;
     int port;
     TLS_mode mode;
@@ -22,8 +24,9 @@ typedef struct s_tls_infos { /* info */
     int sockfd;
 
     /* packetManager */
-    funPacketManager P2Pmanager;
-    funPacketManager MSGmanager;
+    Manager_module module;
+    funPacketManagerOut P2P_manager;
+    funPacketManagerOut MSG_manager;
 
 } TLS_infos;
 
@@ -40,13 +43,15 @@ typedef enum e_tls_error {
  * @param[in] mode Mode for connection establishment
  * @param[in] path_cert Path to server's certificate (NULL if CLIENT mode)
  * @param[in] path_key Path to server's private key (NULL if CLIENT mode)
- * @param[in] MSGmanager Manager of Msg Packets
- * @param[in] P2Pmanager Manager of P2P_msg Packets
+ * @param[in] Module Module to get read the pakect
+ * @param[in] MSG_manager Manager of Msg Packets
+ * @param[in] P2P_manager Manager of P2P_msg Packets
  * @return TLS_infos*
  * @note Use deleteTLSInfos() to delete this structure
  */
-TLS_infos *initTLSInfos(const char *ip, const int port, TLS_mode mode, char *path_cert,
-                        char *path_key, funPacketManager MSGmanager, funPacketManager P2Pmanager);
+TLS_infos *initTLSInfos(const char *ip, const int port, TLS_mode tls_mode, char *path_cert,
+                        char *path_key, Manager_module module, funPacketManagerOut MSG_manager,
+                        funPacketManagerOut P2P_manager);
 
 /**
  * @brief Delete structure TLS_infos and free memory

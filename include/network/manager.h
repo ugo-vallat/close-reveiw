@@ -41,16 +41,16 @@ Manager *initManager();
 
 void deinitManager(Manager **manager);
 
-void managerSetState(Manager_module module, Manager_state state);
+void managerSetState(Manager *manager, Manager_module module, Manager_state state);
 
-Manager_state managerGetState(Manager_module module);
+Manager_state managerGetState(Manager *manager, Manager_module module);
 
-Manager_error managerSend(Manager_module module, Packet *packet);
+Manager_error managerSend(Manager *manager, Manager_module module, Packet *packet);
 
-Manager_error managerReceiveBlocking(Manager_module module, Packet **packet);
+Manager_error managerReceiveBlocking(Manager *manager, Manager_module module, Packet **packet);
 
-Manager_error managerReceiveNonBloking(Manager_module module, Packet **packet);
+Manager_error managerReceiveNonBlocking(Manager *manager, Manager_module module, Packet **packet);
 
-Manager_error managerMainReceive(pthread_t *nbt);
+Manager_error managerMainReceive(Manager *manager, pthread_t *nbt);
 
 #endif

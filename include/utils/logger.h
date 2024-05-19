@@ -11,6 +11,8 @@
 #ifndef __LOGGER__H__
 #define __LOGGER__H__
 
+#include <stdbool.h>
+
 /**
  * @brief Initialise le logger en définissant sa sortie sur un chemin
  * @remark en mode DEBUG la sortie sera toujours la valeur par défaut
@@ -51,6 +53,18 @@ void warnl(const char *file_name, const char *fun_name, const char *format, ...)
  * syntaxe qu'un printf)
  */
 void exitl(const char *file_name, const char *fun_name, int exit_value, char *format, ...);
+
+/**
+ * @brief if assertion is false, exit and print message in logger
+ *
+ * @param[in] assert Assertion to test
+ * @param[in] file_name Caller file name
+ * @param[in] fun_name Caller function name
+ * @param[in] exit_value Value returned at exit
+ * @param[in] format Format of the message
+ */
+void assertl(bool assert, const char *file_name, const char *fun_name, int exit_value, char *format,
+             ...);
 
 /**
  * @brief Ferme le logger

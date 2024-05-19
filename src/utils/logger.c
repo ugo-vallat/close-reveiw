@@ -141,6 +141,34 @@ void exitl(const char *file_name, const char *fun_name, int exit_value, char *fo
     exit(exit_value);
 }
 
+void assertl(bool assert, const char *file_name, const char *fun_name, int exit_value, char *format,
+             ...) {
+    va_list args;
+    /* If assertion is true, nothing to do */
+    if (assert)
+        return;
+
+    /* else */
+    va_start(args, format);
+    if (errno)
+        perror("Exit with errno ");
+    // format de sortie dépendant
+    if (console) {
+        fprintf(output, RED);
+        fprintf(output, "[assert] %s > %s : ", file_name, fun_name);
+        vfprintf(output, format, args);
+        fprintf(output, RSTC);
+        fprintf(output, "\n");
+    } else {
+        fprintf(output, "[assert] %s > %s : ", file_name, fun_name);
+        vfprintf(output, format, args);
+        fprintf(output, "\n");
+    }
+    va_end(args);
+    close_logger();
+    exit(exit_value);
+}
+
 /**
  * @date 04/11/2023
  * @author LAFORGE Mateo
