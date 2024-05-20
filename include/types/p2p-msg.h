@@ -6,30 +6,30 @@
 
 typedef enum e_p2p_msg_type {
     /* connection server */
-    P2P_CONNECTION_SERVER,
-    P2P_CONNECTION_OK,
-    P2P_CONNECTION_KO,
+    P2P_CONNECTION_SERVER, /* Client tries to connect to the server with user_id + password */
+    P2P_CONNECTION_OK,     /* Server confirms connection */
+    P2P_CONNECTION_KO,     /* Server refuses connection */
 
     /* Connection p2p init */
-    P2P_ACCEPT,
-    P2P_REJECT,
-    P2P_REQUEST_IN,
-    P2P_REQUEST_OUT,
-    P2P_GET_AVAILABLE,
-    P2P_AVAILABLE,
+    P2P_ACCEPT,        /* Client accept connection request */
+    P2P_REJECT,        /* Client refuse connection request */
+    P2P_REQUEST_IN,    /* Server send connection request from an other user */
+    P2P_REQUEST_OUT,   /* Client request an other user */
+    P2P_GET_AVAILABLE, /* Client request the list of users available */
+    P2P_AVAILABLE,     /* Server send the list of users available */
 
     /* send informations */
-    P2P_GET_INFOS,
-    P2P_INFOS,
+    P2P_GET_INFOS, /* Server request network informations of user */
+    P2P_INFOS,     /* Client send his network informations */
 
     /* Method to try */
-    P2P_CON_SUCCESS,
-    P2P_CON_FAILURE,
-    P2P_TRY_SERVER_MODE,
-    P2P_TRY_CLIENT_MODE,
+    P2P_CON_SUCCESS,     /* Client succeed to connect in P2P */
+    P2P_CON_FAILURE,     /* Client failed to connect in P2P */
+    P2P_TRY_SERVER_MODE, /* Server request client to try connect in P2P in TLS_SERVER mode*/
+    P2P_TRY_CLIENT_MODE, /* Server request client to try connect in P2P in TLS_CLIENT mode*/
 
     /* close connection */
-    P2P_CLOSE
+    P2P_CLOSE /* Server or User request to close the P2P connection */
 } P2P_msg_type;
 
 typedef enum e_p2p_error {

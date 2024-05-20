@@ -1,6 +1,7 @@
 #ifndef __GESTONARU_COM__
 #define __GESTONARU_COM__
 
+#include <bits/pthreadtypes.h>
 #include <pthread.h>
 #include <types/genericlist.h>
 #include <types/packet.h>
@@ -32,7 +33,6 @@ typedef struct s_buffer_input {
     pthread_mutex_t *mutex_wait_read;
     pthread_mutex_t *mutex_access_buffer;
     GenList *buff;
-    pthread_t num_t;
 } Buffer_module;
 
 typedef struct s_manager {
@@ -71,16 +71,25 @@ void managerSetState(Manager *manager, Manager_module module, Manager_state stat
 /**
  * @brief Return the state of the module
  *
- * @param manager Manager
- * @param module Module
+ * @param[in] manager Manager
+ * @param[in] module Module
  * @return Manager_state
  */
 Manager_state managerGetState(Manager *manager, Manager_module module);
 
 /**
+ * @brief Set the local user id
+ *
+ * @param[in] manager Manager
+ * @param[in] user_id user id
+ * @return char*
+ */
+void managerSetUser(Manager *manager, char *user_id);
+
+/**
  * @brief Returns the local user id
  *
- * @param manager Manager
+ * @param[in] manager Manager
  * @return char*
  */
 char *managerGetUser(Manager *manager);
@@ -128,5 +137,14 @@ Manager_error managerReceiveNonBlocking(Manager *manager, Manager_module module,
  * @remark It's recommended to have only one thread read a module at a time
  */
 Manager_error managerMainReceive(Manager *manager, pthread_t *num_t);
+
+/**
+ * @brief Send the id of the thread to join to the main
+ *
+ * @param manager Manager
+ * @param num_t Id of the thread
+ * @return Manager_error
+ */
+Manager_error managerMainSendPthreadToJoin(Manager *manager, pthread_t num_t);
 
 #endif
