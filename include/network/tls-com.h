@@ -132,4 +132,13 @@ TLS_error tlsSend(TLS_infos *infos, Packet *packet);
  */
 TLS_error tlsReceiveNonBlocking(TLS_infos *infos, Packet **packet);
 
+/**
+ * @brief Return the oldest packet received
+ *
+ * @param[in] infos TLS_infos
+ * @param[out] packet Packet received
+ * @return TLS_error
+ */
+TLS_error tlsReceiveBlocking(TLS_infos *infos, Packet **packet);
+
 #endif

@@ -540,3 +540,74 @@ TLS_error tlsReceiveNonBlocking(TLS_infos *infos, Packet **packet) {
         return TLS_ERROR;
     }
 }
+
+TLS_error tlsReceiveBlocking(TLS_infos *infos, Packet **packet) {
+    char FUN_NAME[32] = "tlsReceiveBlocking";
+    assertl(infos, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "infos NULL");
+    assertl(packet, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "packet NULL");
+
+    int ret;
+    int error;
+    char buff[ERROR_BUFF_SIZE];
+    TLS_error tls_error;
+    Packet p;
+
+    /* if info->open == false, user can always read if packets are waiting to be received */
+    if (!infos->ssl) {
+        return TLS_ERROR;
+    }
+
+    /* blocking socket */
+    int flags = fcntl(infos->sockfd, F_GETFL, 0);
+    if (flags == -1) {
+        warnl(FILE_TLS_COM, FUN_NAME, "error getting socket flags");
+        return TLS_ERROR;
+    }
+
+    if (fcntl(infos->sockfd, F_SETFL, flags & ~O_NONBLOCK) != 0) {
+        warnl(FILE_TLS_COM, FUN_NAME, "error setting blocking socket");
+        close(infos->sockfd);
+        infos->sockfd = -1;
+        return TLS_ERROR;
+    }
+
+    /* read packet */
+    ret = SSL_read(infos->ssl, &p, sizeof(Packet));
+
+    /* return packet if success */
+    if (ret > 0) {
+        *packet = malloc(sizeof(Packet));
+        *packet = packetCopy(&p);
+    }
+
+    /* handel error */
+    error = SSL_get_error(infos->ssl, ret);
+
+    switch (error) {
+    case SSL_ERROR_NONE:
+        tls_error = TLS_SUCCESS;
+        break;
+    case SSL_ERROR_WANT_READ:
+    case SSL_ERROR_WANT_WRITE:
+        tls_error = TLS_RETRY;
+        break;
+    case SSL_ERROR_ZERO_RETURN:
+        infos->open = false;
+        tls_error = TLS_CLOSE;
+        break;
+    default:
+        ERR_error_string_n(error, buff, sizeof(buff));
+        warnl(FILE_TLS_COM, FUN_NAME, "SSL_read : %s", buff);
+        tls_error = TLS_ERROR;
+    }
+
+    /* non blocking socket */
+    flags = fcntl(infos->sockfd, F_GETFL, 0);
+    if (fcntl(infos->sockfd, F_SETFL, flags | O_NONBLOCK) != 0) {
+        warnl(FILE_TLS_COM, FUN_NAME, "error nonblock socket");
+        close(infos->sockfd);
+        infos->sockfd = -1;
+        tls_error = TLS_ERROR;
+    }
+    return tls_error;
+}
