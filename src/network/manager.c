@@ -11,7 +11,7 @@
 
 void initManagerBuffer(Buffer_module *buffer) {
     memset(buffer, 0, sizeof(Buffer_module));
-    buffer->num_t = -1;
+    buffer->num_t = 0;
     buffer->state = MANAGER_STATE_CLOSED;
     buffer->mutex_wait_read = malloc(sizeof(pthread_mutex_t));
     buffer->mutex_access_buffer = malloc(sizeof(pthread_mutex_t));
@@ -89,7 +89,7 @@ void setStateClose(Manager *manager, Buffer_module *buffer) {
         genListClear(buffer->buff, deinitPacketGen);
         buffer->state = MANAGER_STATE_CLOSED;
         managerSendMain(manager, buffer->num_t);
-        buffer->num_t = -1;
+        buffer->num_t = 0;
         pthread_mutex_unlock(buffer->mutex_wait_read);
         break;
     case MANAGER_STATE_CLOSED:
@@ -249,7 +249,7 @@ Manager_error managerMainReceive(Manager *manager, pthread_t *num_t) {
     if (manager->main.state == MANAGER_STATE_CLOSED) {
         /* manager closed */
         warnl(FILE_MANAGER, FUN_NAME, "manager close, failed to read packet");
-        *num_t = -1;
+        *num_t = 0;
         pthread_mutex_unlock(manager->main.mutex_wait_read);
         error = MANAGER_ERR_CLOSED;
     } else if (genListIsEmpty(manager->main.buff)) {
