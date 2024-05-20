@@ -6,7 +6,9 @@
 
 typedef enum e_p2p_msg_type {
     /* connection server */
-    P2P_USER_ID,
+    P2P_CONNECTION_SERVER,
+    P2P_CONNECTION_OK,
+    P2P_CONNECTION_KO,
 
     /* Connection p2p init */
     P2P_ACCEPT,
@@ -25,13 +27,25 @@ typedef enum e_p2p_msg_type {
     P2P_CON_FAILURE,
     P2P_TRY_SERVER_MODE,
     P2P_TRY_CLIENT_MODE,
+
+    /* close connection */
+    P2P_CLOSE
 } P2P_msg_type;
+
+typedef enum e_p2p_error {
+    P2P_ERR_UNKNOWN_USER,
+    P2P_ERR_UNAVAILABLE_USER,
+    P2P_ERR_USER_DISCONNECTED,
+    P2P_ERR_ALREADY_PEERING,
+    P2P_ERR_OTHER
+} P2P_error;
 
 typedef struct s_p2p_msg {
     P2P_msg_type type;
 
     /* id */
     char user_id[SIZE_NAME];
+    char user_password[SIZE_PASSWORD];
 
     /* list requests */
     unsigned nb_user_online;
@@ -45,6 +59,9 @@ typedef struct s_p2p_msg {
     /* param com */
     int try_port;
     char try_ip[SIZE_IP_CHAR];
+
+    /* error message */
+    P2P_error error;
 } P2P_msg;
 
 /**
@@ -97,6 +114,8 @@ P2P_msg_type p2pMsgGetType(P2P_msg *msg);
 
 char *p2pMsgGetUserId(P2P_msg *msg);
 
+char *p2pMsgGetPassword(P2P_msg *msg);
+
 GenList *p2pMsgGetListUserOnline(P2P_msg *msg);
 
 int p2pMsgGetPublicPort(P2P_msg *msg);
@@ -109,12 +128,16 @@ char *p2pMsgGetTryIp(P2P_msg *msg);
 
 int p2pMsgGetTryPort(P2P_msg *msg);
 
+P2P_error p2pMsgGetError(P2P_msg *msg);
+
 /*
     Setteur on P2P_msg*
 */
 void p2pMsgSetType(P2P_msg *msg, P2P_msg_type type);
 
 void p2pMsgSetUserId(P2P_msg *msg, char *user_id);
+
+void p2pMsgSetPassword(P2P_msg *msg, char *password);
 
 void p2pMsgSetListUserOnline(P2P_msg *msg, GenList *list_online);
 
@@ -125,6 +148,8 @@ void p2pMsgSetPrivatePort(P2P_msg *msg, int port);
 void p2pMsgSetPrivateIp(P2P_msg *msg, char *ip);
 
 void p2pMsgSetTryInfo(P2P_msg *msg, char *ip, int port);
+
+void p2pMsgSetError(P2P_msg *msg, P2P_error);
 
 /*
     debug

@@ -1,14 +1,11 @@
 #include <mysql.h>
 #include <openssl/evp.h>
+#include <server/weak_password.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "weak_password.h"
-
-#define SIZE_HASH 256
-#define SIZE_QUERY 512
+#include <utils/const-define.h>
 
 void create_user(MYSQL *conn, char *username, char *password) {
     char query[SIZE_QUERY];

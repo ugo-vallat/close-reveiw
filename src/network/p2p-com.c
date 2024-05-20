@@ -1,14 +1,11 @@
+#include "network/manager.h"
 #include <network/p2p-com.h>
-#include <network/packet.h>
-#include <network/tls-com.h>
-#include <pthread.h>
-#include <string.h>
-#include <utils/message.h>
-#include <utils/token.h>
+#include <types/p2p-msg.h>
+#include <types/packet.h>
+#include <utils/const-define.h>
+#include <utils/logger.h>
 
-#define LOCAL_IP "127.0.0.1"
-
-#define P2P_SERVER_TIMEOUT 5
+#define FILE_P2P_COM "p2p-com.c"
 
 #define CLIENT_CERT_PATH                                                                           \
     "/home/ugolinux/documents_linux/S6_Info_Linux/BE/close-review/config/server/"                  \
@@ -16,235 +13,104 @@
 #define CLIENT_KEY_PATH                                                                            \
     "/home/ugolinux/documents_linux/S6_Info_Linux/BE/close-review/config/server/server-be.key"
 
-struct s_P2P_info {
-    Gestionary_com *gest;
+/**
+ * @brief Create Peer thread, init the peer manager and launch the peer start function
+ *
+ * @param manager Manager
+ * @param ip Ip if direct connection, NULL otherwise
+ * @param port Port if direct connection, -1 otherwise
+ * @return 0 if success, -1 otherwise
+ */
+int p2pCreateThreadPeer(Manager *manager, char *ip, int port);
 
-    /* buffers */
-    char id_request_in[SIZE_NAME]; /* request from peer */
-};
+void p2pGetlistUsersAvailable(Manager *manager) {
+    char FUN_NAME[32] = "p2pGetlistUsersAvailable";
+    assertl(manager, FILE_P2P_COM, FUN_NAME, -1, "manager NULL");
+
+    Manager_error error;
+    P2P_msg *msg = initP2PMsg(P2P_GET_AVAILABLE);
+    Packet *packet = initPacketP2PMsg(msg);
+
+    error = managerSend(manager, MANAGER_MOD_SERVER, packet);
+    switch (error) {
+    case MANAGER_ERR_SUCCESS:
+        break;
+    case MANAGER_ERR_CLOSED:
+        warnl(FILE_P2P_COM, FUN_NAME, "server manager closed");
+        break;
+    case MANAGER_ERR_ERROR:
+        warnl(FILE_P2P_COM, FUN_NAME, "failed to send packet to server manager");
+        break;
+    default:
+        break;
+    }
+    deinitPacket(&packet);
+    deinitP2PMsg(&msg);
+}
+
+void p2pSendRequestConnection(Manager *manager, char *id_peer) {
+    char FUN_NAME[32] = "p2pSendRequestConnection";
+    assertl(manager, FILE_P2P_COM, FUN_NAME, -1, "manager NULL");
+    assertl(id_peer, FILE_P2P_COM, FUN_NAME, -1, "id_peer NULL");
+
+    if (p2pCreateThreadPeer(manager, NULL, -1) != 0) {
+        warnl(FILE_P2P_COM, FUN_NAME, "failed to create peer thread");
+        return;
+    }
+
+    Packet *packet;
+    P2P_msg *msg;
+    Manager_error error;
+
+    msg = initP2PMsg(P2P_REQUEST_OUT);
+    p2pMsgSetUserId(msg, id_peer);
+    packet = initPacketP2PMsg(msg);
+
+    error = managerSend(manager, MANAGER_MOD_SERVER, packet);
+    switch (error) {
+    case MANAGER_ERR_SUCCESS:
+        break;
+    case MANAGER_ERR_CLOSED:
+        warnl(FILE_P2P_COM, FUN_NAME, "server manager closed");
+        break;
+    case MANAGER_ERR_ERROR:
+        warnl(FILE_P2P_COM, FUN_NAME, "failed to send packet to server manager");
+        break;
+    default:
+        break;
+    }
+    deinitPacket(&packet);
+    deinitP2PMsg(&msg);
+
+    if (error == MANAGER_ERR_ERROR || error == MANAGER_ERR_CLOSED) {
+        initP2PMsg(P2P_REJECT);
+        // TODO
+    }
+}
 
 /**
- * @brief Send list of methods available on this host to establish a P2P connection
+ * @brief Send response to the connection request and start peer thread if respond == true
  *
- * @param[in] infos TEMPORARY channel with server
+ * @param manager Manager
+ * @param id_user User requesting
+ * @param respond Response to send
  */
-void sendMethodsEnable(P2P_infos *infos) {
-    P2P_msg *msg = createP2PMsg(RESPONSE_INFO_COM);
-    setP2PPrivateIp(msg, LOCAL_IP);
-    gestionarySendP2P(infos->gest, msg);
-}
+void p2pRespondToRequest(Manager *manager, char *id_user, bool respond);
 
 /**
- * @brief Setup host as server and wait the remote host to connect
+ * @brief Start direct TLS_connection without passing through the server
  *
- * @param[in] port Port to bind
- * @return TLS_infos * on success, NULL otherwise
+ * @param manager Manager
+ * @param mode Mode (TLS_CLIENT / TLS_SERVER)
+ * @param ip Ip of the peer (ignore if mode = TLS_SERVER)
+ * @param port Port of the peer / port to listen
  */
-TLS_infos *connectToPeerServerMode(int port) {
-    TLS_infos *tls = initTLSInfos("0.0.0.0", port, SERVER, CLIENT_CERT_PATH, CLIENT_KEY_PATH);
-
-    struct timeval timeout;
-    timeout.tv_sec = P2P_SERVER_TIMEOUT;
-    timeout.tv_usec = 0;
-    if (openComTLS(tls, &timeout) != 0) {
-        warnl("p2p-com.c", "connectToPeerServerMode", "fail connection");
-        deleteTLSInfos(&tls);
-        return NULL;
-    }
-    return tls;
-}
+void p2pStartDirectConnection(Manager *manager, TLS_mode mode, char *ip, int port);
 
 /**
- * @brief Setup host as client and try to connect with the remote host
+ * @brief Close the peer connection with the user peer_id
  *
- * @param[in] ip IP of the remote host
- * @param[in] port Port of remote host
- * @return TLS_infos * on success, NULL otherwise
+ * @param manager Manager
+ * @param peer_id User connected in P2P
  */
-TLS_infos *connectToPeerClientMode(char *ip, int port) {
-    TLS_infos *tls = initTLSInfos(ip, port, CLIENT, NULL, NULL);
-    if (openComTLS(tls, NULL) != 0) {
-        warnl("p2p-com.c", "connectToPeerClientMode", "fail connection");
-        deleteTLSInfos(&tls);
-        return NULL;
-    }
-    return tls;
-}
-
-Gestionary_com *tryConnectToPeer(P2P_infos *infos) {
-    TLS_infos *tls;
-    Gestionary_com *gest;
-    bool end = false;
-    P2P_msg *msg;
-    /* send methods */
-    sendMethodsEnable(infos);
-
-    /* try connect */
-    while (!end) {
-        while ((gestionaryReceiveP2P(infos->gest, &msg)) != 1) {
-            if (!gestionaryIsComOpen(infos->gest)) {
-                warnl("p2p-com.c", "tryConnectToPeer", "com server closed");
-                return NULL;
-            }
-        }
-
-        switch (getP2PType(msg)) {
-        case TRY_SERVER_MODE:
-            tls = connectToPeerServerMode(getP2PTryPort(msg));
-            break;
-        case TRY_CLIENT_MODE:
-            tls = connectToPeerClientMode(getP2PTryIp(msg), getP2PTryPort(msg));
-            break;
-        case END:
-            end = true;
-            break;
-        default:
-            warnl("p2p-com.c", "tryConnectToPeer", "unvalid type P2P_msg");
-            break;
-        }
-        if (end)
-            break;
-        deleteP2PMsg(msg);
-        if (tls) {
-            end = true;
-            msg = createP2PMsg(CON_SUCCESS);
-
-        } else {
-            msg = createP2PMsg(CON_FAILURE);
-        }
-        gestionarySendP2P(infos->gest, msg);
-    }
-
-    if (!tls) {
-        warnl("p2p-com.c", "tryConnectToPeer", "fail connection peer");
-        return NULL;
-    }
-    gest = createGestionaryCom(tls);
-    if (!gest) {
-        warnl("p2p-com.c", "tryConnectToPeer", "fail open gestionary");
-        return NULL;
-    }
-    return gest;
-}
-
-P2P_infos *createP2P_infos(Gestionary_com *gestionary) {
-    P2P_infos *infos = malloc(sizeof(P2P_infos));
-    infos->gest = gestionary;
-    strncpy(infos->id_request_in, "", SIZE_NAME);
-    return infos;
-}
-
-void deleteP2P_infos(P2P_infos **infos);
-
-GenList *p2pGetListUserConnected(P2P_infos *infos) {
-    int ret;
-    char *id;
-    GenList *list;
-    P2P_msg *msg = createP2PMsg(REQUEST_LIST_ONLINE);
-    /* send request */
-    gestionarySendP2P(infos->gest, msg);
-    /* receive response */
-    while ((ret = gestionaryReceiveP2P(infos->gest, &msg)) < 1) {
-        if (ret < 0 && !gestionaryIsComOpen(infos->gest)) {
-            warnl("p2p-com.c", "getListUserConnected", "gestionary closed");
-            return NULL;
-        }
-    }
-    if (msg->type != RESPONSE_LIST_ONLINE) {
-        warnl("p2p-com.c", "getListUserConnected", "unexpected response from server");
-        return NULL;
-    }
-    /* return list of id */
-    list = createGenList(msg->nb_user_online);
-    for (unsigned i = 0; i < msg->nb_user_online; i++) {
-        id = malloc(SIZE_NAME);
-        strncpy(id, msg->list_user_online[i], SIZE_NAME);
-        genListAdd(list, id);
-    }
-    return list;
-}
-
-char *p2pGetRequestConnection(P2P_infos *infos) {
-    P2P_msg *msg;
-    int ret;
-    char *id_peer;
-    /* send request */
-    msg = createP2PMsg(REQUEST_PEER_REQUEST);
-    gestionarySendP2P(infos->gest, msg);
-
-    /* wait response */
-    while ((ret = gestionaryReceiveP2P(infos->gest, &msg)) < 1) {
-        if (ret < 0 && !gestionaryIsComOpen(infos->gest)) {
-            warnl("p2p-com.c", "sendRequestP2PConnection", "gestionary closed");
-            return NULL;
-        }
-    }
-    if (strncmp(msg->id_peer, "", SIZE_NAME) == 0) {
-        return "X";
-    }
-    id_peer = malloc(SIZE_NAME);
-    strncpy(id_peer, msg->id_peer, SIZE_NAME);
-    return id_peer;
-}
-
-int p2pSendRequestConnection(P2P_infos *infos, char *id_user, Gestionary_com **gest) {
-    P2P_msg *msg;
-    int ret;
-    /* send request */
-    msg = createP2PMsg(REQUEST_CONNECTION);
-    setP2PIdPeer(msg, id_user);
-    gestionarySendP2P(infos->gest, msg);
-
-    /* wait response */
-    while ((ret = gestionaryReceiveP2P(infos->gest, &msg)) < 1) {
-        if (ret < 0 && !gestionaryIsComOpen(infos->gest)) {
-            warnl("p2p-com.c", "sendRequestP2PConnection", "gestionary closed");
-            return -1;
-        }
-    }
-    if (msg->type == ACCEPT_CONNECTION) {
-        *gest = tryConnectToPeer(infos);
-        if (*gest == NULL)
-            return 0;
-        return 1;
-    }
-    if (msg->type == REJECT_CONNECTION)
-        return 0;
-    return -1;
-}
-
-int p2pAcceptConnection(P2P_infos *infos, char *id_user, bool accept, Gestionary_com **gest) {
-    P2P_msg *msg;
-    int ret;
-    /* send request */
-    if (accept) {
-        msg = createP2PMsg(ACCEPT_CONNECTION);
-    } else {
-        msg = createP2PMsg(REJECT_CONNECTION);
-    }
-    setP2PIdPeer(msg, id_user);
-    gestionarySendP2P(infos->gest, msg);
-
-    if (!accept) {
-        return 0;
-    }
-
-    /* wait response */
-    while ((ret = gestionaryReceiveP2P(infos->gest, &msg)) < 1) {
-        if (ret < 0 && !gestionaryIsComOpen(infos->gest)) {
-            warnl("p2p-com.c", "sendRequestP2PConnection", "gestionary closed");
-            return -1;
-        }
-    }
-    if (msg->type == ACCEPT_CONNECTION) {
-        *gest = tryConnectToPeer(infos);
-        if (*gest == NULL)
-            return 0;
-        return 1;
-    }
-    if (msg->type == REJECT_CONNECTION)
-        return 0;
-    return -1;
-}
-
-int p2pForwardPortWithUpnp(int port_in, int port_out, long time);
+void p2pCloseCom(Manager *manager, char *peer_id);

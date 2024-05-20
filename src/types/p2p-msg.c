@@ -15,8 +15,12 @@
  */
 char *p2pMsgTypeToChar(P2P_msg_type type) {
     switch (type) {
-    case P2P_USER_ID:
+    case P2P_CONNECTION_SERVER:
         return "P2P_USER_ID";
+    case P2P_CONNECTION_OK:
+        return "P2P_CONNECTION_OK";
+    case P2P_CONNECTION_KO:
+        return "P2P_CONNECTION_KO";
     case P2P_ACCEPT:
         return "P2P_ACCEPT";
     case P2P_REJECT:
@@ -130,6 +134,8 @@ char *p2pMsgGetUserId(P2P_msg *msg) {
     return id;
 }
 
+char *p2pMsgGetPassword(P2P_msg *msg);
+
 GenList *p2pMsgGetListUserOnline(P2P_msg *msg) {
     char FUN_NAME[32] = "p2pMsgGetListUserOnline";
     assertl(msg, FILE_P2P_MSG, FUN_NAME, -1, "msg NULL");
@@ -179,6 +185,8 @@ int p2pMsgGetTryPort(P2P_msg *msg) {
     return msg->try_port;
 }
 
+P2P_error p2pMsgGetError(P2P_msg *msg);
+
 /*
     Setteur on P2P_msg*
 */
@@ -195,6 +203,8 @@ void p2pMsgSetUserId(P2P_msg *msg, char *user_id) {
 
     strncpy(msg->user_id, user_id, SIZE_NAME);
 }
+
+void p2pMsgSetPassword(P2P_msg *msg, char *password);
 
 void p2pMsgSetListUserOnline(P2P_msg *msg, GenList *list_online) {
     char FUN_NAME[32] = "p2pMsgSetListUserOnline";
@@ -237,6 +247,8 @@ void p2pMsgSetTryInfo(P2P_msg *msg, char *ip, int port) {
     strncpy(msg->try_ip, ip, SIZE_IP_CHAR);
     msg->try_port = port;
 }
+
+void p2pMsgSetError(P2P_msg *msg, P2P_error);
 
 /*
     debug
