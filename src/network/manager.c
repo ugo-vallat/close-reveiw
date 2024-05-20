@@ -1,171 +1,258 @@
-
-#include "network/p2p-msg.h"
-#include "utils/genericlist.h"
+#include "types/genericlist.h"
 #include "utils/logger.h"
-#include "utils/token.h"
-#include <network/gestionary-com.h>
-#include <network/p2p-com.h>
-#include <network/packet.h>
-#include <network/tls-com.h>
-#include <stdio.h>
+#include <bits/pthreadtypes.h>
+#include <network/manager.h>
+#include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
-#include <utils/message.h>
+#include <sys/errno.h>
+#include <types/packet.h>
 
-Gestionary_com *createGestionaryCom(TLS_infos *tls) {
-    if (!tls) {
-        warnl("gestionary-com.c", "createGestionaryCom", "tls null");
-        return NULL;
+#define FILE_MANAGER "manager.c"
+
+void initManagerBuffer(Buffer_module *buffer) {
+    memset(buffer, 0, sizeof(Buffer_module));
+    buffer->num_t = -1;
+    buffer->state = MANAGER_STATE_CLOSED;
+    pthread_mutex_init(buffer->mutex_wait_read, NULL);
+    pthread_mutex_init(buffer->mutex_access_buffer, NULL);
+    pthread_mutex_unlock(buffer->mutex_wait_read);
+    pthread_mutex_unlock(buffer->mutex_access_buffer);
+    buffer->buff = initGenList(16);
+}
+
+Buffer_module *getModuleBuffer(Manager *manager, Manager_module module) {
+    switch (module) {
+    case MANAGER_MOD_INPUT:
+        return &(manager->input);
+    case MANAGER_MOD_OUTPUT:
+        return &(manager->output);
+    case MANAGER_MOD_SERVER:
+        return &(manager->server);
+    case MANAGER_MOD_PEER:
+        return &(manager->peer);
+    case MANAGER_MOD_MAIN:
+        return &(manager->main);
     }
-    Gestionary_com *gest = malloc(sizeof(Gestionary_com));
-    if (!gest) {
-        warnl("gestionary-com.c", "createGestionaryCom", "error malloc Gestionary_com");
-        return NULL;
-    }
-    gest->tls = tls;
-    gest->msgReceived = createGenList(8);
-    gest->p2pReceived = createGenList(8);
-    gest->txtReceived = createGenList(8);
-    gest->open = true;
-    return gest;
 }
 
-void freeMsg(void *msg) {
-    deleteMsg((Msg *)msg);
+Manager_error managerSendMain(Manager *manager, pthread_t num_t) {
+    pthread_t *t = malloc(sizeof(pthread_t));
+    t = malloc(sizeof(pthread_t));
+    *t = num_t;
+    pthread_mutex_lock(manager->main.mutex_access_buffer);
+    genListAdd(manager->main.buff, t);
+    pthread_mutex_unlock(manager->main.mutex_access_buffer);
+    pthread_mutex_unlock(manager->main.mutex_wait_read);
+    return MANAGER_ERR_SUCCESS;
 }
 
-void freePacket(void *packet) {
-    deletePacket((Packet *)packet);
+Manager *initManager() {
+    Manager *manager = malloc(sizeof(Manager));
+    initManagerBuffer(&(manager->input));
+    initManagerBuffer(&(manager->output));
+    initManagerBuffer(&(manager->server));
+    initManagerBuffer(&(manager->peer));
+    initManagerBuffer(&(manager->main));
+    return manager;
 }
 
-void deleteGestionaryCom(Gestionary_com **gestionary) {
-    deleteTLSInfos(&((*gestionary)->tls));
-    deleteGenList(&((*gestionary)->msgReceived), deleteMsgGen);
-    deleteGenList(&((*gestionary)->p2pReceived), deleteP2PMsgGen);
-    deleteGenList(&((*gestionary)->txtReceived), free);
-    *gestionary = NULL;
+void deinitManager(Manager **manager) {
+    char FUN_NAME[32] = "deinitManager";
+    assertl(manager, FILE_MANAGER, FUN_NAME, -1, "manager NULL");
+    assertl(*manager, FILE_MANAGER, FUN_NAME, -1, "*manager NULL");
+    free(*manager);
+    *manager = NULL;
 }
 
-void addToBufferReceived(Gestionary_com *gestionary, Packet *packet) {
-    Msg *msg;
-    P2P_msg *p2p;
-    char *txt;
-    switch (packet->type) {
-    case MSG:
-        msg = malloc(sizeof(Msg));
-        memcpy(msg, packet->data, sizeof(Msg));
-        genListAdd(gestionary->msgReceived, (void *)msg);
+void setStateOpen(Buffer_module *buffer);
+void setStateClose(Manager *manager, Buffer_module *buffer);
+void setStateInProgress(Buffer_module *buffer);
+
+void setStateClose(Manager *manager, Buffer_module *buffer) {
+    switch (buffer->state) {
+    case MANAGER_STATE_OPEN:
+    case MANAGER_STATE_IN_PROGRESS:
+        genListClear(buffer->buff, deinitPacketGen);
+        buffer->state = MANAGER_STATE_CLOSED;
+        managerSendMain(manager, buffer->num_t);
+        buffer->num_t = -1;
+        pthread_mutex_unlock(buffer->mutex_wait_read);
         break;
-    case P2P:
-        p2p = malloc(sizeof(P2P_msg));
-        memcpy(p2p, packet->data, sizeof(P2P_msg));
-        genListAdd(gestionary->p2pReceived, p2p);
-        break;
-    case TXT:
-        txt = malloc(packet->size + 1);
-        memcpy(txt, packet->data, packet->size);
-        genListAdd(gestionary->txtReceived, txt);
+    case MANAGER_STATE_CLOSED:
         break;
     }
 }
 
-void gestionaryCloseComTLS(Gestionary_com *gestionary) {
-    GenList *last;
-    gestionary->open = false;
-    closeComTLS(gestionary->tls, &last);
-    while (!genListIsEmpty(last)) {
-        addToBufferReceived(gestionary, genListPop(last));
+void setStateOpen(Buffer_module *buffer) {
+    switch (buffer->state) {
+    case MANAGER_STATE_OPEN:
+        break;
+    case MANAGER_STATE_IN_PROGRESS:
+    case MANAGER_STATE_CLOSED:
+        buffer->num_t = pthread_self();
+        buffer->state = MANAGER_STATE_OPEN;
+        (void)pthread_mutex_trylock(buffer->mutex_wait_read);
+        break;
     }
 }
 
-int updateReceivedBuffer(Gestionary_com *gestionary) {
-    int ret;
-    Packet *p;
-    while (gestionary->open && isPacketReceived(gestionary->tls)) {
-        ret = receivePacket(gestionary->tls, &p);
-        if (ret == TLS_SUCCESS) {
-            addToBufferReceived(gestionary, p);
-        } else if (ret == TLS_CLOSE) {
-            gestionaryCloseComTLS(gestionary);
-        } else {
-            warnl("gestionary-com.c", "updateRaceivedBuffer", "error receivePacket");
-            return -1;
+void setStateInProgress(Buffer_module *buffer) {
+    switch (buffer->state) {
+    case MANAGER_STATE_OPEN:
+        buffer->state = MANAGER_STATE_IN_PROGRESS;
+        break;
+    case MANAGER_STATE_IN_PROGRESS:
+        break;
+    case MANAGER_STATE_CLOSED:
+        buffer->num_t = pthread_self();
+        buffer->state = MANAGER_STATE_IN_PROGRESS;
+        (void)pthread_mutex_trylock(buffer->mutex_wait_read);
+        break;
+    }
+}
+
+void managerSetState(Manager *manager, Manager_module module, Manager_state state) {
+    char FUN_NAME[32] = "managerSetState";
+    assertl(manager, FILE_MANAGER, FUN_NAME, -1, "manager NULL");
+
+    Buffer_module *buffer = getModuleBuffer(manager, module);
+    pthread_mutex_lock(buffer->mutex_access_buffer);
+
+    switch (state) {
+    case MANAGER_STATE_OPEN:
+        setStateOpen(buffer);
+        break;
+    case MANAGER_STATE_IN_PROGRESS:
+        setStateInProgress(buffer);
+        break;
+    case MANAGER_STATE_CLOSED:
+        setStateClose(manager, buffer);
+    }
+
+    pthread_mutex_unlock(buffer->mutex_access_buffer);
+}
+
+Manager_state managerGetState(Manager *manager, Manager_module module) {
+    char FUN_NAME[32] = "managerGetState";
+    assertl(manager, FILE_MANAGER, FUN_NAME, -1, "manager NULL");
+
+    Manager_state state;
+    Buffer_module *buffer;
+
+    buffer = getModuleBuffer(manager, module);
+    pthread_mutex_lock(buffer->mutex_access_buffer);
+    state = buffer->state;
+    pthread_mutex_unlock(buffer->mutex_access_buffer);
+
+    return state;
+}
+
+Manager_error managerSend(Manager *manager, Manager_module module, Packet *packet) {
+    char FUN_NAME[32] = "managerSend";
+    assertl(manager, FILE_MANAGER, FUN_NAME, -1, "manager NULL");
+    assertl(packet, FILE_MANAGER, FUN_NAME, -1, "packet NULL");
+
+    Buffer_module *buffer;
+    Manager_error error = MANAGER_ERR_SUCCESS;
+    Packet *p_send = packetCopy(packet);
+
+    buffer = getModuleBuffer(manager, module);
+    pthread_mutex_lock(buffer->mutex_access_buffer);
+    if (buffer->state == MANAGER_STATE_CLOSED) {
+        warnl(FILE_MANAGER, FUN_NAME, "manager close, failed to send packet");
+        error = MANAGER_ERR_CLOSED;
+        deinitPacket(&p_send);
+    } else {
+        genListAdd(buffer->buff, (void *)p_send);
+        error = MANAGER_ERR_SUCCESS;
+    }
+    pthread_mutex_unlock(buffer->mutex_wait_read);
+    pthread_mutex_unlock(buffer->mutex_access_buffer);
+    return error;
+}
+
+Manager_error managerReceiveBlocking(Manager *manager, Manager_module module, Packet **packet) {
+    char FUN_NAME[32] = "managerReceiveBlocking";
+    assertl(manager, FILE_MANAGER, FUN_NAME, -1, "manager NULL");
+    assertl(packet, FILE_MANAGER, FUN_NAME, -1, "packet NULL");
+
+    Buffer_module *buffer;
+    Manager_error error = MANAGER_ERR_SUCCESS;
+
+    buffer = getModuleBuffer(manager, module);
+    pthread_mutex_lock(buffer->mutex_wait_read);
+    error = managerReceiveNonBlocking(manager, module, packet);
+    if (error == MANAGER_ERR_RETRY) {
+        warnl(FILE_MANAGER, FUN_NAME, "nothing to read");
+    }
+    return error;
+}
+
+Manager_error managerReceiveNonBlocking(Manager *manager, Manager_module module, Packet **packet) {
+    char FUN_NAME[32] = "managerReceiveNonBlocking";
+    assertl(manager, FILE_MANAGER, FUN_NAME, -1, "manager NULL");
+    assertl(packet, FILE_MANAGER, FUN_NAME, -1, "packet NULL");
+
+    Buffer_module *buffer;
+    Manager_error error = MANAGER_ERR_SUCCESS;
+
+    buffer = getModuleBuffer(manager, module);
+    (void)pthread_mutex_trylock(buffer->mutex_wait_read);
+    pthread_mutex_lock(buffer->mutex_access_buffer);
+
+    if (buffer->state == MANAGER_STATE_CLOSED) {
+        warnl(FILE_MANAGER, FUN_NAME, "manager close, failed to read packet");
+        *packet = NULL;
+        pthread_mutex_unlock(buffer->mutex_wait_read);
+        error = MANAGER_ERR_CLOSED;
+    } else if (genListSize(buffer->buff) == 0) {
+        *packet = NULL;
+        error = MANAGER_ERR_RETRY;
+    } else {
+        *packet = genListPop(buffer->buff);
+        error = MANAGER_ERR_SUCCESS;
+
+        if (genListSize(buffer->buff) > 0) {
+            pthread_mutex_unlock(buffer->mutex_wait_read);
         }
     }
-    return 0;
+
+    pthread_mutex_unlock(buffer->mutex_access_buffer);
+    return error;
 }
 
-int gestionarySendMsg(Gestionary_com *gestionary, Msg *msg) {
-    if (!gestionary->open) {
-        return -1;
-    }
-    Packet *p = createPacket(MSG, msg, sizeof(Msg));
-    if (!p) {
-        warnl("gestionary_com.c", "gestionarySendMsg", "fail create packet");
-        return -1;
-    }
-    sendPacket(gestionary->tls, p);
-    return 0;
-}
+Manager_error managerMainReceive(Manager *manager, pthread_t *num_t) {
+    char FUN_NAME[32] = "managerMainReceive";
+    assertl(manager, FILE_MANAGER, FUN_NAME, -1, "manager NULL");
+    assertl(num_t, FILE_MANAGER, FUN_NAME, -1, "num_t NULL");
+    pthread_t *t;
+    Manager_error error;
 
-int gestionarySendP2P(Gestionary_com *gestionary, P2P_msg *msg) {
-    if (!gestionary->open) {
-        return -1;
-    }
-    // char *data = p2pMsgToChar(msg);
-    Packet *p = createPacket(P2P, msg, sizeof(P2P_msg));
-    if (!p) {
-        warnl("gestionary_com.c", "gestionarySendP2P", "fail create packet");
-        return -1;
-    }
-    sendPacket(gestionary->tls, p);
-    return 0;
-}
+    /* blocking call */
+    pthread_mutex_lock(manager->main.mutex_wait_read);
+    pthread_mutex_lock(manager->main.mutex_access_buffer);
 
-int gestionarySendTxt(Gestionary_com *gestionary, char *txt) {
-    if (!gestionary->open) {
-        return -1;
+    if (manager->main.state == MANAGER_STATE_CLOSED) {
+        /* manager closed */
+        warnl(FILE_MANAGER, FUN_NAME, "manager close, failed to read packet");
+        *num_t = -1;
+        pthread_mutex_unlock(manager->main.mutex_wait_read);
+        error = MANAGER_ERR_CLOSED;
+    } else if (genListIsEmpty(manager->main.buff)) {
+        /* buffer empty */
+        warnl(FILE_MANAGER, FUN_NAME, "nothing to read");
+        error = MANAGER_ERR_RETRY;
+    } else {
+        /* read */
+        t = genListPop(manager->main.buff);
+        *num_t = *t;
+        free(t);
+        error = MANAGER_ERR_SUCCESS;
+        if (!genListIsEmpty(manager->main.buff)) {
+            pthread_mutex_unlock(manager->main.mutex_wait_read);
+        }
     }
-    Packet *p = createPacket(TXT, txt, strlen(txt) + 1);
-    if (!p) {
-        warnl("gestionary_com.c", "gestionarySendTxt", "fail create packet");
-        return -1;
-    }
-    sendPacket(gestionary->tls, p);
-    return 0;
-}
-
-int gestionaryReceiveMsg(Gestionary_com *gestionary, Msg **msg) {
-    updateReceivedBuffer(gestionary);
-
-    if (!genListIsEmpty(gestionary->msgReceived)) {
-        *msg = (Msg *)genListRemove(gestionary->msgReceived, 0);
-        return 1;
-    }
-    *msg = NULL;
-    return 0;
-}
-
-int gestionaryReceiveP2P(Gestionary_com *gestionary, P2P_msg **msg) {
-    updateReceivedBuffer(gestionary);
-    if (!genListIsEmpty(gestionary->p2pReceived)) {
-        *msg = (P2P_msg *)genListRemove(gestionary->p2pReceived, 0);
-        return 1;
-    }
-    *msg = NULL;
-    return 0;
-}
-
-int gestionaryReceiveTxt(Gestionary_com *gestionary, char **txt) {
-    updateReceivedBuffer(gestionary);
-    if (!genListIsEmpty(gestionary->txtReceived)) {
-        *txt = (char *)genListRemove(gestionary->txtReceived, 0);
-        return 1;
-    }
-    *txt = NULL;
-    return 0;
-}
-
-bool gestionaryIsComOpen(Gestionary_com *gestionary) {
-    return gestionary->open;
+    pthread_mutex_unlock(manager->main.mutex_access_buffer);
+    return error;
 }
