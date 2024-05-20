@@ -5,15 +5,30 @@ const std = @import("std");
 // runner.
 pub fn build(b: *std.Build) void {
     const c_include_list = &.{
-        "placeholder.c",
+        // "network/chat.c",
+        // "network/p2p-com.c",
+        "network/manager.c",
+        "network/tls-com.c",
+        "types/p2p-msg.c",
+        "types/packet.c",
+        "types/message.c",
+        "types/genericlist.c",
+        "utils/logger.c",
+        "utils/token.c",
     };
-    const c_include_list_server = &.{
-        "placeholder.c",
+    const c_include_list_server = &.{};
+    const c_include_list_client = &.{};
+    const flags = &.{
+        "-g",
+        "-pedantic",
+        "-rdynamic",
+        "-Wextra",
+        "-Wall",
+        "-pthread",
+        // "-std=c99",
+        "-D__USE_UNIX98",
+        "-D__USE_XOPEN2K",
     };
-    const c_include_list_client = &.{
-        "placeholder.c",
-    };
-    const flags = &.{};
 
     const server = b.addExecutable(.{
         .name = "close-review-server",
@@ -22,6 +37,8 @@ pub fn build(b: *std.Build) void {
     });
     server.addCSourceFile(.{ .file = .{ .path = "src/server/main.c" }, .flags = flags });
     server.addIncludePath(.{ .path = "include/" });
+    server.linkSystemLibrary2("openssl", .{ .use_pkg_config = .force });
+    server.linkSystemLibrary2("mariadb", .{ .use_pkg_config = .force });
     server.addCSourceFiles(.{ .root = .{ .path = "src/" }, .files = c_include_list, .flags = flags });
     server.addCSourceFiles(.{ .root = .{ .path = "src/server/" }, .files = c_include_list_server, .flags = flags });
 
@@ -32,6 +49,7 @@ pub fn build(b: *std.Build) void {
     });
     client.addCSourceFile(.{ .file = .{ .path = "src/client/main.c" }, .flags = flags });
     client.addIncludePath(.{ .path = "include/" });
+    client.linkSystemLibrary2("openssl", .{ .use_pkg_config = .force });
     client.addCSourceFiles(.{ .root = .{ .path = "src/" }, .files = c_include_list, .flags = flags });
     client.addCSourceFiles(.{ .root = .{ .path = "src/client/" }, .files = c_include_list_client, .flags = flags });
 
