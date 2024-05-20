@@ -2,7 +2,6 @@
 #include "types/message.h"
 #include "types/p2p-msg.h"
 #include <arpa/inet.h>
-#include <bits/types/struct_timeval.h>
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <network/tls-com.h>

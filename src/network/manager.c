@@ -1,6 +1,5 @@
 #include "types/genericlist.h"
 #include "utils/logger.h"
-#include <bits/pthreadtypes.h>
 #include <network/manager.h>
 #include <pthread.h>
 #include <stdlib.h>
@@ -200,7 +199,7 @@ Manager_error managerReceiveBlocking(Manager *manager, Manager_module module, Pa
     if (error == MANAGER_ERR_RETRY) {
         warnl(FILE_MANAGER, FUN_NAME, "nothing to read");
     }
-    return error; 
+    return error;
 }
 
 Manager_error managerReceiveNonBlocking(Manager *manager, Manager_module module, Packet **packet) {
