@@ -46,10 +46,10 @@ bool usernameExists(MYSQL *conn, char *username);
  */
 void logginDatabase(MYSQL *conn, char *server, char *sql_user, char *sql_password, char *database);
 
-GenList listUser(MYSQL *conn);
+GenList *listUser(MYSQL *conn);
 
-GenList listUserConnected(MYSQL *conn);
+GenList *listUserConnected(MYSQL *conn);
 
-GenList listUserAvalaible(MYSQL *conn);
+GenList *listUserAvalaible(MYSQL *conn);
 
 #endif // TEST_MYSQL_H

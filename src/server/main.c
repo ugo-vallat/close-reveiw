@@ -1,14 +1,18 @@
+#include <mysql.h>
 #include <network/tls-com.h>
 #include <pthread.h>
 #include <server/database-manager.h>
+#include <threads.h>
 #include <types/genericlist.h>
+#include <types/list.h>
 #include <types/p2p-msg.h>
 #include <types/packet.h>
 #include <utils/logger.h>
+#include <server/requeste-handler.h>
 
 MYSQL *conn;
 GenList *user;
-GenList *thread;
+List *thread;
 
 char FILE_NAME[16] = "MAIN";
 
@@ -40,20 +44,44 @@ void *startConnection(void *arg) {
             }
         }
     }
+
+    listAdd(thread, thrd_current());
+    return 0;
 }
 
-// void accepteUser(GenList *users, TLS_infos *tsl,MYSQL *conn){
+void *accepteUser(void *arg) {
+    TLS_infos *temp, *tsl = arg;
 
-//     TLS_infos *temp;
+    while (true) {
+        temp = tlsAcceptCom(tsl);
+        pthread_create(NULL, NULL, startConnection, temp);
+    }
+}
 
-//     unsigned long nbt;
-
-//     while(true){
-//         temp = tlsAcceptCom(tsl);
-//         pthread_create(&nbt, NULL, startConnection,temp);
-//     }
-
-// }
+void *requestHandler(void *arg) {
+    TLS_error error;
+    Packet *packet;
+    while (true) {
+        for (unsigned int i = 0; i < genListSize(user); i++) {
+            error = tlsReceiveNonBlocking(genListGet(user, i), &packet);
+            if (error == TLS_SUCCESS && packet->type == PACKET_P2P_MSG) {
+                switch (packet->p2p.type) {
+                case P2P_ACCEPT:
+                    break;
+                case P2P_REJECT:
+                    break;
+                case P2P_REQUEST_OUT:
+                    break;
+                case P2P_GET_AVAILABLE:
+                    getAvailableHandler(packet, conn, genListGet(user, i));
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
+    }
+}
 
 int main() {
     char *FUN_NAME = "MAIN";
@@ -63,6 +91,7 @@ int main() {
     MYSQL_ROW row;
 
     user = initGenList(10);
+    thread = initList(10);
 
     char *server = "localhost"; // TODO les faire passer en argument
     char *sql_user = "newuser";
@@ -91,5 +120,12 @@ int main() {
     if (!tls) {
         warnl("main.c", "main", "fail init TLS info");
         return 1;
+    }
+
+    pthread_create(NULL, NULL, accepteUser, tls);
+    pthread_create(NULL, NULL, requestHandler, NULL);
+
+    while(true){
+        pthread_join(listPop(thread), NULL);
     }
 }

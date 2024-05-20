@@ -112,7 +112,7 @@ void printStackTrace() {
  * @date 04/11/2023
  * @author LAFORGE Mateo
  */
-void exitl(const char *file_name, const char *fun_name, int exit_value, char *format, ...) {
+void exitl(const char *file_name, const char *fun_name, int exit_value, const char *format, ...) {
 #ifdef DEBUG
     printStackTrace();
     if (output == NULL) {
@@ -141,7 +141,7 @@ void exitl(const char *file_name, const char *fun_name, int exit_value, char *fo
     exit(exit_value);
 }
 
-void assertl(bool assert, const char *file_name, const char *fun_name, int exit_value, char *format,
+void assertl(bool assert, const char *file_name, const char *fun_name, int exit_value, const char *format,
              ...) {
     va_list args;
     /* If assertion is true, nothing to do */

@@ -52,7 +52,7 @@ void warnl(const char *file_name, const char *fun_name, const char *format, ...)
  * @param[in] format Format du message à envoyer suivis d'un varargs (même
  * syntaxe qu'un printf)
  */
-void exitl(const char *file_name, const char *fun_name, int exit_value, char *format, ...);
+void exitl(const char *file_name, const char *fun_name, int exit_value, const char *format, ...);
 
 /**
  * @brief if assertion is false, exit and print message in logger
@@ -63,7 +63,7 @@ void exitl(const char *file_name, const char *fun_name, int exit_value, char *fo
  * @param[in] exit_value Value returned at exit
  * @param[in] format Format of the message
  */
-void assertl(bool assert, const char *file_name, const char *fun_name, int exit_value, char *format,
+void assertl(bool assert, const char *file_name, const char *fun_name, int exit_value, const char *format,
              ...);
 
 /**
