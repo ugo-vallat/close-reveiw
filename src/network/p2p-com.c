@@ -160,6 +160,7 @@ void p2pStartDirectConnection(Manager *manager, TLS_mode mode, char *ip, int por
 }
 
 void p2pCloseCom(Manager *manager, char *peer_id) {
+
     char FUN_NAME[32] = "p2pCloseCom";
     assertl(manager, FILE_P2P_COM, FUN_NAME, -1, "manager NULL");
     assertl(peer_id, FILE_P2P_COM, FUN_NAME, -1, "peer_id NULL");

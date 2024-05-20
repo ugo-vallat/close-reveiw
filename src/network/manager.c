@@ -146,6 +146,7 @@ void managerSetState(Manager *manager, Manager_module module, Manager_state stat
     pthread_mutex_unlock(buffer->mutex_access_buffer);
 }
 
+char *managerGetUser(Manager *manager);
 Manager_state managerGetState(Manager *manager, Manager_module module) {
     char FUN_NAME[32] = "managerGetState";
     assertl(manager, FILE_MANAGER, FUN_NAME, -1, "manager NULL");

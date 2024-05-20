@@ -71,7 +71,7 @@ CMD_error commandList(Command *command, Manager *manager) {
         warnl(FILE_COMMAND, FUN_NAME, "called the wrong function");
         return CMD_ERR_WRONG_FUNCTION_CALL;
     }
-    p2pGetUserAvailable(manager);
+    p2pGetlistUsersAvailable(manager);
     return CMD_ERR_SUCCESS;
 }
 

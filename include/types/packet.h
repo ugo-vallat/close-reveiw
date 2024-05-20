@@ -50,4 +50,6 @@ void deinitPacketGen(void *p);
  */
 Packet *packetCopy(Packet *p);
 
+char *packetTypeToString(Packet_type type);
+
 #endif

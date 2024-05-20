@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <types/genericlist.h>
 #include <types/packet.h>
+#include <utils/const-define.h>
 
 typedef enum e_manager_module {
     MANAGER_MOD_INPUT,  /* manager of the input thread (user input) */
@@ -40,6 +41,7 @@ typedef struct s_manager {
     Buffer_module server;
     Buffer_module peer;
     Buffer_module main;
+    char user_id[SIZE_NAME];
 } Manager;
 
 /**
@@ -47,7 +49,7 @@ typedef struct s_manager {
  *
  * @return Manager*
  */
-Manager *initManager();
+Manager *initManager(void);
 
 /**
  * @brief Delete the manager structure and free the memory
@@ -74,6 +76,14 @@ void managerSetState(Manager *manager, Manager_module module, Manager_state stat
  * @return Manager_state
  */
 Manager_state managerGetState(Manager *manager, Manager_module module);
+
+/**
+ * @brief Returns the local user id
+ *
+ * @param manager Manager
+ * @return char*
+ */
+char *managerGetUser(Manager *manager);
 
 /**
  * @brief Try to send the packet to the module

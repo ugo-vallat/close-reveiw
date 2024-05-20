@@ -153,7 +153,7 @@ void p2pMsgSetPrivateIp(P2P_msg *msg, char *ip);
 
 void p2pMsgSetTryInfo(P2P_msg *msg, char *ip, int port);
 
-void p2pMsgSetError(P2P_msg *msg, P2P_error);
+void p2pMsgSetError(P2P_msg *msg, P2P_error error);
 
 /*
     debug

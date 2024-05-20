@@ -137,7 +137,7 @@ void *stdoutHandler(void *arg) {
         switch (managerReceiveBlocking(manager, MANAGER_MOD_OUTPUT, &packet)) {
         case MANAGER_ERR_SUCCESS:
             if (stdoutDisplayPacket(packet) == TUI_OUTPUT_FORMATTING_ERROR) {
-                buffer = packetTypeToString(&packet->type);
+                buffer = packetTypeToString(packet->type);
                 printf("Couldn't display the recieved packet of type : %s\n", buffer);
                 free(buffer);
             }

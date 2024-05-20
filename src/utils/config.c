@@ -1,8 +1,8 @@
-#include <client/config.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <utils/config.h>
 
 bool getConfigFilePath(char config_file[DIRECTORY_MAX_SIZE]) {
     char current_dir[DIRECTORY_MAX_SIZE];
@@ -11,7 +11,7 @@ bool getConfigFilePath(char config_file[DIRECTORY_MAX_SIZE]) {
         perror("Couldn't get current working directory");
         return false;
     }
-    char *needle = strnstr(current_dir, "close-review", strnlen(current_dir, DIRECTORY_MAX_SIZE));
+    char *needle = strstr(current_dir, "close-review");
     if (needle == NULL) {
         fprintf(stderr, "Directory 'close-review' not found in the current path\n");
         return false;

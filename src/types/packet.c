@@ -62,3 +62,19 @@ Packet *packetCopy(Packet *p) {
     memcpy(new, p, sizeof(Packet));
     return new;
 }
+
+char *packetTypeToString(Packet_type type) {
+    char *string = malloc(16);
+    switch (type) {
+    case PACKET_MSG:
+        strncpy(string, "PACKET_MSG", 16);
+        break;
+    case PACKET_P2P_MSG:
+        strncpy(string, "PACKET_P2P_MSG", 16);
+        break;
+    case PACKET_TXT:
+        strncpy(string, "PACKET_TXT", 16);
+        break;
+    }
+    return string;
+}
