@@ -18,16 +18,16 @@ void p2pGetlistUsersAvailable(Manager *manager);
  * @param manager Manager
  * @param id_user Id of the user requested
  */
-void p2pSendRequestConnection(Manager *manager, char *id_peer);
+void p2pSendRequestConnection(Manager *manager, char *peer_id);
 
 /**
  * @brief Send response to the connection request and start peer thread if respond == true
  *
  * @param manager Manager
  * @param id_user User requesting
- * @param respond Response to send
+ * @param response Response to send (true = ACCEPT , false = REJECT)
  */
-void p2pRespondToRequest(Manager *manager, char *id_user, bool respond);
+void p2pRespondToRequest(Manager *manager, char *peer_id, bool response);
 
 /**
  * @brief Start direct TLS_connection without passing through the server
