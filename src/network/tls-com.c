@@ -417,7 +417,7 @@ TLS_error tlsStartListenning(TLS_infos *infos, Manager *manager, Manager_module 
             return TLS_CLOSE;
         case TLS_ERROR:
         case TLS_NULL_POINTER:
-            warnl(FILE_TLS_COM, FUN_NAME, "fail getting next packet");
+            warnl(FILE_TLS_COM, FUN_NAME, "fail next_packet");
             tlsCloseCom(infos, NULL);
             return TLS_ERROR;
         }
@@ -429,20 +429,25 @@ TLS_error tlsStartListenning(TLS_infos *infos, Manager *manager, Manager_module 
             switch (p->type) {
             case PACKET_MSG:
                 MSG_manager(manager, module, p);
+                break;
             case PACKET_P2P_MSG:
                 P2P_manager(manager, module, p);
+                break;
             default:
                 warnl(FILE_TLS_COM, FUN_NAME, "unexpected type <%d>", p->type);
                 tlsCloseCom(infos, NULL);
                 return TLS_ERROR;
             }
+            deinitPacket(&p);
             break;
         case TLS_RETRY:
             break;
         case TLS_CLOSE:
+            warnl(FILE_TLS_COM, FUN_NAME, "peer disconnected");
+            return TLS_CLOSE;
         case TLS_ERROR:
         case TLS_NULL_POINTER:
-            warnl(FILE_TLS_COM, FUN_NAME, "fail getting next packet");
+            warnl(FILE_TLS_COM, FUN_NAME, "fail tlsReceiveNonBlocking");
             tlsCloseCom(infos, NULL);
             return TLS_ERROR;
         }

@@ -14,6 +14,8 @@ void initManagerBuffer(Buffer_module *buffer) {
     memset(buffer, 0, sizeof(Buffer_module));
     buffer->num_t = -1;
     buffer->state = MANAGER_STATE_CLOSED;
+    buffer->mutex_wait_read = malloc(sizeof(pthread_mutex_t));
+    buffer->mutex_access_buffer = malloc(sizeof(pthread_mutex_t));
     pthread_mutex_init(buffer->mutex_wait_read, NULL);
     pthread_mutex_init(buffer->mutex_access_buffer, NULL);
     pthread_mutex_unlock(buffer->mutex_wait_read);
@@ -57,10 +59,22 @@ Manager *initManager() {
     return manager;
 }
 
+void deinitManagerBuffer(Buffer_module *buffer) {
+    pthread_mutex_destroy(buffer->mutex_wait_read);
+    pthread_mutex_destroy(buffer->mutex_access_buffer);
+    free(buffer->mutex_wait_read);
+    free(buffer->mutex_access_buffer);
+}
+
 void deinitManager(Manager **manager) {
     char FUN_NAME[32] = "deinitManager";
     assertl(manager, FILE_MANAGER, FUN_NAME, -1, "manager NULL");
     assertl(*manager, FILE_MANAGER, FUN_NAME, -1, "*manager NULL");
+    deinitManagerBuffer(&((*manager)->input));
+    deinitManagerBuffer(&((*manager)->output));
+    deinitManagerBuffer(&((*manager)->server));
+    deinitManagerBuffer(&((*manager)->peer));
+    deinitManagerBuffer(&((*manager)->main));
     free(*manager);
     *manager = NULL;
 }
@@ -186,7 +200,7 @@ Manager_error managerReceiveBlocking(Manager *manager, Manager_module module, Pa
     if (error == MANAGER_ERR_RETRY) {
         warnl(FILE_MANAGER, FUN_NAME, "nothing to read");
     }
-    return error;
+    return error; 
 }
 
 Manager_error managerReceiveNonBlocking(Manager *manager, Manager_module module, Packet **packet) {
