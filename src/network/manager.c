@@ -1,11 +1,11 @@
-#include "types/genericlist.h"
-#include "utils/logger.h"
 #include <network/manager.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/errno.h>
+#include <types/genericlist.h>
 #include <types/packet.h>
+#include <utils/logger.h>
 
 #define FILE_MANAGER "manager.c"
 

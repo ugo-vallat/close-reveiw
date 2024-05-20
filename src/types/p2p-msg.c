@@ -1,9 +1,9 @@
-#include "utils/logger.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <types/p2p-msg.h>
 #include <utils/const-define.h>
+#include <utils/logger.h>
 
 #define FILE_P2P_MSG "p2p-msg.c"
 

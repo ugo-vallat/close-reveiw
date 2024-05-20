@@ -1,12 +1,12 @@
-#include <client/history_manager.h>
+#include <client/history-manager.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <types/message.h>
 #include <utils/logger.h>
-#include <utils/message.h>
 
 #define MAX_SIZE_PATH 128
 

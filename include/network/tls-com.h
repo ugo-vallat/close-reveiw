@@ -1,10 +1,10 @@
 #ifndef __TLS_COM_H__
 #define __TLS_COM_H__
 
-#include "types/genericlist.h"
-#include "utils/const-define.h"
 #include <network/manager.h>
 #include <openssl/ssl.h>
+#include <types/genericlist.h>
+#include <utils/const-define.h>
 
 typedef enum e_tls_error {
     TLS_SUCCESS,      /* success */

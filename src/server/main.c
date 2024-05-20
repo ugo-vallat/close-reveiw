@@ -1,9 +1,9 @@
-#include "types/p2p-msg.h"
-#include "types/packet.h"
 #include <network/tls-com.h>
 #include <pthread.h>
 #include <server/database-manager.h>
 #include <types/genericlist.h>
+#include <types/p2p-msg.h>
+#include <types/packet.h>
 #include <utils/logger.h>
 
 MYSQL *conn;

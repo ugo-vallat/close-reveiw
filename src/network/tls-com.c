@@ -1,6 +1,3 @@
-#include "types/genericlist.h"
-#include "types/message.h"
-#include "types/p2p-msg.h"
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/in.h>
@@ -10,6 +7,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <types/genericlist.h>
+#include <types/message.h>
+#include <types/p2p-msg.h>
 #include <types/packet.h>
 #include <unistd.h>
 #include <utils/const-define.h>
