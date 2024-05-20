@@ -2,32 +2,26 @@
 #define __TUI_H__
 
 #include <stdbool.h>
+#include <types/packet.h>
 
-#define COMMAND_MAX_SIZE 32
-#define NB_COMMANDS 8
 #define SIZE_NAME 30
-#define SIZE_DATA_PACKET 2048
+#define SIZE_INPUT 2048
 
-typedef enum {
-    LIST = 0,
-    REQUEST = 1,
-    CONNECT = 2,
-    ACCEPT = 3,
-    REJECT = 4,
-    CLOSE = 5,
-    QUIT = 6,
-    HELP = 7,
-    UNKNOWN = 8
-} Command;
+typedef enum e_tui_error {
+    TUI_SUCCESS = 0,                  /* Operation succeeded */
+    TUI_INPUT_ERROR = -1,             /* Error reading input from the user */
+    TUI_MEMORY_ALLOCATION_ERROR = -2, /* Failed to allocate memory */
+    TUI_OUTPUT_FORMATTING_ERROR = -3, /* Failed to format packet before diplaying */
+} TUI_error;
 
-Command get_command_type(char *command);
+bool isValidUserId(char *user_id);
 
-bool is_valid_character(unsigned char character);
+TUI_error stdinGetUserInput(char *buffer);
 
-bool is_valid_user_id(char *user_id);
+void *stdinHandler(void *arg);
 
-void print_messages(char *user, char *message);
+TUI_error stdoutDisplayPacket(Packet *packet);
 
-char *get_user_input(char *user);
+void *stdoutHandler(void *arg);
 
 #endif // !__TUI_H__

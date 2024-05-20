@@ -5,7 +5,7 @@ const std = @import("std");
 // runner.
 pub fn build(b: *std.Build) void {
     const c_include_list = &.{
-        "placeholder.c",
+        "types/command.c",
     };
     const c_include_list_server = &.{
         "placeholder.c",

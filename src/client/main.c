@@ -1,6 +1,13 @@
 #include <client/config.h>
-#include <client/tui.h>
+#include <network/manager.h>
+#include <network/p2p-com.h>
 #include <stdlib.h>
+#include <string.h>
+#include <types/command.h>
+#include <utils/logger.h>
+#define FILE_MAIN "main.c"
+
+char *user;
 
 int main(void) {
     char config_file[DIRECTORY_MAX_SIZE];
