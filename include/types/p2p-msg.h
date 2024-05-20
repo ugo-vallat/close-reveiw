@@ -33,10 +33,14 @@ typedef enum e_p2p_msg_type {
 } P2P_msg_type;
 
 typedef enum e_p2p_error {
+    P2P_ERR_SUCCESS,
     P2P_ERR_UNKNOWN_USER,
     P2P_ERR_UNAVAILABLE_USER,
     P2P_ERR_USER_DISCONNECTED,
     P2P_ERR_ALREADY_PEERING,
+    P2P_ERR_USER_CLOSE,
+    P2P_ERR_LOCAL_ERROR,
+    P2P_ERR_CONNECTION_FAILED,
     P2P_ERR_OTHER
 } P2P_error;
 
