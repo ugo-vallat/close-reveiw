@@ -26,7 +26,7 @@ void createUser(MYSQL *conn, char *username, char *password);
  * @param[in] password The password to log in with.
  * @return true if login was successful, false otherwise.
  */
-bool login(MYSQL *conn, char *username, char *password);
+bool login(MYSQL *conn, char *username, char *password); //TODO
 
 /**
  * @brief Check if a username exists in the database.

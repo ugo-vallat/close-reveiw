@@ -10,7 +10,7 @@
 #define SIZE_HASH 256
 #define SIZE_QUERY 512
 
-void create_user(MYSQL *conn, char *username, char *password) {
+void createUser(MYSQL *conn, char *username, char *password) {
     char query[SIZE_QUERY];
     char hash[SIZE_HASH];
 
@@ -117,7 +117,7 @@ bool login(MYSQL *conn, char *username, char *password) {
     return strcmp(row[0], hash) == 0;
 }
 
-bool username_exists(MYSQL *conn, char *username) {
+bool usernameExists(MYSQL *conn, char *username) {
     char query[256];
 
     /* Recherche de l'utilisateur dans la table user */
@@ -137,8 +137,7 @@ bool username_exists(MYSQL *conn, char *username) {
     return row != NULL;
 }
 
-void se_connecter_a_la_base_de_donnees(MYSQL *conn, char *server, char *sql_user,
-                                       char *sql_password, char *database) {
+void logginDatabase(MYSQL *conn, char *server, char *sql_user, char *sql_password, char *database) {
     /* Initialisation de la connexion à la base de données */
     conn = mysql_init(NULL);
     if (conn == NULL) {
