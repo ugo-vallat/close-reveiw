@@ -5,18 +5,18 @@
 #include <stdbool.h>
 
 /**
+ * @brief Set up the database, creating necessary tables.
+ * @param[in] conn The MySQL connection handle.
+ */
+void setup(MYSQL *conn);
+
+/**
  * @brief Create a new user in the database.
  * @param[in] conn The MySQL connection handle.
  * @param[in] username The username of the new user.
  * @param[in] password The password of the new user.
  */
 void create_user(MYSQL *conn, char *username, char *password);
-
-/**
- * @brief Set up the database, creating necessary tables.
- * @param[in] conn The MySQL connection handle.
- */
-void setup(MYSQL *conn);
 
 /**
  * @brief Attempt to log in with a given username and password.

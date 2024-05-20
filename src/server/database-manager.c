@@ -1,11 +1,14 @@
 #include <mysql.h>
 #include <openssl/evp.h>
-#include <server/weak_password.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <utils/const-define.h>
+
+#include <server/weak_password.h>
+
+#define SIZE_HASH 256
+#define SIZE_QUERY 512
 
 void create_user(MYSQL *conn, char *username, char *password) {
     char query[SIZE_QUERY];
@@ -148,95 +151,4 @@ void se_connecter_a_la_base_de_donnees(MYSQL *conn, char *server, char *sql_user
         fprintf(stderr, "%s\n", mysql_error(conn));
         exit(1);
     }
-}
-
-int main() {
-    MYSQL *conn;
-    MYSQL_RES *res;
-    MYSQL_ROW row;
-
-    char *server = "localhost";
-    char *sql_user = "ugolinux";
-    char *sql_password = "password";
-    char *database = "";
-    char user[32];
-    char password[32];
-    /* Initialisation de la connexion à la base de données */
-    conn = mysql_init(NULL);
-    if (conn == NULL) {
-        fprintf(stderr, "%s\n", mysql_error(conn));
-        exit(1);
-    }
-
-    /* Connexion à la base de données */
-    if (mysql_real_connect(conn, server, sql_user, sql_password, database, 0, NULL, 0) == NULL) {
-        fprintf(stderr, "%s\n", mysql_error(conn));
-        exit(1);
-    }
-    // fgets à modifier car non sécurisé
-    while (true) {
-        printf("\n\n1 : setup la base de données (attention supprime l'ancienne si elle existe)\n2 "
-               ": créer un utilisateur\n3 : se connecter\n4 : quitter\n");
-        int choice;
-        scanf("%d", &choice);
-        getchar(); // pour enlever le \n et éviter les problèmes de fgets
-        if (choice == 1) {
-            setup(conn);
-            printf("\nBase de données prête\n");
-        } else if (choice == 2) {
-            // utilise testdb
-            mysql_query(conn, "USE testdb");
-            printf("Entrez le nom d'utilisateur : ");
-            fgets(user, 31, stdin);
-            user[strlen(user) - 1] = '\0';
-            if (username_exists(conn, user)) {
-                printf("Nom d'utilisateur déjà utilisé\n");
-                continue;
-            }
-            printf("Entrez le mot de passe : ");
-            fgets(password, 31, stdin);
-            password[strlen(password) - 1] = '\0';
-            // partie supérieur à remplacer quand on aura communication serveur
-            if (check_password(password)) {
-                create_user(conn, user, password);
-                printf("\nUtilisateur créé\n");
-            } else {
-                printf("\nMot de passe faible ou disponible dans une wordlist sur internet\n");
-            }
-
-        } else if (choice == 3) {
-            mysql_query(conn, "USE testdb"); // utilise testdb
-            printf("Entrez le nom d'utilisateur : ");
-            fgets(user, 31, stdin);
-            user[strlen(user) - 1] = '\0';
-            printf("Entrez le mot de passe : ");
-            fgets(password, 31, stdin);
-            password[strlen(password) - 1] = '\0';
-            // partie supérieur à remplacer quand on aura communication serveur
-            if (login(conn, user, password)) {
-                printf("\nConnexion réussie\n");
-            } else {
-                printf("\nConnexion échouée\n");
-            }
-        } else if (choice == 4) {
-            mysql_close(conn);
-            return 0;
-        } else {
-            printf("\nChoix invalide\n");
-        }
-    }
-    /* Récupération des informations de l'utilisateur */
-    fgets(password, 31, stdin);
-    password[strlen(password) - 1] = '\0';
-    fgets(user, 31, stdin);
-    user[strlen(user) - 1] = '\0';
-
-    /* Création de l'utilisateur */
-    create_user(conn, user, password);
-
-    /* Setup à la base de données */
-    setup(conn);
-
-    /* fermeture connection */
-    mysql_close(conn);
 }

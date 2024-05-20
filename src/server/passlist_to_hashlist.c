@@ -123,11 +123,7 @@ int main(int argc, char *argv[]){
         fprintf(stderr, "Usage: %s <passlist> <hashlist>\n", argv[0]);
         exit(1);
     }
-    double start = omp_get_wtime();
     passlist_to_hashlist(argv[1], argv[2], get_num_password(argv[1]));
-    double end = omp_get_wtime();
-    double exec = end-start;
-    printf("Temps d'éxécution : %f\n",exec);
     return 0;
 
 }
