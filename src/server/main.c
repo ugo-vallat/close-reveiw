@@ -2,13 +2,13 @@
 #include <network/tls-com.h>
 #include <pthread.h>
 #include <server/database-manager.h>
+#include <server/requeste-handler.h>
 #include <threads.h>
 #include <types/genericlist.h>
 #include <types/list.h>
 #include <types/p2p-msg.h>
 #include <types/packet.h>
 #include <utils/logger.h>
-#include <server/requeste-handler.h>
 
 MYSQL *conn;
 GenList *user;
@@ -23,6 +23,7 @@ void *startConnection(void *arg) {
     Packet *send;
     P2P_msg *msg_send;
     TLS_error error = TLS_RETRY;
+    printf("user try to connect\n");
     while (TLS_RETRY) {
         error = tlsReceiveBlocking(temp, &receive);
     }
@@ -31,10 +32,11 @@ void *startConnection(void *arg) {
         if (receive->type == PACKET_P2P_MSG) {
             P2P_msg msg = receive->p2p;
             if (msg.type == P2P_CONNECTION_SERVER) {
-                if (login(conn, msg.user_id, msg.user_password)) {
+                if (login(conn, msg.user_id, msg.user_password, genListSize(user))) {
                     genListAdd(user, temp);
                     msg_send = initP2PMsg(P2P_CONNECTION_OK);
                     p2pMsgSetError(msg_send, P2P_ERR_SUCCESS);
+                    printf("user connected\n");
                 } else {
                     initP2PMsg(P2P_CONNECTION_KO);
                     p2pMsgSetError(msg_send, P2P_ERR_CONNECTION_FAILED);
@@ -46,6 +48,7 @@ void *startConnection(void *arg) {
     }
 
     listAdd(thread, thrd_current());
+    
     return 0;
 }
 
@@ -61,21 +64,39 @@ void *accepteUser(void *arg) {
 void *requestHandler(void *arg) {
     TLS_error error;
     Packet *packet;
+    TLS_infos *temp;
     while (true) {
         for (unsigned int i = 0; i < genListSize(user); i++) {
             error = tlsReceiveNonBlocking(genListGet(user, i), &packet);
-            if (error == TLS_SUCCESS && packet->type == PACKET_P2P_MSG) {
-                switch (packet->p2p.type) {
-                case P2P_ACCEPT:
+            switch (error) {
+            case TLS_SUCCESS:
+                if (packet->type == PACKET_P2P_MSG) {
+                    switch (packet->p2p.type) {
+                    case P2P_ACCEPT: // TODO
+                        break;
+                    case P2P_REJECT: // TODO
+                        break;
+                    case P2P_REQUEST_OUT: // TODO
+                        break;
+                    case P2P_GET_AVAILABLE:
+                        getAvailableHandler(packet, conn, genListGet(user, i));
+                        printf("list send\n");
+                        break;
+                    default:
+                        break;
+                    }
                     break;
-                case P2P_REJECT:
+                case TLS_CLOSE:
+                    temp = genListRemove(user, i);
+                    tlsCloseCom(temp, NULL);
+                    deinitTLSInfos(&temp);
+                    disconnect(conn, i);
+                    printf("user disconneted\n");
                     break;
-                case P2P_REQUEST_OUT:
-                    break;
-                case P2P_GET_AVAILABLE:
-                    getAvailableHandler(packet, conn, genListGet(user, i));
-                    break;
-                default:
+                case TLS_NULL_POINTER:
+                case TLS_ERROR:
+                    break; // TODO
+                case TLS_RETRY:
                     break;
                 }
             }
@@ -121,11 +142,12 @@ int main() {
         warnl("main.c", "main", "fail init TLS info");
         return 1;
     }
-
+    printf("end initialisation\n");
     pthread_create(NULL, NULL, accepteUser, tls);
     pthread_create(NULL, NULL, requestHandler, NULL);
 
-    while(true){
+    while (true) {
         pthread_join(listPop(thread), NULL);
+        printf("RIP Threads\n");
     }
 }
