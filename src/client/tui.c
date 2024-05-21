@@ -41,6 +41,14 @@ TUI_error stdinGetUserInput(char *buffer) {
     return TUI_SUCCESS;
 }
 
+TUI_error stdinGetUserInput2(char *buffer, WINDOW *input_win) {
+    char FUN_NAME[32] = "stdinGetUserInput2";
+    wclear(input_win);
+    wrefresh(input_win);
+    mvwgetnstr(input_win, 1, 1, buffer, SIZE_INPUT - 1);
+    return TUI_SUCCESS;
+}
+
 void *stdinHandler(void *arg) {
     char FUN_NAME[32] = "stdinHandler";
     Manager *manager = (Manager *)arg;
@@ -130,6 +138,36 @@ TUI_error stdoutDisplayPacket(Packet *packet) {
     return TUI_SUCCESS;
 }
 
+TUI_error stdoutDisplayPacket2(Packet *packet, WINDOW *output_win) {
+    char FUN_NAME[32] = "stdoutDisplayPacket2";
+    char *output;
+
+    switch (packet->type) {
+    case PACKET_TXT:
+        wprintw(output_win, "%s\n", packet->txt);
+        break;
+    case PACKET_MSG:
+        if ((output = msgToTXT(&packet->msg)) == NULL) {
+            warnl(FILE_TUI, FUN_NAME, "failed to format Msg to TXT");
+            return TUI_OUTPUT_FORMATTING_ERROR;
+        }
+        wprintw(output_win, "%s\n", output);
+        free(output);
+        break;
+    case PACKET_P2P_MSG:
+        if ((output = p2pMsgToTXT(&packet->p2p)) == NULL) {
+            warnl(FILE_TUI, FUN_NAME, "failed to format p2pMsg to TXT");
+            return TUI_OUTPUT_FORMATTING_ERROR;
+        }
+        wprintw(output_win, "%s\n", output);
+        free(output);
+        break;
+    }
+    wrefresh(output_win);
+
+    return TUI_SUCCESS;
+}
+
 void *stdoutHandler(void *arg) {
     char FUN_NAME[32] = "stdoutHandler";
     Manager *manager = (Manager *)arg;
@@ -158,4 +196,23 @@ void *stdoutHandler(void *arg) {
         deinitPacket(&packet);
     }
     return NULL;
+}
+
+void initWindows(WINDOW *output_win, WINDOW *input_win) {
+    initscr();
+    cbreak();
+    noecho();
+    curs_set(TRUE);
+
+    int height, width;
+    getmaxyx(stdscr, height, width);
+
+    output_win = newwin(height - INPUT_HEIGHT, width, 0, 0);
+    input_win = newwin(INPUT_HEIGHT, width, height - INPUT_HEIGHT, 0);
+
+    scrollok(output_win, TRUE);
+    keypad(input_win, TRUE);
+
+    wrefresh(output_win);
+    wrefresh(input_win);
 }

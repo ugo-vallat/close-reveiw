@@ -30,6 +30,9 @@
 #define SIZE_MAX_CMD 32
 #define NB_COMMANDS 8
 
+/* TUI */
+#define INPUT_HEIGHT 3
+
 #define SIZE_DIRECTORY 256
 #define SIZE_ERROR_CHAR 256
 

@@ -59,6 +59,7 @@ pub fn build(b: *std.Build) void {
     client.addCSourceFile(.{ .file = .{ .path = "src/client/main.c" }, .flags = flags });
     client.addIncludePath(.{ .path = "include/" });
     client.linkSystemLibrary2("openssl", .{ .use_pkg_config = .force });
+    client.linkSystemLibrary2("ncurses", .{ .use_pkg_config = .force });
     client.addCSourceFiles(.{ .root = .{ .path = "src/" }, .files = c_include_list, .flags = flags });
     client.addCSourceFiles(.{ .root = .{ .path = "src/client/" }, .files = c_include_list_client, .flags = flags });
 
