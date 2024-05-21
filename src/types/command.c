@@ -1,3 +1,4 @@
+#include <arpa/inet.h>
 #include <client/tui.h>
 #include <network/manager.h>
 #include <network/p2p-com.h>
@@ -12,9 +13,10 @@
 #define FILE_COMMAND "command.c"
 
 Type_cmd getCommandType(char *command) {
-    char *cases[NB_COMMANDS] = {"list", "request", "accept", "reject", "close", "quit", "help"};
+    char *cases[NB_COMMANDS] = {"list",   "request", "direct", "accept",
+                                "reject", "close",   "quit",   "help"};
     for (int i = 0; i < NB_COMMANDS; i++) {
-        if (strncmp(command, cases[i], strnlen(command, COMMAND_MAX_SIZE)) == 0) {
+        if (strncmp(command, cases[i], strnlen(command, SIZE_MAX_CMD)) == 0) {
             return i;
         }
     }
@@ -92,6 +94,39 @@ CMD_error commandRequest(Command *command, Manager *manager) {
         return CMD_ERR_INVALID_ARG;
     }
     p2pSendRequestConnection(manager, user_id);
+    return CMD_ERR_SUCCESS;
+}
+
+CMD_error commandDirect(Command *command, Manager *manager) {
+    char FUN_NAME[32] = "commandDirect";
+    if (command->cmd != CMD_DIRECT) {
+        warnl(FILE_COMMAND, FUN_NAME, "called the wrong function");
+        return CMD_ERR_WRONG_FUNCTION_CALL;
+    }
+    if (genListSize(command->args) != 4) {
+        warnl(FILE_COMMAND, FUN_NAME, "invalid number of arguments given");
+        return CMD_ERR_MISSING_ARG;
+    }
+
+    char *ip = genListGet(command->args, 2);
+    if ((inet_pton(AF_INET, ip, NULL) == 0)) {
+        warnl(FILE_COMMAND, FUN_NAME, "the given IP is invalid");
+        return CMD_ERR_INVALID_ARG;
+    }
+
+    int port = 0;
+    if (sscanf(genListGet(command->args, 3), "%d", &port) != 1 || port < 0 || port > 65536) {
+        warnl(FILE_COMMAND, FUN_NAME, "the given port is invalid");
+        return CMD_ERR_INVALID_ARG;
+    }
+
+    char *mode_string = genListGet(command->args, 1);
+    bool is_client_mode = strncmp(mode_string, "-c", strlen("-c")) == 0;
+    if (!is_client_mode && strncmp(mode_string, "-s", strlen("-s")) != 0) {
+        warnl(FILE_COMMAND, FUN_NAME, "the given mode is invalid");
+        return CMD_ERR_INVALID_ARG;
+    }
+    p2pStartDirectConnection(manager, is_client_mode ? TLS_CLIENT : TLS_SERVER, ip, port);
     return CMD_ERR_SUCCESS;
 }
 

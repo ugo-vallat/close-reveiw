@@ -63,6 +63,9 @@ void *stdinHandler(void *arg) {
                 case CMD_REQUEST:
                     commandRequest(command, manager);
                     break;
+                case CMD_DIRECT:
+                    commandDirect(command, manager);
+                    break;
                 case CMD_ACCEPT:
                 case CMD_REJECT:
                     commandAnswer(command, manager);

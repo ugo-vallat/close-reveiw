@@ -3,9 +3,7 @@
 
 #include <network/manager.h>
 #include <types/genericlist.h>
-#define SIZE_CMD_RES 1024
-#define COMMAND_MAX_SIZE 32
-#define NB_COMMANDS 7
+#include <utils/project_constants.h>
 
 #define UNKNOWN_TXT "\033[1;31mUnknown command.\033[0m\n"
 
@@ -15,6 +13,8 @@
     "\033[1m/list\033[0m:\t\tDisplays a list of all currently available users.\n"                  \
     "\033[1m/request <user_id>\033[0m:\tSends a connection request to the user with the "          \
     "specified ID.\n"                                                                              \
+    "\033[1m/direct [-c][-s] <ip> <port>\033[0m:\t\tStarts a direct connection. Bypasses the "     \
+    "server.\n"                                                                                    \
     "\033[1m/accept <user_id>\033[0m:\tAccepts an incoming connection request.\n"                  \
     "\033[1m/reject <user_id>\033[0m:\tRejects an incoming connection request.\n"                  \
     "\033[1m/close <user_id>\033[0m:\tCloses an existing connection with the specified user.\n"    \
@@ -31,11 +31,12 @@ typedef enum e_cmd_error {
 typedef enum e_type_cmd {
     CMD_LIST = 0,
     CMD_REQUEST = 1,
-    CMD_ACCEPT = 2,
-    CMD_REJECT = 3,
-    CMD_CLOSE = 4,
-    CMD_QUIT = 5,
-    CMD_HELP = 6,
+    CMD_DIRECT = 2,
+    CMD_ACCEPT = 3,
+    CMD_REJECT = 4,
+    CMD_CLOSE = 5,
+    CMD_QUIT = 6,
+    CMD_HELP = 7,
     CMD_UNKNOWN = -1
 } Type_cmd;
 
@@ -51,6 +52,8 @@ void deinitCommand(Command **command);
 CMD_error commandList(Command *command, Manager *manager);
 
 CMD_error commandRequest(Command *command, Manager *manager);
+
+CMD_error commandDirect(Command *command, Manager *manager);
 
 CMD_error commandAnswer(Command *command, Manager *manager);
 

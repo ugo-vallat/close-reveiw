@@ -25,6 +25,11 @@
 /* SQL */
 #define SIZE_QUERY 512
 
+/* Command */
+#define SIZE_CMD_RES 1024
+#define SIZE_MAX_CMD 32
+#define NB_COMMANDS 8
+
 #define SIZE_DIRECTORY 256
 #define SIZE_ERROR_CHAR 256
 
