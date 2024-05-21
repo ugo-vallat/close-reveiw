@@ -6,26 +6,28 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const c_include_list = &.{
         // "network/chat.c",
-        "network/p2p-com.c",
+        // "network/p2p-com.c",
         "network/manager.c",
         "network/tls-com.c",
-        "types/command.c",
+        // "types/command.c",
+        "types/list.c",
         "types/genericlist.c",
         "types/message.c",
         "types/p2p-msg.c",
         "types/packet.c",
         "utils/config.c",
         "utils/logger.c",
-        "utils/token.c",
-        "client/tui.c",
+        // "utils/token.c",
+        // "client/tui.c",
     };
     const c_include_list_server = &.{
         "database-manager.c",
         // "passlist_to_hashlist.c",
         "weak_password.c",
+        "request-handler.c",
     };
     const c_include_list_client = &.{
-        "history-manager.c",
+        // "history-manager.c",
     };
     const flags = &.{
         "-g",

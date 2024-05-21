@@ -19,6 +19,8 @@
 #include <errno.h>
 #include <stdbool.h>
 
+#define LIST_TYPE unsigned long
+
 /*------------------------------------------------------------------*/
 /*                        STRUCTURE LIST                            */
 /*------------------------------------------------------------------*/
@@ -56,7 +58,7 @@ void deinitList(ptrList *l);
  * @param[in] v Valeur à ajouter
  * @pre l != NULL
  */
-void listAdd(List *l, int v);
+void listAdd(List *l, LIST_TYPE v);
 
 /**
  * @date  5/11/2023
@@ -69,7 +71,7 @@ void listAdd(List *l, int v);
  *
  * @pre i <= listSize
  */
-void listInsert(List *l, int v, unsigned i);
+void listInsert(List *l, LIST_TYPE v, unsigned i);
 
 /**
  * @date 5/11/2023
@@ -81,7 +83,7 @@ void listInsert(List *l, int v, unsigned i);
  * @pre taille liste > 0
  * @return valeur avant suppression
  **/
-int listPop(List *l);
+LIST_TYPE listPop(List *l);
 
 /**
  * @date  5/11/2023
@@ -94,7 +96,7 @@ int listPop(List *l);
  * @pre i < listSize
  * @return valeur avant suppression
  */
-int listRemove(List *l, unsigned i);
+LIST_TYPE listRemove(List *l, unsigned i);
 
 /**
  * @date 5/11/2023
@@ -108,7 +110,7 @@ int listRemove(List *l, unsigned i);
  *
  * @return Valeur lue
  **/
-int listGet(List *l, unsigned i);
+LIST_TYPE listGet(List *l, unsigned i);
 
 /**
  * @author VALLAT Ugo
@@ -120,7 +122,7 @@ int listGet(List *l, unsigned i);
  * @param[in] i Position
  * @pre l != NULL
  */
-void listSet(List *l, int v, unsigned i);
+void listSet(List *l, LIST_TYPE v, unsigned i);
 
 /**
  * @date 5/11/2023
@@ -131,7 +133,7 @@ void listSet(List *l, int v, unsigned i);
  * @pre l != NULL
  * @return true si vide, false sinon
  */
-bool listEmpty(List *l);
+bool listIsEmpty(List *l);
 
 /**
  * @date  5/11/2023

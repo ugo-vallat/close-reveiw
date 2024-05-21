@@ -67,7 +67,7 @@ void deinitTLSInfos(TLS_infos **infos);
 /**
  * @brief Establishes a secure communication channel with the remote host
  * @param[in] infos Information about the remote device
- * @param[in] timeout Set timeout in server mode
+ * @param[in] timeout Set timeout (NULL if None)
  * @return TLS_error
  * @note infos in TLS_MAIN_SERVER mode, call tlsAcceptCom
  */

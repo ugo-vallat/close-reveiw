@@ -11,6 +11,8 @@
  * message d'erreur
  */
 
+#include <bits/pthreadtypes.h>
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <types/list.h>
@@ -24,7 +26,8 @@
 struct s_list {
     unsigned memory_size; /* Taille du tableau en mémoire */
     unsigned size;        /* taille de la liste (nombre éléments) */
-    int *tab;             /* tableau des valeurs */
+    LIST_TYPE *tab;       /* tableau des valeurs */
+    pthread_mutex_t *mutex;
 };
 
 /**
@@ -33,13 +36,16 @@ struct s_list {
  */
 List *initList(unsigned memory_size) {
     List *l = malloc(sizeof(List));
-    assertl(l == NULL, "list.c", "createList", EXIT_FAILURE, "erreur malloc list");
+    assertl(l, "list.c", "createList", EXIT_FAILURE, "erreur malloc list");
 
-    l->tab = malloc(sizeof(int) * memory_size);
-    assertl(l->tab == NULL, "list.c", "createList", EXIT_FAILURE, "erreur malloc tab");
+    l->tab = malloc(sizeof(LIST_TYPE) * memory_size);
+    assertl(l->tab, "list.c", "createList", EXIT_FAILURE, "erreur malloc tab");
 
     l->memory_size = memory_size;
     l->size = 0;
+    l->mutex = malloc(sizeof(pthread_mutex_t));
+    pthread_mutex_init(l->mutex, NULL);
+
     return l;
 }
 
@@ -52,6 +58,8 @@ void deinitList(ptrList *l) {
     assertl(*l, "list.c", "deleteList", EXIT_FAILURE, "*l");
 
     /* libération de la mémoire */
+    pthread_mutex_destroy((*l)->mutex);
+    free((*l)->mutex);
     free((*l)->tab);
     free((*l));
     *l = NULL;
@@ -73,7 +81,7 @@ void adjustMemorySizeList(List *l, unsigned new_size) {
     l->memory_size = new_size;
 
     /* modification taille du tableau */
-    l->tab = realloc(l->tab, new_size * sizeof(int));
+    l->tab = realloc(l->tab, new_size * sizeof(LIST_TYPE));
     if (new_size != 0 && l->tab == NULL)
         exitl("list.c", "adjustMemorySizeList", EXIT_FAILURE, "echec realloc tab");
 }
@@ -82,7 +90,8 @@ void adjustMemorySizeList(List *l, unsigned new_size) {
  * @date  1/11/2023
  * @author Ugo VALLAT
  */
-void listAdd(List *l, int v) {
+void listAdd(List *l, LIST_TYPE v) {
+    pthread_mutex_lock(l->mutex);
     assertl(l, "list.c", "listAdd", EXIT_FAILURE, "l");
 
     /* agrandissement de la liste si pleine */
@@ -92,13 +101,15 @@ void listAdd(List *l, int v) {
     /* Ajout de la valeur */
     l->tab[l->size] = v;
     l->size++;
+    pthread_mutex_unlock(l->mutex);
 }
 
 /**
  * @date  1/11/2023
  * @author Ugo VALLAT
  */
-void listInsert(List *l, int v, unsigned i) {
+void listInsert(List *l, LIST_TYPE v, unsigned i) {
+    pthread_mutex_lock(l->mutex);
     assertl(l, "list.c", "listInsert", EXIT_FAILURE, "l");
     assertl(i > l->size, "list.c", "listInsert", EXIT_FAILURE, "position (i) invalide");
     /* agrandissement de la liste si pleine */
@@ -112,19 +123,22 @@ void listInsert(List *l, int v, unsigned i) {
     /* ajoute le nouvel élément */
     l->tab[i] = v;
     l->size++;
+    pthread_mutex_unlock(l->mutex);
 }
 
 /**
  * @date  1/11/2023
  * @author Ugo VALLAT
  */
-int listPop(List *l) {
+LIST_TYPE listPop(List *l) {
+    pthread_mutex_lock(l->mutex);
     assertl(l, "list.c", "listPop", EXIT_FAILURE, "l");
-    assertl(l->size <= 0, "list.c", "listPop", EXIT_FAILURE, "liste déjà vide");
+    assertl(l->size > 0, "list.c", "listPop", EXIT_FAILURE, "liste déjà vide");
     /* suppression de l'élément */
-    int elem = l->tab[l->size - 1];
+    LIST_TYPE elem = l->tab[l->size - 1];
     l->size--;
     adjustMemorySizeList(l, l->size);
+    pthread_mutex_unlock(l->mutex);
     return elem;
 }
 
@@ -132,17 +146,18 @@ int listPop(List *l) {
  * @date  1/11/2023
  * @author Ugo VALLAT
  */
-int listRemove(List *l, unsigned i) {
+LIST_TYPE listRemove(List *l, unsigned i) {
+    pthread_mutex_lock(l->mutex);
     assertl(l, "list.c", "listRemove", EXIT_FAILURE, "l");
-    assertl(i >= l->size, "list.c", "listPop", EXIT_FAILURE, "position (i) invalide");
-    int elem = l->tab[i];
+    assertl(i < l->size, "list.c", "listRemove", EXIT_FAILURE, "position (i) invalide");
+    LIST_TYPE elem = l->tab[i];
 
     /* suppression de l'élément */
     for (int j = i; j < (int)l->size - 1; j++)
         l->tab[j] = l->tab[j + 1];
     l->size--;
     adjustMemorySizeList(l, l->size);
-
+    pthread_mutex_unlock(l->mutex);
     return elem;
 }
 
@@ -150,10 +165,12 @@ int listRemove(List *l, unsigned i) {
  * @date  1/11/2023
  * @author Ugo VALLAT
  */
-bool listEmpty(List *l) {
+bool listIsEmpty(List *l) {
+    pthread_mutex_lock(l->mutex);
     assertl(l, "list.c", "listEmpty", EXIT_FAILURE, "l");
-
-    return l->size == 0;
+    unsigned size = l->size;
+    pthread_mutex_unlock(l->mutex);
+    return size == 0;
 }
 
 /**
@@ -161,9 +178,11 @@ bool listEmpty(List *l) {
  * @author Ugo VALLAT
  */
 unsigned listSize(List *l) {
+    pthread_mutex_lock(l->mutex);
     assertl(l, "list.c", "lestSize", EXIT_FAILURE, "l");
-
-    return l->size;
+    unsigned size = l->size;
+    pthread_mutex_unlock(l->mutex);
+    return size;
 }
 
 /**
@@ -171,6 +190,7 @@ unsigned listSize(List *l) {
  * @author Ugo VALLAT
  */
 List *listCopy(List *l) {
+    pthread_mutex_lock(l->mutex);
     assertl(l, "list.c", "listCopy", EXIT_FAILURE, "l");
 
     /* création nouvelle liste */
@@ -178,8 +198,10 @@ List *listCopy(List *l) {
 
     /* copie des éléments */
     for (unsigned i = 0; i < l->size; i++) {
-        listAdd(new, l->tab[i]);
+        new->tab[i] = l->tab[i];
+        new->size++;
     }
+    pthread_mutex_unlock(l->mutex);
     return new;
 }
 
@@ -187,24 +209,30 @@ List *listCopy(List *l) {
  * @date  1/11/2023
  * @author Ugo VALLAT
  */
-int listGet(List *l, unsigned i) {
+LIST_TYPE listGet(List *l, unsigned i) {
+    pthread_mutex_lock(l->mutex);
     assertl(l, "list.c", "listGet", EXIT_FAILURE, "l");
     assertl(i > l->size, "list.c", "listGet", EXIT_FAILURE, "position (%d) invalide", i);
-    return l->tab[i];
+    LIST_TYPE v = l->tab[i];
+    pthread_mutex_unlock(l->mutex);
+    return v;
 }
 
 /**
  * @date  1/11/2023
  * @author Ugo VALLAT
  */
-void listSet(List *l, int v, unsigned i) {
+void listSet(List *l, LIST_TYPE v, unsigned i) {
+    pthread_mutex_lock(l->mutex);
     assertl(l, "list.c", "listSet", EXIT_FAILURE, "l");
     assertl(i > l->size, "list.c", "listSet", EXIT_FAILURE, "position (%d) invalide", i);
     l->tab[i] = v;
+    pthread_mutex_unlock(l->mutex);
 }
 
 void listClear(List *l) {
+    pthread_mutex_lock(l->mutex);
     assertl(l, "list.c", "listClear", EXIT_FAILURE, "l");
     l->size = 0;
+    pthread_mutex_unlock(l->mutex);
 }
-

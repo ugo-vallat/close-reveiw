@@ -1,7 +1,9 @@
+#include <bits/types/struct_timeval.h>
 #include <network/manager.h>
 #include <network/p2p-com.h>
 #include <network/tls-com.h>
 #include <pthread.h>
+#include <stdlib.h>
 #include <sys/socket.h>
 #include <types/p2p-msg.h>
 #include <types/packet.h>
@@ -9,12 +11,94 @@
 #include <utils/project_constants.h>
 
 #define FILE_P2P_COM "p2p-com.c"
+#define TIMEOUT_DIRECT_SERVER 2
+#define TIMEOUT_DIRECT_CLIENT 1
 
 #define CLIENT_CERT_PATH                                                                           \
     "/home/ugolinux/documents_linux/S6_Info_Linux/BE/close-review/config/server/"                  \
     "server-be-auto-cert.crt"
 #define CLIENT_KEY_PATH                                                                            \
     "/home/ugolinux/documents_linux/S6_Info_Linux/BE/close-review/config/server/server-be.key"
+
+typedef struct s_p2p_thread_args {
+    Manager *manager;
+    TLS_infos *tls;
+    TLS_mode mode;
+} P2P_thread_args;
+
+void *funStartPeerDirect(void *arg) {
+    char FUN_NAME[32] = "funStartPeerDirect";
+    P2P_thread_args *thread_args = (P2P_thread_args *)arg;
+    assertl(thread_args, FILE_P2P_COM, FUN_NAME, EXIT_FAILURE, "thread_args NULL");
+    assertl(thread_args->tls, FILE_P2P_COM, FUN_NAME, EXIT_FAILURE, "thread_args->tls NULL");
+    assertl(thread_args->manager, FILE_P2P_COM, FUN_NAME, EXIT_FAILURE,
+            "thread_args->manager NULL");
+
+    TLS_error tls_error;
+    Manager_error manager_error;
+    Packet *packet;
+    bool try_connect = true;
+    struct timeval *timeout;
+
+    /* set timeout */
+    timeout = malloc(sizeof(struct timeval));
+    timeout->tv_sec =
+        (thread_args->mode == TLS_CLIENT) ? (TIMEOUT_DIRECT_CLIENT) : (TIMEOUT_DIRECT_SERVER);
+
+    /* loop try to connect */
+    while (try_connect) {
+        tls_error = tlsOpenCom(thread_args->tls, timeout);
+        /* try to connect */
+        switch (tls_error) {
+        case TLS_SUCCESS:
+            try_connect = false;
+            break;
+        case TLS_RETRY:
+            warnl(FILE_P2P_COM, FUN_NAME, "connection timeout");
+            try_connect = true;
+            break;
+        case TLS_ERROR:
+            warnl(FILE_P2P_COM, FUN_NAME, "tlsOpenCom failed");
+            try_connect = false;
+            break;
+        default:
+            warnl(FILE_P2P_COM, FUN_NAME, "unexcpected error (%d)", tls_error);
+            try_connect = false;
+            break;
+        }
+
+        /* check for close request */
+        if (try_connect) {
+            manager_error =
+                managerReceiveNonBlocking(thread_args->manager, MANAGER_MOD_PEER, &packet);
+            switch (manager_error) {
+            case MANAGER_ERR_SUCCESS:
+                if (packet->type == PACKET_P2P_MSG && packet->p2p.type == P2P_CLOSE) {
+                    try_connect = false;
+                } else {
+                    warnl(FILE_P2P_COM, FUN_NAME, "unexpected packet received");
+                }
+                break;
+            case MANAGER_ERR_RETRY:
+                break;
+            case MANAGER_ERR_CLOSED:
+                warnl(FILE_P2P_COM, FUN_NAME, "manager closed");
+                try_connect = false;
+                break;
+            case MANAGER_ERR_ERROR:
+                warnl(FILE_P2P_COM, FUN_NAME, "manager error");
+                try_connect = false;
+                break;
+            }
+        }
+    }
+    // >>>>>>>>>>>>>>>>> TODO
+    if (tls_error != TLS_SUCCESS) {
+    }
+    return NULL;
+}
+
+void *funStartPeer(void *arg);
 
 /**
  * @brief Create Peer thread, init the peer manager and launch the peer start function
@@ -23,7 +107,32 @@
  * @param tls TLS_infos init if direct connection, NULL otherwise
  * @return 0 if success, -1 otherwise
  */
-int p2pCreateThreadPeer(Manager *manager, TLS_infos *tls);
+int p2pCreateThreadPeer(Manager *manager, TLS_infos *tls, TLS_mode mode) {
+    char FUN_NAME[32] = "";
+    Manager_error error;
+    pthread_t num_t;
+    P2P_thread_args *args;
+
+    /* init manager peer */
+    managerSetState(manager, MANAGER_MOD_PEER, MANAGER_STATE_IN_PROGRESS);
+
+    /* create struct P2P_thread_args */
+    args = malloc(sizeof(P2P_thread_args));
+    args->manager = manager;
+    args->tls = tls;
+    args->mode = mode;
+
+    if (tls && pthread_create(&num_t, NULL, funStartPeerDirect, args) != 0) {
+        warnl(FILE_P2P_COM, FUN_NAME, "failed to lunch thread with funStartPeerDirect");
+        managerSetState(manager, MANAGER_MOD_PEER, MANAGER_STATE_CLOSED);
+        return -1;
+    } else if (pthread_create(&num_t, NULL, funStartPeer, args) != 0) {
+        warnl(FILE_P2P_COM, FUN_NAME, "failed to lunch thread with funStartPeer");
+        managerSetState(manager, MANAGER_MOD_PEER, MANAGER_STATE_CLOSED);
+        return -1;
+    }
+    return 0;
+}
 
 void p2pGetlistUsersAvailable(Manager *manager) {
     char FUN_NAME[32] = "p2pGetlistUsersAvailable";
@@ -55,7 +164,7 @@ void p2pSendRequestConnection(Manager *manager, char *peer_id) {
     assertl(manager, FILE_P2P_COM, FUN_NAME, -1, "manager NULL");
     assertl(peer_id, FILE_P2P_COM, FUN_NAME, -1, "peer_id NULL");
 
-    if (p2pCreateThreadPeer(manager, NULL) != 0) {
+    if (p2pCreateThreadPeer(manager, NULL, TLS_CLIENT) != 0) {
         warnl(FILE_P2P_COM, FUN_NAME, "failed to create peer thread");
         return;
     }
@@ -100,7 +209,7 @@ void p2pRespondToRequest(Manager *manager, char *peer_id, bool response) {
     assertl(peer_id, FILE_P2P_COM, FUN_NAME, -1, "peer_id NULL");
 
     /* create thread peer */
-    if (response && p2pCreateThreadPeer(manager, NULL) != 0) {
+    if (response && p2pCreateThreadPeer(manager, NULL, TLS_CLIENT) != 0) {
         warnl(FILE_P2P_COM, FUN_NAME, "failed to create peer thread");
         response = false;
     }
@@ -153,7 +262,7 @@ void p2pStartDirectConnection(Manager *manager, TLS_mode mode, char *ip, int por
         return;
     }
 
-    if (p2pCreateThreadPeer(manager, tls) != 0) {
+    if (p2pCreateThreadPeer(manager, tls, mode) != 0) {
         warnl(FILE_P2P_COM, FUN_NAME, "failed to create peer thread");
         return;
     }

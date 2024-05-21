@@ -58,7 +58,7 @@ P2P_msg *initP2PMsg(P2P_msg_type type) {
     msg->private_port = -1;
     msg->public_port = -1;
     msg->try_port = -1;
-    return 0;
+    return msg;
 }
 
 void deinitP2PMsg(P2P_msg **msg) {
@@ -89,6 +89,7 @@ char *p2pMsgToTXT(P2P_msg *msg) {
     case P2P_AVAILABLE:
         for (unsigned i = 0; i < msg->nb_user_online; i++) {
             strncat(txt, msg->list_user_online[i], SIZE_TXT);
+            strncat(txt, " ", SIZE_TXT);
         }
         break;
     default:
@@ -134,7 +135,14 @@ char *p2pMsgGetUserId(P2P_msg *msg) {
     return id;
 }
 
-char *p2pMsgGetPassword(P2P_msg *msg);
+char *p2pMsgGetPassword(P2P_msg *msg) {
+    char FUN_NAME[32] = "p2pMsgGetPassword";
+    assertl(msg, FILE_P2P_MSG, FUN_NAME, -1, "msg NULL");
+
+    char *password = malloc(SIZE_PASSWORD);
+    strncpy(password, msg->user_password, SIZE_PASSWORD);
+    return password;
+}
 
 GenList *p2pMsgGetListUserOnline(P2P_msg *msg) {
     char FUN_NAME[32] = "p2pMsgGetListUserOnline";
@@ -185,7 +193,11 @@ int p2pMsgGetTryPort(P2P_msg *msg) {
     return msg->try_port;
 }
 
-P2P_error p2pMsgGetError(P2P_msg *msg);
+P2P_error p2pMsgGetError(P2P_msg *msg) {
+    char FUN_NAME[32] = "p2pMsgGetError";
+    assertl(msg, FILE_P2P_MSG, FUN_NAME, -1, "msg NULL");
+    return msg->error;
+}
 
 /*
     Setteur on P2P_msg*
@@ -204,7 +216,13 @@ void p2pMsgSetUserId(P2P_msg *msg, char *user_id) {
     strncpy(msg->user_id, user_id, SIZE_NAME);
 }
 
-void p2pMsgSetPassword(P2P_msg *msg, char *password);
+void p2pMsgSetPassword(P2P_msg *msg, char *password) {
+    char FUN_NAME[32] = "p2pMsgSetPassword";
+    assertl(msg, FILE_P2P_MSG, FUN_NAME, -1, "msg NULL");
+    assertl(password, FILE_P2P_MSG, FUN_NAME, -1, "password NULL");
+
+    strncpy(msg->user_password, password, SIZE_PASSWORD);
+}
 
 void p2pMsgSetListUserOnline(P2P_msg *msg, GenList *list_online) {
     char FUN_NAME[32] = "p2pMsgSetListUserOnline";
@@ -248,7 +266,11 @@ void p2pMsgSetTryInfo(P2P_msg *msg, char *ip, int port) {
     msg->try_port = port;
 }
 
-void p2pMsgSetError(P2P_msg *msg, P2P_error error);
+void p2pMsgSetError(P2P_msg *msg, P2P_error error) {
+    char FUN_NAME[32] = "p2pMsgSetError";
+    assertl(msg, FILE_P2P_MSG, FUN_NAME, -1, "msg NULL");
+    msg->error = error;
+}
 
 /*
     debug

@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <types/message.h>
+#include <types/p2p-msg.h>
 #include <types/packet.h>
 #include <unistd.h>
 #include <utils/logger.h>
@@ -19,6 +20,7 @@
 int port_server;
 char ip_server[SIZE_IP_CHAR];
 char user_id[SIZE_NAME];
+char password[SIZE_PASSWORD];
 TLS_infos *tls;
 Manager *manager;
 
@@ -27,7 +29,7 @@ void *funInput(void *arg);
 void *funOutput(void *arg);
 void *funPeer(void *arg);
 
-void tryClient();
+void tryClient(char *act);
 void okClient(void);
 void koClient(void);
 
@@ -46,21 +48,35 @@ int main(int argc, char *argv[]) {
     tlsOpenCom(tls, NULL);
     okClient();
 
-    tryClient("start messagerie");
-    manager = initManager();
-    managerSetState(manager, MANAGER_MOD_PEER, MANAGER_STATE_OPEN);
-    managerSetState(manager, MANAGER_MOD_OUTPUT, MANAGER_STATE_OPEN);
-    managerSetState(manager, MANAGER_MOD_MAIN, MANAGER_STATE_OPEN);
+    tryClient("Connect");
+    P2P_msg *msg = initP2PMsg(P2P_CONNECTION_SERVER);
+    p2pMsgSetUserId(msg, user_id);
+    p2pMsgSetPassword(msg, password);
+    Packet *packet = initPacketP2PMsg(msg);
+    tlsSend(tls, packet);
+    okClient();
 
-    pthread_t num_t;
-    pthread_create(&num_t, NULL, funOutput, NULL);
-    pthread_create(&num_t, NULL, funInput, NULL);
-    pthread_create(&num_t, NULL, funPeer, NULL);
-
-    for (int i = 0; i < 3; i++) {
-        managerMainReceive(manager, &num_t);
-        pthread_join(num_t, NULL);
+    tryClient("answer");
+    if (tlsReceiveBlocking(tls, &packet) == TLS_SUCCESS) {
+        printf(" answer : %s \n", p2pMsgToTXT(&(packet->p2p)));
     }
+    okClient();
+
+    char buff[32];
+    printf("waiting .... \n");
+    scanf("%s", buff);
+
+    tryClient("get available");
+    msg = initP2PMsg(P2P_GET_AVAILABLE);
+    packet = initPacketP2PMsg(msg);
+    tlsSend(tls, packet);
+    okClient();
+
+    tryClient("answer");
+    if (tlsReceiveBlocking(tls, &packet) == TLS_SUCCESS) {
+        printf(" answer : %s \n", p2pMsgToTXT(&(packet->p2p)));
+    }
+    okClient();
 
     tryClient("close");
     tlsCloseCom(tls, NULL);
@@ -194,11 +210,11 @@ void koClient(void) {
 }
 
 void displayUsage(char *bin) {
-    printf("usage : %s <ip_server> <port_server> <id>\n", bin);
+    printf("usage : %s <ip_server> <port_server> <id> <password>\n", bin);
 }
 
 void getArgs(int argc, char *argv[]) {
-    if (argc != 4) {
+    if (argc != 5) {
         displayUsage(argv[0]);
         exit(1);
     }
@@ -209,4 +225,5 @@ void getArgs(int argc, char *argv[]) {
         exit(1);
     }
     strncpy(user_id, argv[3], SIZE_NAME);
+    strncpy(password, argv[4], SIZE_PASSWORD);
 }

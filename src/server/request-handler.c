@@ -1,6 +1,6 @@
 #include <mysql.h>
 #include <server/database-manager.h>
-#include <server/requeste-handler.h>
+#include <server/request-handler.h>
 #include <types/genericlist.h>
 #include <types/p2p-msg.h>
 #include <types/packet.h>

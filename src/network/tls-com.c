@@ -1,4 +1,5 @@
 #include <arpa/inet.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <network/tls-com.h>
@@ -12,8 +13,8 @@
 #include <types/p2p-msg.h>
 #include <types/packet.h>
 #include <unistd.h>
-#include <utils/const-define.h>
 #include <utils/logger.h>
+#include <utils/project_constants.h>
 
 #define ERROR_BUFF_SIZE 512
 
@@ -22,7 +23,8 @@
 TLS_infos *initTLSInfos(const char *ip, const int port, TLS_mode tls_mode, char *path_cert,
                         char *path_key) {
     char FUN_NAME[32] = "initTLSInfos";
-    assertl(ip, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "ip NULL");
+    if (tls_mode == TLS_CLIENT)
+        assertl(ip, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "ip NULL");
     assertl(port > 0 & port < 65535, FILE_TLS_COM, FUN_NAME, TLS_ERROR, "invalid num port <%d>",
             port);
     assertl(tls_mode == TLS_CLIENT || tls_mode == TLS_SERVER || tls_mode == TLS_MAIN_SERVER,
@@ -39,7 +41,8 @@ TLS_infos *initTLSInfos(const char *ip, const int port, TLS_mode tls_mode, char 
 
     memset(tls, 0, sizeof(TLS_infos));
     tls->port = port;
-    strncpy(tls->ip, ip, SIZE_IP_CHAR);
+    if (tls_mode == TLS_CLIENT)
+        strncpy(tls->ip, ip, SIZE_IP_CHAR);
     tls->mode = tls_mode;
     tls->open = false;
 
@@ -156,6 +159,15 @@ TLS_error tlsOpenCom(TLS_infos *infos, struct timeval *timeout) {
                 return TLS_ERROR;
             }
         }
+    } else {
+        if (timeout) {
+            if (setsockopt(infos->sockfd, SOL_SOCKET, SO_SNDTIMEO, (void *)timeout,
+                           sizeof(struct timeval)) < 0) {
+                warnl(FILE_TLS_COM, FUN_NAME, "error set timeout");
+                tlsCloseCom(infos, NULL);
+                return TLS_ERROR;
+            }
+        }
     }
 
     /* connexion client / server */
@@ -163,6 +175,10 @@ TLS_error tlsOpenCom(TLS_infos *infos, struct timeval *timeout) {
         socklen_t cli_len = sizeof(cli_addr);
         int client_sockfd = accept(infos->sockfd, (struct sockaddr *)&cli_addr, &cli_len);
         if (client_sockfd == -1) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                warnl(FILE_TLS_COM, FUN_NAME, "accept() stoped by timeout");
+                return TLS_RETRY;
+            }
             warnl(FILE_TLS_COM, FUN_NAME, "error accept client");
             tlsCloseCom(infos, NULL);
             return TLS_ERROR;
@@ -172,6 +188,10 @@ TLS_error tlsOpenCom(TLS_infos *infos, struct timeval *timeout) {
         }
     } else {
         if (connect(infos->sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                warnl(FILE_TLS_COM, FUN_NAME, "connect() stoped by timeout");
+                return TLS_RETRY;
+            }
             warnl(FILE_TLS_COM, FUN_NAME, "error connect to server");
             tlsCloseCom(infos, NULL);
             return TLS_ERROR;
@@ -533,9 +553,14 @@ TLS_error tlsReceiveNonBlocking(TLS_infos *infos, Packet **packet) {
     case SSL_ERROR_WANT_WRITE:
         return TLS_RETRY;
         break;
+    case SSL_ERROR_SYSCALL:
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            return TLS_RETRY;
+            break;
+        }
     default:
         ERR_error_string_n(error, buff, sizeof(buff));
-        warnl(FILE_TLS_COM, FUN_NAME, "SSL_read : %s", buff);
+        warnl(FILE_TLS_COM, FUN_NAME, "SSL_read (%d) : %s", error, buff);
         return TLS_ERROR;
     }
 }

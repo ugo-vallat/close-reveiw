@@ -42,13 +42,13 @@ void createUser(MYSQL *conn, char *username, char *password) {
 void setup(MYSQL *conn) {
     char fun_name[16] = "setup";
     /* Suppression de la base de données */
-    mysqlQuery(conn, "DROP DATABASE IF EXISTS close-review", fun_name, 1);
+    mysqlQuery(conn, "DROP DATABASE IF EXISTS close_review", fun_name, 1);
 
     /* Création de la base de données */
-    mysqlQuery(conn, "CREATE DATABASE IF NOT EXISTS close-review", fun_name, 1);
+    mysqlQuery(conn, "CREATE DATABASE IF NOT EXISTS close_review", fun_name, 1);
 
     /* Utilisation de la base de données */
-    mysqlQuery(conn, "USE close-review", fun_name, 1);
+    mysqlQuery(conn, "USE close_review", fun_name, 1);
 
     /* Création de la table user */
     mysqlQuery(conn,
@@ -70,16 +70,18 @@ void setup(MYSQL *conn) {
 bool login(MYSQL *conn, char *username, char *password, int user_nb) {
     char query[256];
     char hash[256];
+    char *fun_name = "login";
 
     /* Hashage du mot de passe */
     password_to_md5_hash(password, hash);
 
     /* Recherche de l'utilisateur dans la table user */
     sprintf(query, "SELECT id FROM user WHERE username = '%s'", username);
+    mysqlQuery(conn, query, fun_name, 1);
 
     MYSQL_RES *res = mysql_store_result(conn);
     if (res == NULL) {
-        fprintf(stderr, "%s\n", mysql_error(conn));
+        fprintf(stderr, "error mysql_store_result : <%s>\n", mysql_error(conn));
         exit(1);
     }
 
@@ -109,7 +111,7 @@ bool login(MYSQL *conn, char *username, char *password, int user_nb) {
     }
 
     if (strcmp(row[0], hash) == 0) {
-        sprintf(query, "UPDATE user SET request_by=NULL, user_nb = %d  WHERE user_id = %d", user_nb,
+        sprintf(query, "UPDATE user SET request_by=NULL, user_nb = %d  WHERE id = %d", user_nb,
                 user_id);
         if (mysql_query(conn, query)) {
             fprintf(stderr, "%s\n", mysql_error(conn));
@@ -171,7 +173,7 @@ GenList *listUserAvalaible(MYSQL *conn) {
     mysqlQuery(conn, query, fun_name, 1);
 
     MYSQL_RES *res = mysql_store_result(conn);
-    assertl(res == NULL, "database-manager.c", fun_name, 1, mysql_error(conn));
+    assertl(res, "database-manager.c", fun_name, 1, mysql_error(conn));
 
     int num_rows = mysql_num_rows(res);
 
@@ -179,7 +181,7 @@ GenList *listUserAvalaible(MYSQL *conn) {
     GenList *results = initGenList(num_rows);
     int i = 0;
     while ((row = mysql_fetch_row(res))) {
-        genListAdd(results, row);
+        genListAdd(results, row[0]);
     }
 
     return results;
