@@ -15,9 +15,9 @@
 
 #ifndef __LIST_H__
 #define __LIST_H__
+
 #include <errno.h>
 #include <stdbool.h>
-#include <stdio.h>
 
 /*------------------------------------------------------------------*/
 /*                        STRUCTURE LIST                            */
@@ -157,10 +157,9 @@ unsigned listSize(List *l);
 
 List *listCopy(List *l);
 
-
 /**
  * @brief Remet la liste à 0
- * 
+ *
  * @param l Liste à vider
  */
 void listClear(List *l);

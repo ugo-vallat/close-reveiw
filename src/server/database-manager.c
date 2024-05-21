@@ -1,10 +1,10 @@
-#include "types/genericlist.h"
 #include <mysql.h>
 #include <openssl/evp.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <types/genericlist.h>
 
 #include <server/database-manager.h>
 #include <server/weak_password.h>
@@ -51,17 +51,20 @@ void setup(MYSQL *conn) {
     mysqlQuery(conn, "USE close-review", fun_name, 1);
 
     /* Création de la table user */
-    mysqlQuery(conn, "CREATE TABLE IF NOT EXISTS user ("
-                          "id INT PRIMARY KEY AUTO_INCREMENT,"
-                          "username VARCHAR(30),"
-                          "user_nb INT,"
-                          "request_by INT,"
-                          "FOREIGN KEY (request_by) REFERENCES user(id))", fun_name, 1);
-
+    mysqlQuery(conn,
+               "CREATE TABLE IF NOT EXISTS user ("
+               "id INT PRIMARY KEY AUTO_INCREMENT,"
+               "username VARCHAR(30),"
+               "user_nb INT,"
+               "request_by INT,"
+               "FOREIGN KEY (request_by) REFERENCES user(id))",
+               fun_name, 1);
 
     /* Création de la table password */
-    mysqlQuery(conn, "CREATE TABLE IF NOT EXISTS password(user_id INT, password VARCHAR(32), "
-                          "FOREIGN KEY(user_id) REFERENCES user(id))", fun_name, 1);
+    mysqlQuery(conn,
+               "CREATE TABLE IF NOT EXISTS password(user_id INT, password VARCHAR(32), "
+               "FOREIGN KEY(user_id) REFERENCES user(id))",
+               fun_name, 1);
 }
 
 bool login(MYSQL *conn, char *username, char *password, int user_nb) {
@@ -106,8 +109,8 @@ bool login(MYSQL *conn, char *username, char *password, int user_nb) {
     }
 
     if (strcmp(row[0], hash) == 0) {
-        sprintf(query, "UPDATE user SET request_by=NULL, user_nb = %d  WHERE user_id = %d",
-                user_nb, user_id);
+        sprintf(query, "UPDATE user SET request_by=NULL, user_nb = %d  WHERE user_id = %d", user_nb,
+                user_id);
         if (mysql_query(conn, query)) {
             fprintf(stderr, "%s\n", mysql_error(conn));
             exit(1);
@@ -122,7 +125,7 @@ bool login(MYSQL *conn, char *username, char *password, int user_nb) {
 void disconnect(MYSQL *conn, int user_nb) {
     char fun_name[16] = "disconnect";
     char query[256];
-    
+
     sprintf(query, "UPDATE user SET request_by=NULL, user_nb = NULL  WHERE user_nb = %d", user_nb);
     mysqlQuery(conn, query, fun_name, 1);
 }
@@ -160,15 +163,15 @@ void logginDatabase(MYSQL *conn, char *server, char *sql_user, char *sql_passwor
     }
 }
 
-GenList *listUserAvalaible(MYSQL *conn){
+GenList *listUserAvalaible(MYSQL *conn) {
     char fun_name[32] = "listUserAvalaible";
     char query[SIZE_QUERY];
 
-    sprintf(query,"SELECT username FROM user WHERE user_nb IS NOT NULL AND request_by IS NULL");
+    sprintf(query, "SELECT username FROM user WHERE user_nb IS NOT NULL AND request_by IS NULL");
     mysqlQuery(conn, query, fun_name, 1);
 
     MYSQL_RES *res = mysql_store_result(conn);
-    assertl(res == NULL,"database-manager.c", fun_name, 1, mysql_error(conn));
+    assertl(res == NULL, "database-manager.c", fun_name, 1, mysql_error(conn));
 
     int num_rows = mysql_num_rows(res);
 

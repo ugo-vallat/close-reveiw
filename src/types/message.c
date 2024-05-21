@@ -4,8 +4,8 @@
 #include <time.h>
 #include <types/genericlist.h>
 #include <types/message.h>
-#include <utils/const-define.h>
 #include <utils/logger.h>
+#include <utils/project_constants.h>
 
 #define FILE_MESSAGES "message.c"
 

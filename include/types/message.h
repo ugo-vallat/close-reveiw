@@ -2,9 +2,7 @@
 #define MESSAGE_H
 
 #include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
-#include <utils/const-define.h>
+#include <utils/project_constants.h>
 
 typedef struct s_Msg {
     char sender[SIZE_NAME];

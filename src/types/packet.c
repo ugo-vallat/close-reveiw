@@ -3,8 +3,8 @@
 #include <types/message.h>
 #include <types/p2p-msg.h>
 #include <types/packet.h>
-#include <utils/const-define.h>
 #include <utils/logger.h>
+#include <utils/project_constants.h>
 
 #define FILE_PACKET "packet.c"
 

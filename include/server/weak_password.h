@@ -2,7 +2,7 @@
 #define WEAK_PASSWORD_H
 
 #include <stdbool.h>
-#include <utils/const-define.h>
+#include <utils/project_constants.h>
 
 #define MD5_WORDLIST_PATH "hash_test"
 

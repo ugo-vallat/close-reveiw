@@ -4,7 +4,7 @@
 #include <network/manager.h>
 #include <openssl/ssl.h>
 #include <types/genericlist.h>
-#include <utils/const-define.h>
+#include <utils/project_constants.h>
 
 typedef enum e_tls_error {
     TLS_SUCCESS,      /* success */

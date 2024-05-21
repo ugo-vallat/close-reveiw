@@ -1,11 +1,10 @@
 #ifndef __GESTONARU_COM__
 #define __GESTONARU_COM__
 
-#include <bits/pthreadtypes.h>
 #include <pthread.h>
 #include <types/genericlist.h>
 #include <types/packet.h>
-#include <utils/const-define.h>
+#include <utils/project_constants.h>
 
 typedef enum e_manager_module {
     MANAGER_MOD_INPUT,  /* manager of the input thread (user input) */

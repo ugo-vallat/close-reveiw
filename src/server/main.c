@@ -48,7 +48,7 @@ void *startConnection(void *arg) {
     }
 
     listAdd(thread, thrd_current());
-    
+
     return 0;
 }
 

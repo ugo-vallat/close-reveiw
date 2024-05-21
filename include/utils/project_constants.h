@@ -1,5 +1,5 @@
-#ifndef __CONST_DEFINE_H__
-#define __CONST_DEFINE_H__
+#ifndef __PROJECT_CONSTANTS_H__
+#define __PROJECT_CONSTANTS_H__
 
 /* Type Msg */
 #define SIZE_DATE 20

@@ -2,7 +2,7 @@
 #define __P2P_MSG_H__
 
 #include <types/genericlist.h>
-#include <utils/const-define.h>
+#include <utils/project_constants.h>
 
 typedef enum e_p2p_msg_type {
     /* connection server */
