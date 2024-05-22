@@ -146,4 +146,12 @@ Manager_error managerMainReceive(Manager *manager, pthread_t *num_t);
  */
 Manager_error managerMainSendPthreadToJoin(Manager *manager, pthread_t num_t);
 
+/**
+ * @brief Return the string associated to the Manager_error
+ *
+ * @param error Manager_error
+ * @return const char*
+ */
+char *managerErrorToString(Manager_error error);
+
 #endif

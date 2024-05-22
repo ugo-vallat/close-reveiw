@@ -1,3 +1,4 @@
+#include "network/manager.h"
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -401,14 +402,13 @@ TLS_error tlsCloseCom(TLS_infos *infos, GenList *last_received) {
 
 TLS_error tlsStartListenning(TLS_infos *infos, Manager *manager, Manager_module module,
                              funTLSGetNextPacket next_packet,
-                             funTLSPacketReceivedManager MSG_manager,
-                             funTLSPacketReceivedManager P2P_manager) {
+                             funTLSPacketReceivedManager packet_manager_received) {
     char FUN_NAME[32] = "tlsStartListenning";
     assertl(infos, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "infos NULL");
     assertl(manager, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "manager NULL");
     assertl(next_packet, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "next_packet NULL");
-    assertl(MSG_manager, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "MSG_manager NULL");
-    assertl(P2P_manager, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "P2P_manager NULL");
+    assertl(packet_manager_received, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER,
+            "packet_manager_received NULL");
 
     TLS_error tls_error;
     Packet *p;
@@ -447,15 +447,22 @@ TLS_error tlsStartListenning(TLS_infos *infos, Manager *manager, Manager_module 
         case TLS_SUCCESS:
             switch (p->type) {
             case PACKET_MSG:
-                MSG_manager(manager, module, p);
-                break;
             case PACKET_P2P_MSG:
-                P2P_manager(manager, module, p);
+            case PACKET_TXT:
+                tls_error = packet_manager_received(manager, module, p);
+                switch (tls_error) {
+                case TLS_SUCCESS:
+                    break;
+                case TLS_CLOSE:
+                    return TLS_CLOSE;
+                default:
+                    warnl(FILE_TLS_COM, FUN_NAME, "%s - packet_manager_receive failed",
+                          tlsErrorToString(tls_error));
+                    break;
+                }
                 break;
             default:
                 warnl(FILE_TLS_COM, FUN_NAME, "unexpected type <%d>", p->type);
-                tlsCloseCom(infos, NULL);
-                return TLS_ERROR;
             }
             deinitPacket(&p);
             break;
@@ -470,6 +477,126 @@ TLS_error tlsStartListenning(TLS_infos *infos, Manager *manager, Manager_module 
             tlsCloseCom(infos, NULL);
             return TLS_ERROR;
         }
+    }
+}
+
+TLS_error tlsManagerPacketReceived(Manager *manager, Manager_module module, Packet *packet) {
+    char *FUN_NAME = "tlsP2PManagerPacketReceived";
+    assertl(manager, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "manager NULL");
+    assertl(packet, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "packet NULL");
+
+    Manager_error manager_error;
+
+    if (module == MANAGER_MOD_PEER) {
+        switch (packet->type) {
+        case PACKET_P2P_MSG:
+            switch (p2pMsgGetType(&(packet->p2p))) {
+            case P2P_REJECT:
+            case P2P_CLOSE:
+                managerSend(manager, MANAGER_MOD_OUTPUT, packet);
+                return TLS_CLOSE;
+                break;
+            /* unexpected */
+            case P2P_REQUEST_IN:
+            case P2P_AVAILABLE:
+            case P2P_GET_INFOS:
+            case P2P_TRY_CLIENT_MODE:
+            case P2P_TRY_SERVER_MODE:
+            case P2P_ACCEPT:
+            case P2P_CONNECTION_OK:
+            case P2P_CONNECTION_KO:
+            case P2P_CONNECTION_SERVER:
+            case P2P_REQUEST_OUT:
+            case P2P_GET_AVAILABLE:
+            case P2P_CON_FAILURE:
+            case P2P_CON_SUCCESS:
+            case P2P_INFOS:
+                warnl(FILE_TLS_COM, FUN_NAME, "packet %s unsupported",
+                      p2pMsgTypeToString(p2pMsgGetType(&(packet->p2p))));
+            }
+            return TLS_ERROR;
+            break;
+        case PACKET_MSG:
+        case PACKET_TXT:
+            manager_error = managerSend(manager, MANAGER_MOD_OUTPUT, packet);
+            return TLS_SUCCESS;
+            break;
+        }
+    } else if (module == MANAGER_MOD_SERVER) {
+        switch (packet->type) {
+        case PACKET_P2P_MSG:
+            switch (p2pMsgGetType(&(packet->p2p))) {
+            case P2P_AVAILABLE:
+            case P2P_REQUEST_IN:
+                manager_error = managerSend(manager, MANAGER_MOD_OUTPUT, packet);
+                return TLS_SUCCESS;
+                break;
+            case P2P_REJECT:
+            case P2P_CLOSE:
+            case P2P_GET_INFOS:
+            case P2P_TRY_CLIENT_MODE:
+            case P2P_TRY_SERVER_MODE:
+            case P2P_ACCEPT:
+                managerSend(manager, MANAGER_MOD_PEER, packet);
+                return TLS_CLOSE;
+                break;
+            case P2P_CONNECTION_OK:
+            case P2P_CONNECTION_KO:
+                managerSend(manager, MANAGER_MOD_INPUT, packet);
+                managerSend(manager, MANAGER_MOD_OUTPUT, packet);
+                return TLS_CLOSE;
+                break;
+                return TLS_CLOSE;
+                break;
+            /* unexpected */
+            case P2P_CONNECTION_SERVER:
+            case P2P_REQUEST_OUT:
+            case P2P_GET_AVAILABLE:
+            case P2P_CON_FAILURE:
+            case P2P_CON_SUCCESS:
+            case P2P_INFOS:
+                warnl(FILE_TLS_COM, FUN_NAME, "packet %s unsupported",
+                      p2pMsgTypeToString(p2pMsgGetType(&(packet->p2p))));
+            }
+            return TLS_ERROR;
+            break;
+        case PACKET_MSG:
+        case PACKET_TXT:
+            manager_error = managerSend(manager, MANAGER_MOD_OUTPUT, packet);
+            return TLS_SUCCESS;
+            break;
+        }
+    } else {
+        warnl(FILE_TLS_COM, FUN_NAME, "unexpected Manager module");
+        return TLS_ERROR;
+    }
+}
+
+TLS_error tlsManagerPacketGetNext(Manager *manager, Manager_module module, Packet **packet) {
+    char *FUN_NAME = "tlsManagerPacketGetNext";
+    assertl(manager, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "manager NULL");
+    assertl(packet, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "packet NULL");
+
+    Manager_error manager_error;
+    manager_error = managerReceiveNonBlocking(manager, module, packet);
+    switch (manager_error) {
+    case MANAGER_ERR_SUCCESS:
+        /* packet is close request */
+        if ((*packet)->type == PACKET_P2P_MSG && (*packet)->p2p.type == P2P_CLOSE)
+            return TLS_CLOSE;
+        return TLS_SUCCESS;
+        break;
+    case MANAGER_ERR_RETRY:
+        return TLS_RETRY;
+        break;
+    case MANAGER_ERR_CLOSED:
+        warnl(FILE_TLS_COM, FUN_NAME, "%s - manager closed", managerErrorToString(manager_error));
+        return TLS_ERROR;
+        break;
+    case MANAGER_ERR_ERROR:
+        warnl(FILE_TLS_COM, FUN_NAME, "%s - manager failed", managerErrorToString(manager_error));
+        return TLS_ERROR;
+        break;
     }
 }
 
@@ -634,4 +761,21 @@ TLS_error tlsReceiveBlocking(TLS_infos *infos, Packet **packet) {
         tls_error = TLS_ERROR;
     }
     return tls_error;
+}
+
+char *tlsErrorToString(TLS_error error) {
+    switch (error) {
+    case TLS_ERROR:
+        return "TLS_ERROR";
+    case TLS_SUCCESS:
+        return "TLS_SUCCESS";
+    case TLS_NULL_POINTER:
+        return "TLS_NULL_POINTER";
+    case TLS_RETRY:
+        return "TLS_RETRY";
+    case TLS_CLOSE:
+        return "TLS_CLOSE";
+    default:
+        return "Unknown";
+    }
 }

@@ -7,49 +7,6 @@
 
 #define FILE_P2P_MSG "p2p-msg.c"
 
-/**
- * @brief Return the char associated with the type
- *
- * @param type P2P_msg_type
- * @return char*
- */
-char *p2pMsgTypeToChar(P2P_msg_type type) {
-    switch (type) {
-    case P2P_CONNECTION_SERVER:
-        return "P2P_USER_ID";
-    case P2P_CONNECTION_OK:
-        return "P2P_CONNECTION_OK";
-    case P2P_CONNECTION_KO:
-        return "P2P_CONNECTION_KO";
-    case P2P_ACCEPT:
-        return "P2P_ACCEPT";
-    case P2P_REJECT:
-        return ("P2P_REJECT");
-    case P2P_REQUEST_IN:
-        return ("P2P_REQUEST_IN");
-    case P2P_REQUEST_OUT:
-        return ("P2P_REQUEST_OUT");
-    case P2P_GET_AVAILABLE:
-        return ("P2P_GET_AVAILABLE");
-    case P2P_AVAILABLE:
-        return ("P2P_AVAILABLE");
-    case P2P_CON_FAILURE:
-        return ("P2P_CON_FAILURE");
-    case P2P_CON_SUCCESS:
-        return ("P2P_CON_SUCCESS");
-    case P2P_GET_INFOS:
-        return ("P2P_GET_INFOS");
-    case P2P_INFOS:
-        return ("P2P_INFOS");
-    case P2P_TRY_CLIENT_MODE:
-        return ("P2P_TRY_CLIENT_MODE");
-    case P2P_TRY_SERVER_MODE:
-        return ("P2P_TRY_SERVER_MODE");
-    default:
-        return "<unknown>";
-    }
-}
-
 P2P_msg *initP2PMsg(P2P_msg_type type) {
     P2P_msg *msg = malloc(sizeof(P2P_msg));
     memset(msg, 0, sizeof(P2P_msg));
@@ -93,7 +50,7 @@ char *p2pMsgToTXT(P2P_msg *msg) {
         }
         break;
     default:
-        snprintf(txt, SIZE_TXT, "P2P_msg : %s", p2pMsgTypeToChar(msg->type));
+        snprintf(txt, SIZE_TXT, "P2P_msg : %s", p2pMsgTypeToString(msg->type));
     }
     return txt;
 }
@@ -114,6 +71,66 @@ void p2pMsgCopy(P2P_msg *msg_dst, P2P_msg *msg_src) {
     assertl(msg_dst, FILE_P2P_MSG, FUN_NAME, -1, "msg_dst NULL");
 
     memcpy(msg_dst, msg_src, sizeof(P2P_msg));
+}
+
+char *p2pMsgTypeToString(P2P_msg_type type) {
+    switch (type) {
+    case P2P_CONNECTION_SERVER:
+        return "P2P_USER_ID";
+    case P2P_CONNECTION_OK:
+        return "P2P_CONNECTION_OK";
+    case P2P_CONNECTION_KO:
+        return "P2P_CONNECTION_KO";
+    case P2P_ACCEPT:
+        return "P2P_ACCEPT";
+    case P2P_REJECT:
+        return ("P2P_REJECT");
+    case P2P_REQUEST_IN:
+        return ("P2P_REQUEST_IN");
+    case P2P_REQUEST_OUT:
+        return ("P2P_REQUEST_OUT");
+    case P2P_GET_AVAILABLE:
+        return ("P2P_GET_AVAILABLE");
+    case P2P_AVAILABLE:
+        return ("P2P_AVAILABLE");
+    case P2P_CON_FAILURE:
+        return ("P2P_CON_FAILURE");
+    case P2P_CON_SUCCESS:
+        return ("P2P_CON_SUCCESS");
+    case P2P_GET_INFOS:
+        return ("P2P_GET_INFOS");
+    case P2P_INFOS:
+        return ("P2P_INFOS");
+    case P2P_TRY_CLIENT_MODE:
+        return ("P2P_TRY_CLIENT_MODE");
+    case P2P_TRY_SERVER_MODE:
+        return ("P2P_TRY_SERVER_MODE");
+    case P2P_CLOSE:
+        return ("P2P_CLOSE");
+    }
+}
+
+char *p2pErrorToString(P2P_error error) {
+    switch (error) {
+    case P2P_ERR_SUCCESS:
+        return "P2P_ERR_SUCCESS";
+    case P2P_ERR_UNKNOWN_USER:
+        return "P2P_ERR_UNKNOWN_USER";
+    case P2P_ERR_UNAVAILABLE_USER:
+        return "P2P_ERR_UNAVAILABLE_USER";
+    case P2P_ERR_USER_DISCONNECTED:
+        return "P2P_ERR_USER_DISCONNECTED";
+    case P2P_ERR_ALREADY_PEERING:
+        return "P2P_ERR_ALREADY_PEERING";
+    case P2P_ERR_USER_CLOSE:
+        return "P2P_ERR_USER_CLOSE";
+    case P2P_ERR_LOCAL_ERROR:
+        return "P2P_ERR_LOCAL_ERROR";
+    case P2P_ERR_CONNECTION_FAILED:
+        return "P2P_ERR_CONNECTION_FAILED";
+    case P2P_ERR_OTHER:
+        return "P2P_ERR_OTHER";
+    }
 }
 
 /*
@@ -277,7 +294,7 @@ void p2pMsgSetError(P2P_msg *msg, P2P_error error) {
 */
 
 void p2pMsgPrintl(P2P_msg *msg) {
-    printl("\n| type : <%s>", p2pMsgTypeToChar(msg->type));
+    printl("\n| type : <%s>", p2pMsgTypeToString(msg->type));
     printl("| user_id : <%s>", msg->user_id);
     printl("| nb_user_online : <%d>", msg->nb_user_online);
     for (unsigned i = 0; i < msg->nb_user_online; i++) {

@@ -15,8 +15,8 @@ typedef enum e_tls_error {
 } TLS_error;
 
 /* function to manage the packets received */
-typedef void (*funTLSPacketReceivedManager)(Manager *manager, Manager_module module,
-                                            Packet *packet);
+typedef TLS_error (*funTLSPacketReceivedManager)(Manager *manager, Manager_module module,
+                                                 Packet *packet);
 
 /* function get the next packet to send */
 typedef TLS_error (*funTLSGetNextPacket)(Manager *manager, Manager_module module, Packet **packet);
@@ -105,14 +105,19 @@ TLS_error tlsCloseCom(TLS_infos *infos, GenList *last_received);
  */
 TLS_error tlsStartListenning(TLS_infos *infos, Manager *manager, Manager_module module,
                              funTLSGetNextPacket next_packet,
-                             funTLSPacketReceivedManager MSG_manager,
-                             funTLSPacketReceivedManager P2P_manager);
+                             funTLSPacketReceivedManager packet_manager_received);
 
-void funTLSPacketReceivedManagerMSG(Packet *p, Manager_module module);
+TLS_error tlsManagerPacketReceived(Manager *manager, Manager_module module, Packet *packet);
 
-void funTLSPacketReceivedManagerP2P(Packet *p, Manager_module module);
-
-TLS_error funTLSGetNextPacketClient(Packet **packet, Manager_module module);
+/**
+ * @brief Function for tlsStartListenning, read the manager and send the received packet to tls
+ *
+ * @param[in] manager Manager
+ * @param[in] module Module to read
+ * @param[out] packet Buffer packet
+ * @return TLS_error
+ */
+TLS_error tlsManagerPacketGetNext(Manager *manager, Manager_module module, Packet **packet);
 
 /**
  * @brief Send packet on tls communication
@@ -140,5 +145,13 @@ TLS_error tlsReceiveNonBlocking(TLS_infos *infos, Packet **packet);
  * @return TLS_error
  */
 TLS_error tlsReceiveBlocking(TLS_infos *infos, Packet **packet);
+
+/**
+ * @brief Return the string associated to the TLS_error
+ *
+ * @param error TLS_error
+ * @return const char*
+ */
+char *tlsErrorToString(TLS_error error);
 
 #endif

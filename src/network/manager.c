@@ -289,3 +289,18 @@ Manager_error managerMainSendPthreadToJoin(Manager *manager, pthread_t num_t) {
     pthread_mutex_unlock(manager->main.mutex_wait_read);
     return MANAGER_ERR_SUCCESS;
 }
+
+char *managerErrorToString(Manager_error error) {
+    switch (error) {
+    case MANAGER_ERR_SUCCESS:
+        return "MANAGER_ERR_SUCCESS";
+    case MANAGER_ERR_ERROR:
+        return "MANAGER_ERR_ERROR";
+    case MANAGER_ERR_CLOSED:
+        return "MANAGER_ERR_CLOSED";
+    case MANAGER_ERR_RETRY:
+        return "MANAGER_ERR_RETRY";
+    default:
+        return "Unknown";
+    }
+}

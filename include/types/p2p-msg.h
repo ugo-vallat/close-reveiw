@@ -110,6 +110,22 @@ void p2pMsgIntoTXT(P2P_msg *msg, char *txt);
  */
 void p2pMsgCopy(P2P_msg *msg_dst, P2P_msg *msg_src);
 
+/**
+ * @brief Return the string associated to the P2P_msg_type
+ *
+ * @param error P2P_msg_type
+ * @return const char*
+ */
+char *p2pMsgTypeToString(P2P_msg_type type);
+
+/**
+ * @brief Return the string associated to the P2P_error
+ *
+ * @param error P2P_error
+ * @return const char*
+ */
+char *p2pErrorToString(P2P_error error);
+
 /*
     Getteur on P2P_msg*
 */

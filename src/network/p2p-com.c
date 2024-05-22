@@ -13,6 +13,9 @@
 #define FILE_P2P_COM "p2p-com.c"
 #define TIMEOUT_DIRECT_SERVER 2
 #define TIMEOUT_DIRECT_CLIENT 1
+#define P2P_PRIVATE_IP "127.0.0.1"
+#define P2P_PRIVATE_PORT 7000
+#define P2P_PUBLIC_PORT -1
 
 #define CLIENT_CERT_PATH                                                                           \
     "/home/ugolinux/documents_linux/S6_Info_Linux/BE/close-review/config/server/"                  \
@@ -26,8 +29,81 @@ typedef struct s_p2p_thread_args {
     TLS_mode mode;
 } P2P_thread_args;
 
+void exitThreadPeer(P2P_thread_args *args) {
+    managerSetState(args->manager, MANAGER_MOD_PEER, MANAGER_STATE_CLOSED);
+    managerMainSendPthreadToJoin(args->manager, pthread_self());
+    if (args->tls)
+        deinitTLSInfos(&(args->tls));
+    free(args);
+    pthread_exit(NULL);
+}
+
+TLS_error p2pTryTonConnect(Manager *manager, TLS_infos *tls, TLS_mode mode, bool loop) {
+    char *FUN_NAME = "p2pTryTonConnect";
+    assertl(manager, FILE_P2P_COM, FUN_NAME, EXIT_FAILURE, "manager NULL");
+    assertl(tls, FILE_P2P_COM, FUN_NAME, EXIT_FAILURE, "tls NULL");
+
+    TLS_error tls_error;
+    Manager_error manager_error;
+    Packet *packet;
+    struct timeval *timeout;
+
+    /* set timeout */
+    timeout = malloc(sizeof(struct timeval));
+    timeout->tv_sec = (mode == TLS_CLIENT) ? (TIMEOUT_DIRECT_CLIENT) : (TIMEOUT_DIRECT_SERVER);
+
+    /* loop try to connect */
+    do {
+        tls_error = tlsOpenCom(tls, timeout);
+        /* try to connect */
+        switch (tls_error) {
+        case TLS_SUCCESS:
+            return TLS_SUCCESS;
+            break;
+        case TLS_RETRY:
+            warnl(FILE_P2P_COM, FUN_NAME, "connection timeout");
+            break;
+        case TLS_ERROR:
+            warnl(FILE_P2P_COM, FUN_NAME, "tlsOpenCom failed");
+            return TLS_ERROR;
+            break;
+        default:
+            warnl(FILE_P2P_COM, FUN_NAME, "unexcpected error (%d)", tls_error);
+            return TLS_ERROR;
+            break;
+        }
+
+        /* check for close request */
+
+        manager_error = managerReceiveNonBlocking(manager, MANAGER_MOD_PEER, &packet);
+        switch (manager_error) {
+        case MANAGER_ERR_SUCCESS:
+            if (packet->type == PACKET_P2P_MSG && packet->p2p.type == P2P_CLOSE) {
+                return TLS_CLOSE;
+            } else {
+                warnl(FILE_P2P_COM, FUN_NAME, "unexpected packet received");
+            }
+            break;
+        case MANAGER_ERR_RETRY:
+            break;
+        case MANAGER_ERR_CLOSED:
+            warnl(FILE_P2P_COM, FUN_NAME, "%s - manager closed",
+                  managerErrorToString(manager_error));
+            return TLS_ERROR;
+            break;
+        case MANAGER_ERR_ERROR:
+            warnl(FILE_P2P_COM, FUN_NAME, "%s - manager error",
+                  managerErrorToString(manager_error));
+            return TLS_ERROR;
+            break;
+        }
+
+    } while (loop);
+    return TLS_ERROR;
+}
+
 void *funStartPeerDirect(void *arg) {
-    char FUN_NAME[32] = "funStartPeerDirect";
+    char *FUN_NAME = "funStartPeerDirect";
     P2P_thread_args *thread_args = (P2P_thread_args *)arg;
     assertl(thread_args, FILE_P2P_COM, FUN_NAME, EXIT_FAILURE, "thread_args NULL");
     assertl(thread_args->tls, FILE_P2P_COM, FUN_NAME, EXIT_FAILURE, "thread_args->tls NULL");
@@ -37,68 +113,159 @@ void *funStartPeerDirect(void *arg) {
     TLS_error tls_error;
     Manager_error manager_error;
     Packet *packet;
-    bool try_connect = true;
-    struct timeval *timeout;
 
-    /* set timeout */
-    timeout = malloc(sizeof(struct timeval));
-    timeout->tv_sec =
-        (thread_args->mode == TLS_CLIENT) ? (TIMEOUT_DIRECT_CLIENT) : (TIMEOUT_DIRECT_SERVER);
+    tls_error = p2pTryTonConnect(thread_args->manager, thread_args->tls, thread_args->mode, true);
 
-    /* loop try to connect */
-    while (try_connect) {
-        tls_error = tlsOpenCom(thread_args->tls, timeout);
-        /* try to connect */
-        switch (tls_error) {
-        case TLS_SUCCESS:
-            try_connect = false;
-            break;
-        case TLS_RETRY:
-            warnl(FILE_P2P_COM, FUN_NAME, "connection timeout");
-            try_connect = true;
-            break;
-        case TLS_ERROR:
-            warnl(FILE_P2P_COM, FUN_NAME, "tlsOpenCom failed");
-            try_connect = false;
-            break;
-        default:
-            warnl(FILE_P2P_COM, FUN_NAME, "unexcpected error (%d)", tls_error);
-            try_connect = false;
-            break;
-        }
-
-        /* check for close request */
-        if (try_connect) {
-            manager_error =
-                managerReceiveNonBlocking(thread_args->manager, MANAGER_MOD_PEER, &packet);
-            switch (manager_error) {
-            case MANAGER_ERR_SUCCESS:
-                if (packet->type == PACKET_P2P_MSG && packet->p2p.type == P2P_CLOSE) {
-                    try_connect = false;
-                } else {
-                    warnl(FILE_P2P_COM, FUN_NAME, "unexpected packet received");
-                }
-                break;
-            case MANAGER_ERR_RETRY:
-                break;
-            case MANAGER_ERR_CLOSED:
-                warnl(FILE_P2P_COM, FUN_NAME, "manager closed");
-                try_connect = false;
-                break;
-            case MANAGER_ERR_ERROR:
-                warnl(FILE_P2P_COM, FUN_NAME, "manager error");
-                try_connect = false;
-                break;
-            }
-        }
-    }
-    // >>>>>>>>>>>>>>>>> TODO
     if (tls_error != TLS_SUCCESS) {
+        exitThreadPeer(thread_args);
     }
+
+    tls_error = tlsStartListenning(thread_args->tls, thread_args->manager, MANAGER_MOD_PEER,
+                                   tlsManagerPacketGetNext, tlsManagerPacketReceived);
+    switch (tls_error) {
+    case TLS_CLOSE:
+        break;
+    case TLS_ERROR:
+        warnl(FILE_P2P_COM, FUN_NAME, "%s - failure tlsStartListenning",
+              tlsErrorToString(tls_error));
+        break;
+    default:
+        warnl(FILE_P2P_COM, FUN_NAME, "%s - tlsStartListenning closed with unexpected error",
+              tlsErrorToString(tls_error));
+        break;
+    }
+
+    deinitTLSInfos(&(thread_args->tls));
+    managerSetState(thread_args->manager, MANAGER_MOD_PEER, MANAGER_STATE_CLOSED);
+    managerMainSendPthreadToJoin(thread_args->manager, pthread_self());
+
     return NULL;
 }
 
-void *funStartPeer(void *arg);
+void *funStartPeer(void *arg) {
+    char *FUN_NAME = "funStartPeer";
+    P2P_thread_args *thread_args = (P2P_thread_args *)arg;
+    assertl(thread_args, FILE_P2P_COM, FUN_NAME, EXIT_FAILURE, "thread_args NULL");
+    assertl(thread_args->tls, FILE_P2P_COM, FUN_NAME, EXIT_FAILURE, "thread_args->tls NULL");
+    assertl(thread_args->manager, FILE_P2P_COM, FUN_NAME, EXIT_FAILURE,
+            "thread_args->manager NULL");
+
+    Packet *packet;
+    P2P_msg *msg;
+    Manager_error manager_error;
+    TLS_error tls_error;
+    TLS_infos *tls;
+
+    /* Waiting ACCEPT / REQUEST from server */
+    manager_error = managerReceiveBlocking(thread_args->manager, MANAGER_MOD_PEER, &packet);
+    if (manager_error != MANAGER_ERR_SUCCESS) {
+        warnl(FILE_P2P_COM, FUN_NAME, "%s - manager failure", managerErrorToString(manager_error));
+        exitThreadPeer(thread_args);
+    }
+    if (packet->type != PACKET_P2P_MSG) {
+        warnl(FILE_P2P_COM, FUN_NAME, "unexpected type %s during connection",
+              packetTypeToString(packet->type));
+        exitThreadPeer(thread_args);
+    }
+    switch (p2pMsgGetType(&(packet->p2p))) {
+    case P2P_GET_INFOS:
+        break;
+    case P2P_CLOSE:
+    case P2P_REJECT:
+        exitThreadPeer(thread_args);
+        break;
+    default:
+        warnl(FILE_P2P_COM, FUN_NAME, "unexpected type %s during connection",
+              p2pMsgTypeToString(p2pMsgGetType(&(packet->p2p))));
+        exitThreadPeer(thread_args);
+    }
+    deinitPacket(&packet);
+
+    /* send informations */
+    msg = initP2PMsg(P2P_INFOS);
+    p2pMsgSetPrivateIp(msg, P2P_PRIVATE_IP);
+    p2pMsgSetPrivatePort(msg, P2P_PRIVATE_PORT);
+    p2pMsgSetPublicPort(msg, P2P_PUBLIC_PORT);
+    packet = initPacketP2PMsg(msg);
+    manager_error = managerSend(thread_args->manager, MANAGER_MOD_SERVER, packet);
+    deinitPacket(&packet);
+    deinitP2PMsg(&msg);
+    if (manager_error != MANAGER_ERR_SUCCESS) {
+        warnl(FILE_P2P_COM, FUN_NAME, "%s - manager failed", managerErrorToString(manager_error));
+        exitThreadPeer(thread_args);
+    }
+
+    char *ip;
+    int port;
+    TLS_mode mode;
+    while (true) {
+        /* receive connection informations */
+        manager_error = managerReceiveNonBlocking(thread_args->manager, MANAGER_MOD_PEER, &packet);
+        if (manager_error != MANAGER_ERR_SUCCESS) {
+            exitThreadPeer(thread_args);
+        }
+
+        /* read informations */
+        switch (p2pMsgGetType(&(packet->p2p))) {
+        case P2P_CLOSE:
+        case P2P_REJECT:
+            exitThreadPeer(thread_args);
+            break;
+        case P2P_TRY_CLIENT_MODE:
+            ip = p2pMsgGetTryIp(&(packet->p2p));
+            port = p2pMsgGetTryPort(&(packet->p2p));
+            mode = TLS_CLIENT;
+            tls = initTLSInfos(ip, port, mode, NULL, NULL);
+            free(ip);
+            break;
+        case P2P_TRY_SERVER_MODE:
+            ip = p2pMsgGetTryIp(&(packet->p2p));
+            port = p2pMsgGetTryPort(&(packet->p2p));
+            mode = TLS_SERVER;
+            tls = initTLSInfos(ip, port, mode, NULL, NULL);
+            free(ip);
+            break;
+        default:
+            warnl(FILE_P2P_COM, FUN_NAME, "unexpected type %s during connection",
+                  p2pMsgTypeToString(p2pMsgGetType(&(packet->p2p))));
+            continue;
+        }
+        deinitPacket(&packet);
+
+        /* try to open connection */
+        if (!tls) {
+            warnl(FILE_P2P_COM, FUN_NAME, "failed init TLS_infos");
+            exitThreadPeer(thread_args);
+        }
+        tls_error = p2pTryTonConnect(thread_args->manager, tls, mode, false);
+        if (tls_error == TLS_CLOSE) {
+            exitThreadPeer(thread_args);
+        }
+        if (tls_error == TLS_SUCCESS)
+            break;
+        deinitTLSInfos(&tls);
+    }
+
+    tls_error = tlsStartListenning(tls, thread_args->manager, MANAGER_MOD_PEER,
+                                   tlsManagerPacketGetNext, tlsManagerPacketReceived);
+    switch (tls_error) {
+    case TLS_CLOSE:
+        break;
+    case TLS_ERROR:
+        warnl(FILE_P2P_COM, FUN_NAME, "%s - failure tlsStartListenning",
+              tlsErrorToString(tls_error));
+        break;
+    default:
+        warnl(FILE_P2P_COM, FUN_NAME, "%s - tlsStartListenning closed with unexpected error",
+              tlsErrorToString(tls_error));
+        break;
+    }
+    deinitTLSInfos(&tls);
+    managerSetState(thread_args->manager, MANAGER_MOD_PEER, MANAGER_STATE_CLOSED);
+    managerMainSendPthreadToJoin(thread_args->manager, pthread_self());
+
+    return NULL;
+}
 
 /**
  * @brief Create Peer thread, init the peer manager and launch the peer start function
