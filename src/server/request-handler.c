@@ -9,7 +9,13 @@ void acceptHandler(Packet *p, MYSQL *conn, TLS_infos *info);
 
 void rejecttHandler(Packet *p, MYSQL *conn, TLS_infos *info);
 
-void requestP2PtHandler(Packet *p, MYSQL *conn, TLS_infos *info);
+void requestP2PtHandler(Packet *p, MYSQL *conn, TLS_infos *info){
+    int user_nb;
+    // SQLrequestP2P(conn, p2pMsgGetUserId(&p->p2p), , &user_nb);
+
+
+    
+}
 
 void getAvailableHandler(Packet *p, MYSQL *conn, TLS_infos *info) {
     GenList *res = listUserAvalaible(conn);
@@ -23,5 +29,4 @@ void getAvailableHandler(Packet *p, MYSQL *conn, TLS_infos *info) {
 
     deinitPacket(&send);
     deinitP2PMsg(&msg);
-    deinitGenList(&res, free);
 }

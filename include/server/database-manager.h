@@ -48,6 +48,8 @@ bool usernameExists(MYSQL *conn, char *username);
  */
 void logginDatabase(MYSQL *conn, char *server, char *sql_user, char *sql_password, char *database);
 
+int SQLrequestP2P(MYSQL *conn, char *sender_username, char *target_username, int *user_id);
+
 GenList *listUser(MYSQL *conn);
 
 GenList *listUserConnected(MYSQL *conn);

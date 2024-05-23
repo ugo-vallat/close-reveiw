@@ -13,9 +13,24 @@
 #define SIZE_HASH 256
 #define SIZE_QUERY 512
 
+#define FILE_NAME "database-manager"
+
 void mysqlQuery(MYSQL *conn, const char *query, char *fun_name, int exit_status) {
     if (mysql_query(conn, query)) {
         exitl("database-manager", fun_name, exit_status, mysql_error(conn));
+    }
+}
+
+MYSQL_RES *mysqlStoreResultAssert(MYSQL *conn, char *fun_name, int exit_status) {
+    MYSQL_RES *res = mysql_store_result(conn);
+    assertl(res, FILE_NAME, fun_name, exit_status, mysql_error(conn));
+    return res;
+}
+
+MYSQL_ROW mysqlFetchRowAssert(MYSQL_RES *res, char *fun_name, int exit_status) {
+    MYSQL_ROW row = mysql_fetch_row(res);
+    if (row == NULL) {
+        return false;
     }
 }
 
@@ -26,6 +41,7 @@ void createUser(MYSQL *conn, char *username, char *password) {
 
     /* Hashage du mot de passe */
     password_to_md5_hash(password, hash);
+    printf("mot de passe :%s\n",hash);
 
     /* Ajout de l'utilisateur à la table user */
     sprintf(query, "INSERT INTO user (username) VALUES ('%s')", username);
@@ -91,19 +107,14 @@ bool login(MYSQL *conn, char *username, char *password, int user_nb) {
     }
 
     int user_id = atoi(row[0]);
+    
+    mysql_free_result(res);
 
     /* Recherche du mot de passe dans la table password */
     sprintf(query, "SELECT password FROM password WHERE user_id = %d", user_id);
-    if (mysql_query(conn, query)) {
-        fprintf(stderr, "%s\n", mysql_error(conn));
-        exit(1);
-    }
+    mysqlQuery(conn, query, fun_name, 1);
 
-    res = mysql_store_result(conn);
-    if (res == NULL) {
-        fprintf(stderr, "%s\n", mysql_error(conn));
-        exit(1);
-    }
+    res = mysqlStoreResultAssert(conn, fun_name, 1);
 
     row = mysql_fetch_row(res);
     if (row == NULL) {
@@ -111,16 +122,12 @@ bool login(MYSQL *conn, char *username, char *password, int user_nb) {
     }
 
     if (strcmp(row[0], hash) == 0) {
-        sprintf(query, "UPDATE user SET request_by=NULL, user_nb = %d  WHERE id = %d", user_nb,
-                user_id);
-        if (mysql_query(conn, query)) {
-            fprintf(stderr, "%s\n", mysql_error(conn));
-            exit(1);
-        }
-
+        mysql_free_result(res);
+        sprintf(query, "UPDATE user SET request_by=NULL, user_nb = %d  WHERE id = %d", user_nb, user_id);
+        mysqlQuery(conn, query, fun_name, 1);
         return true;
     }
-
+    // mysql_free_result(res);
     return strcmp(row[0], hash) == 0;
 }
 
@@ -147,22 +154,45 @@ bool usernameExists(MYSQL *conn, char *username) {
     }
 
     MYSQL_ROW row = mysql_fetch_row(res);
-    return row != NULL;
+    bool test = row != NULL;
+    mysql_free_result(res);
+    return test;
 }
 
 void logginDatabase(MYSQL *conn, char *server, char *sql_user, char *sql_password, char *database) {
+    char *fun_name = "logginDatabase";
     /* Initialisation de la connexion à la base de données */
     conn = mysql_init(NULL);
-    if (conn == NULL) {
-        fprintf(stderr, "%s\n", mysql_error(conn));
-        exit(1);
-    }
+    assertl(conn,FILE_NAME, fun_name, 1, mysql_error(conn));
+
 
     /* Connexion à la base de données */
-    if (mysql_real_connect(conn, server, sql_user, sql_password, database, 0, NULL, 0) == NULL) {
-        fprintf(stderr, "%s\n", mysql_error(conn));
-        exit(1);
-    }
+ 
+        assertl(mysql_real_connect(conn, server, sql_user, sql_password, database, 0, NULL, 0),FILE_NAME, fun_name, 1, mysql_error(conn));
+}
+
+int SQLrequestP2P(MYSQL *conn, char *sender_username, char *target_username, int *user_nb) {
+    char *fun_name = "SQLrequestP2P";
+    if (!usernameExists(conn, target_username))
+        return 1;
+
+    char query[SIZE_QUERY];
+
+    sprintf(query, "SELECT user_nb, request_by FROM user WHERE username = '%s'", target_username);
+    mysqlQuery(conn, query, fun_name, 1);
+
+    MYSQL_RES *res = mysqlStoreResultAssert(conn, fun_name, 0);
+
+    MYSQL_ROW row = mysql_fetch_row(res);
+    if (row == NULL)
+        return 3;
+
+    if (res->row_count == 2)
+        return 2;
+
+    *user_nb = atoi(row[0]);
+
+    return 0;
 }
 
 GenList *listUserAvalaible(MYSQL *conn) {
