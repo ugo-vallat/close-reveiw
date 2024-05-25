@@ -11,12 +11,11 @@ typedef enum e_tls_error {
     TLS_ERROR,        /* undifined error, check logs for more informations */
     TLS_NULL_POINTER, /* a parameter was NULL */
     TLS_RETRY,        /* nothing done, retry later */
-    TLS_CLOSE /* communication has been closed by the peer, call tlsCloseCom() to close properly */
+    TLS_CLOSE         /* communication has been closed by the peer, call tlsCloseCom() to close properly */
 } TLS_error;
 
 /* function to manage the packets received */
-typedef TLS_error (*funTLSPacketReceivedManager)(Manager *manager, Manager_module module,
-                                                 Packet *packet);
+typedef TLS_error (*funTLSPacketReceivedManager)(Manager *manager, Manager_module module, Packet *packet);
 
 /* function get the next packet to send */
 typedef TLS_error (*funTLSGetNextPacket)(Manager *manager, Manager_module module, Packet **packet);
@@ -54,8 +53,7 @@ typedef struct s_tls_infos {
  * @return TLS_infos*
  * @note Use deleteTLSInfos() to delete this structure
  */
-TLS_infos *initTLSInfos(const char *ip, const int port, TLS_mode tls_mode, char *path_cert,
-                        char *path_key);
+TLS_infos *initTLSInfos(const char *ip, const int port, TLS_mode tls_mode, char *path_cert, char *path_key);
 
 /**
  * @brief Delete structure TLS_infos and free memory
@@ -103,8 +101,7 @@ TLS_error tlsCloseCom(TLS_infos *infos, GenList *last_received);
  * @param[in] P2P_manager Manager of P2P_msg Packets (NULL if TLS_MAIN_SERVER mode)
  * @return TLS_error
  */
-TLS_error tlsStartListenning(TLS_infos *infos, Manager *manager, Manager_module module,
-                             funTLSGetNextPacket next_packet,
+TLS_error tlsStartListenning(TLS_infos *infos, Manager *manager, Manager_module module, funTLSGetNextPacket next_packet,
                              funTLSPacketReceivedManager packet_manager_received);
 
 TLS_error tlsManagerPacketReceived(Manager *manager, Manager_module module, Packet *packet);
@@ -124,7 +121,7 @@ TLS_error tlsManagerPacketGetNext(Manager *manager, Manager_module module, Packe
  *
  * @param[in] infos TLS_infos
  * @param[in] packet Packet to send
- * @return TLS_error
+ * @return TLS_error {TLS_CLOSE, TLS_ERROR}
  */
 TLS_error tlsSend(TLS_infos *infos, Packet *packet);
 

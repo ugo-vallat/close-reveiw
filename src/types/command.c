@@ -12,9 +12,21 @@
 
 #define FILE_COMMAND "command.c"
 
+bool isValidCharacter(unsigned char character) {
+    return character >= 'A' && character <= 'Z' || character >= 'a' && character <= 'z' ||
+           character >= '0' && character <= '9' || character == '_';
+}
+
+bool isValidUserId(char *user_id) {
+    for (int i = 0; user_id[i] == ' '; i++) {
+        if (!isValidCharacter(user_id[i]))
+            return false;
+    }
+    return true;
+}
+
 Type_cmd getCommandType(char *command) {
-    char *cases[NB_COMMANDS] = {"list",   "request", "direct", "accept",
-                                "reject", "close",   "quit",   "help"};
+    char *cases[NB_COMMANDS] = {"list", "request", "direct", "accept", "reject", "close", "quit", "help"};
     for (int i = 0; i < NB_COMMANDS; i++) {
         if (strncmp(command, cases[i], strnlen(command, SIZE_MAX_CMD)) == 0) {
             return i;

@@ -12,28 +12,15 @@
 
 #define FILE_TUI "tui.c"
 
-bool isValidCharacter(unsigned char character) {
-    return character >= 'A' && character <= 'Z' || character >= 'a' && character <= 'z' ||
-           character >= '0' && character <= '9' || character == '_';
-}
-
-bool isValidUserId(char *user_id) {
-    for (int i = 0; user_id[i] == ' '; i++) {
-        if (!isValidCharacter(user_id[i]))
-            return false;
-    }
-    return true;
-}
-
-TUI_error stdinGetUserInput(char *buffer) {
+TUI_error stdinGetUserInput(char **buffer) {
     char FUN_NAME[32] = "stdinGetUserInput";
-    buffer = calloc(SIZE_INPUT, sizeof(char));
+    *buffer = calloc(SIZE_INPUT, sizeof(char));
     if (buffer == NULL) {
         warnl(FILE_TUI, FUN_NAME, "fail calloc buffer char[SIZE_DATA_PACKET]");
         return TUI_MEMORY_ALLOCATION_ERROR;
     }
     size_t size_allocated = SIZE_INPUT;
-    if (getline(&buffer, &size_allocated, stdin) == -1) {
+    if (getline(buffer, &size_allocated, stdin) == -1) {
         warnl(FILE_TUI, FUN_NAME, "fail getline buffer");
         free(buffer);
         return TUI_INPUT_ERROR;
@@ -60,7 +47,7 @@ void *stdinHandler(void *arg) {
     char *user_id = managerGetUser(manager);
     bool exited = false;
     while (!exited) {
-        switch (error = stdinGetUserInput(buffer)) {
+        switch (error = stdinGetUserInput(&buffer)) {
         case TUI_SUCCESS:
             if (*buffer == '/') {
                 command = initCommand(buffer);

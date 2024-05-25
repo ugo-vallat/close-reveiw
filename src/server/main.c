@@ -14,10 +14,8 @@
 #include <unistd.h>
 #include <utils/logger.h>
 
-#define SERVER_CERT_PATH                                                                                               \
-    "/home/eritque/Document/BE/close-review/config/server/"                                                            \
-    "server-be-auto-cert.crt"
-#define SERVER_KEY_PATH "/home/eritque/Document/BE/close-review/config/server/server-be.key"
+#define SERVER_CERT_PATH "./config/server/server-be-auto-cert.crt"
+#define SERVER_KEY_PATH "./config/server/server-be.key"
 
 #define SERVER_PORT 5555
 
@@ -122,7 +120,6 @@ void *CLI(void *arg) {
     listAdd(thread, pthread_self());
     printf("je meur CLI\n");
 
-    
     return NULL;
 }
 

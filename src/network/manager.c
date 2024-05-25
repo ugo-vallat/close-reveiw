@@ -290,6 +290,21 @@ Manager_error managerMainSendPthreadToJoin(Manager *manager, pthread_t num_t) {
     return MANAGER_ERR_SUCCESS;
 }
 
+bool isManagerModuleOpen(Manager *manager) {
+    char FUN_NAME[32] = "isManagerModuleOpen";
+    assertl(manager, FILE_MANAGER, FUN_NAME, -1, "manager NULL");
+
+    if (manager->input.state != MANAGER_STATE_CLOSED)
+        return true;
+    if (manager->output.state != MANAGER_STATE_CLOSED)
+        return true;
+    if (manager->server.state != MANAGER_STATE_CLOSED)
+        return true;
+    if (manager->peer.state != MANAGER_STATE_CLOSED)
+        return true;
+    return false;
+}
+
 char *managerErrorToString(Manager_error error) {
     switch (error) {
     case MANAGER_ERR_SUCCESS:

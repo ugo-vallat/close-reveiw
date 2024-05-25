@@ -141,8 +141,7 @@ void exitl(const char *file_name, const char *fun_name, int exit_value, const ch
     exit(exit_value);
 }
 
-void assertl(bool assert, const char *file_name, const char *fun_name, int exit_value, const char *format,
-             ...) {
+void assertl(bool assert, const char *file_name, const char *fun_name, int exit_value, const char *format, ...) {
     va_list args;
     /* If assertion is true, nothing to do */
     if (assert)

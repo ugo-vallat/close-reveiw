@@ -5,11 +5,11 @@ const std = @import("std");
 // runner.
 pub fn build(b: *std.Build) void {
     const c_include_list = &.{
-        // "network/chat.c",
-        // "network/p2p-com.c",
+        "network/chat.c",
+        "network/p2p-com.c",
         "network/manager.c",
         "network/tls-com.c",
-        // "types/command.c",
+        "types/command.c",
         "types/list.c",
         "types/genericlist.c",
         "types/message.c",
@@ -18,7 +18,6 @@ pub fn build(b: *std.Build) void {
         "utils/config.c",
         "utils/logger.c",
         // "utils/token.c",
-        // "client/tui.c",
     };
     const c_include_list_server = &.{
         "database-manager.c",
@@ -27,6 +26,7 @@ pub fn build(b: *std.Build) void {
         "request-handler.c",
     };
     const c_include_list_client = &.{
+        "tui.c",
         // "history-manager.c",
     };
     const flags = &.{
@@ -39,6 +39,7 @@ pub fn build(b: *std.Build) void {
         // "-std=c99",
         "-D__USE_UNIX98",
         "-D__USE_XOPEN2K",
+        "-DDEBUG",
     };
 
     const server = b.addExecutable(.{
@@ -64,7 +65,6 @@ pub fn build(b: *std.Build) void {
     client.linkSystemLibrary2("ncurses", .{ .use_pkg_config = .force });
     client.addCSourceFiles(.{ .root = .{ .path = "src/" }, .files = c_include_list, .flags = flags });
     client.addCSourceFiles(.{ .root = .{ .path = "src/client/" }, .files = c_include_list_client, .flags = flags });
-
     b.installArtifact(server);
     b.installArtifact(client);
 

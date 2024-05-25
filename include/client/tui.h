@@ -15,9 +15,7 @@ typedef enum e_tui_error {
     TUI_OUTPUT_FORMATTING_ERROR = -3, /* Failed to format packet before diplaying */
 } TUI_error;
 
-bool isValidUserId(char *user_id);
-
-TUI_error stdinGetUserInput(char *buffer);
+TUI_error stdinGetUserInput(char **buffer);
 
 TUI_error stdinGetUserInput2(char *buffer, WINDOW *input_win);
 

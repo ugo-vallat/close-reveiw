@@ -1,5 +1,6 @@
 
-#include "client/tui.h"
+#include <bits/pthreadtypes.h>
+#include <client/tui.h>
 #include <network/manager.h>
 #include <network/tls-com.h>
 #include <pthread.h>
@@ -40,6 +41,9 @@ int main(int argc, char *argv[]) {
     bool close = false;
     int error;
 
+    /* logger */
+    init_logger(NULL);
+
     /* get server infos */
     // temporary
     if (argc != 3)
@@ -66,11 +70,11 @@ int main(int argc, char *argv[]) {
         warnl(FILE_MAIN, FUN_NAME, "fialed create thread server");
         closeApp();
     }
-    if (pthread_create(&num_t, NULL, threadInput, NULL) != 0) {
+    if (pthread_create(&num_t, NULL, stdinHandler, manager) != 0) {
         warnl(FILE_MAIN, FUN_NAME, "fialed create thread input");
         closeApp();
     }
-    if (pthread_create(&num_t, NULL, threadOutput, NULL) != 0) {
+    if (pthread_create(&num_t, NULL, stdoutHandler, manager) != 0) {
         warnl(FILE_MAIN, FUN_NAME, "fialed create thread output");
         closeApp();
     }
@@ -80,7 +84,7 @@ int main(int argc, char *argv[]) {
     managerSetState(manager, MANAGER_MOD_INPUT, MANAGER_STATE_OPEN);
     managerSetState(manager, MANAGER_MOD_OUTPUT, MANAGER_STATE_OPEN);
 
-    while (!false) {
+    while (!close) {
         managerMainReceive(manager, &num_t);
         error = pthread_join(num_t, NULL);
         if (error) {
@@ -90,6 +94,7 @@ int main(int argc, char *argv[]) {
     }
 
     /* close app */
+    close_logger();
     closeApp();
 
     return 0;
@@ -100,35 +105,43 @@ void connectToServer() {
     P2P_error p2p_error = P2P_ERR_CONNECTION_FAILED;
     char user_id[SIZE_NAME];
     char password[SIZE_PASSWORD];
-    char buffer[SIZE_INPUT];
+    char *buffer;
     Packet *packet;
     P2P_msg *p2p;
 
-    /* open communication tls server */
+    /* init tls infos */
     tls = initTLSInfos(server_ip, server_port, TLS_CLIENT, NULL, NULL);
     if (!tls) {
-        warnl(FILE_MAIN, FUN_NAME, "failed to connect to server");
+        warnl(FILE_MAIN, FUN_NAME, "failed to init tls infos");
         closeApp();
     }
+
+    /* open communication tls server */
+    // if (tlsOpenCom(tls, NULL) != TLS_SUCCESS) {
+    //     warnl(FILE_MAIN, FUN_NAME, "failed to connect to server");
+    //     closeApp();
+    // }
 
     /* connect client */
 
     while (p2p_error != P2P_ERR_SUCCESS) {
         /* get user id */
         printf("user id : ");
-        if (stdinGetUserInput(buffer) != TUI_SUCCESS) {
+        if (stdinGetUserInput(&buffer) != TUI_SUCCESS) {
             warnl(FILE_MAIN, FUN_NAME, "failed to read input");
             continue;
         }
         sscanf(buffer, "%s", user_id);
+        free(buffer);
 
         /* get password */
-        printf("\npassword : ");
-        if (stdinGetUserInput(buffer) != TUI_SUCCESS) {
+        printf("password : ");
+        if (stdinGetUserInput(&buffer) != TUI_SUCCESS) {
             warnl(FILE_MAIN, FUN_NAME, "failed to read input");
             continue;
         }
         sscanf(buffer, "%s", password);
+        free(buffer);
 
         /* send request */
         p2p = initP2PMsg(P2P_CONNECTION_SERVER);
@@ -172,6 +185,22 @@ void *threadServer(void *arg) {
     char *FUN_NAME = "threadServer";
     assertl(tls, FILE_MAIN, FUN_NAME, -1, "tls closed");
     assertl(manager, FILE_MAIN, FUN_NAME, -2, "manager closed");
+    TLS_error tls_error;
+    pthread_t num_t;
+
+    tls_error = tlsStartListenning(tls, manager, MANAGER_MOD_SERVER, tlsManagerPacketGetNext, tlsManagerPacketReceived);
+    switch (tls_error) {
+    case TLS_SUCCESS:
+    case TLS_CLOSE:
+        printl("com server closed");
+        break;
+    default:
+        warnl(FILE_MAIN, FUN_NAME, "tlsStartListenning failed with %s", tlsErrorToString(tls_error));
+        break;
+    }
+    num_t = pthread_self();
+    managerMainSendPthreadToJoin(manager, num_t);
+    return NULL;
 }
 
 void closeApp() {
@@ -181,6 +210,6 @@ void closeApp() {
     if (manager) {
         deinitManager(&manager);
     }
-    printf("%s === Application closed === %s\n", BLUE, RESET);
+    printf("\n%s === Application closed === %s\n\n", BLUE, RESET);
     exit(0);
 }
