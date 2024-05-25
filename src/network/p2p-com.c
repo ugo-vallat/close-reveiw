@@ -11,7 +11,7 @@
 #include <utils/project_constants.h>
 
 #define FILE_P2P_COM "p2p-com.c"
-#define TIMEOUT_DIRECT_SERVER 2
+#define TIMEOUT_DIRECT_SERVER 5
 #define TIMEOUT_DIRECT_CLIENT 1
 #define P2P_PRIVATE_IP "127.0.0.1"
 #define P2P_PRIVATE_PORT 7000
@@ -35,8 +35,8 @@ void exitThreadPeer(P2P_thread_args *args) {
     pthread_exit(NULL);
 }
 
-TLS_error p2pTryTonConnect(Manager *manager, TLS_infos *tls, TLS_mode mode, bool loop) {
-    char *FUN_NAME = "p2pTryTonConnect";
+TLS_error p2pTryToConnect(Manager *manager, TLS_infos *tls, TLS_mode mode, bool loop) {
+    char *FUN_NAME = "p2pTryToConnect";
     assertl(manager, FILE_P2P_COM, FUN_NAME, EXIT_FAILURE, "manager NULL");
     assertl(tls, FILE_P2P_COM, FUN_NAME, EXIT_FAILURE, "tls NULL");
 
@@ -108,11 +108,14 @@ void *funStartPeerDirect(void *arg) {
     Manager_error manager_error;
     Packet *packet;
 
-    tls_error = p2pTryTonConnect(thread_args->manager, thread_args->tls, thread_args->mode, true);
+    tls_error = p2pTryToConnect(thread_args->manager, thread_args->tls, thread_args->mode, true);
 
     if (tls_error != TLS_SUCCESS) {
         exitThreadPeer(thread_args);
     }
+    printl(" > connected !");
+
+    managerSetState(thread_args->manager, MANAGER_MOD_PEER, MANAGER_STATE_OPEN);
 
     tls_error = tlsStartListenning(thread_args->tls, thread_args->manager, MANAGER_MOD_PEER, tlsManagerPacketGetNext,
                                    tlsManagerPacketReceived);
@@ -139,7 +142,6 @@ void *funStartPeer(void *arg) {
     char *FUN_NAME = "funStartPeer";
     P2P_thread_args *thread_args = (P2P_thread_args *)arg;
     assertl(thread_args, FILE_P2P_COM, FUN_NAME, EXIT_FAILURE, "thread_args NULL");
-    assertl(thread_args->tls, FILE_P2P_COM, FUN_NAME, EXIT_FAILURE, "thread_args->tls NULL");
     assertl(thread_args->manager, FILE_P2P_COM, FUN_NAME, EXIT_FAILURE, "thread_args->manager NULL");
 
     Packet *packet;
@@ -230,7 +232,7 @@ void *funStartPeer(void *arg) {
             warnl(FILE_P2P_COM, FUN_NAME, "failed init TLS_infos");
             exitThreadPeer(thread_args);
         }
-        tls_error = p2pTryTonConnect(thread_args->manager, tls, mode, false);
+        tls_error = p2pTryToConnect(thread_args->manager, tls, mode, false);
         if (tls_error == TLS_CLOSE) {
             exitThreadPeer(thread_args);
         }
@@ -238,6 +240,8 @@ void *funStartPeer(void *arg) {
             break;
         deinitTLSInfos(&tls);
     }
+
+    managerSetState(thread_args->manager, MANAGER_MOD_PEER, MANAGER_STATE_OPEN);
 
     tls_error = tlsStartListenning(tls, thread_args->manager, MANAGER_MOD_PEER, tlsManagerPacketGetNext,
                                    tlsManagerPacketReceived);
@@ -280,11 +284,14 @@ int p2pCreateThreadPeer(Manager *manager, TLS_infos *tls, TLS_mode mode) {
     args->manager = manager;
     args->tls = tls;
     args->mode = mode;
+    printl("trying direct in mode %d", mode);
 
-    if (tls && pthread_create(&num_t, NULL, funStartPeerDirect, args) != 0) {
-        warnl(FILE_P2P_COM, FUN_NAME, "failed to lunch thread with funStartPeerDirect");
-        managerSetState(manager, MANAGER_MOD_PEER, MANAGER_STATE_CLOSED);
-        return -1;
+    if (tls) {
+        if (pthread_create(&num_t, NULL, funStartPeerDirect, args) != 0) {
+            warnl(FILE_P2P_COM, FUN_NAME, "failed to lunch thread with funStartPeerDirect");
+            managerSetState(manager, MANAGER_MOD_PEER, MANAGER_STATE_CLOSED);
+            return -1;
+        }
     } else if (pthread_create(&num_t, NULL, funStartPeer, args) != 0) {
         warnl(FILE_P2P_COM, FUN_NAME, "failed to lunch thread with funStartPeer");
         managerSetState(manager, MANAGER_MOD_PEER, MANAGER_STATE_CLOSED);
@@ -438,14 +445,12 @@ void p2pConnectToServer(Manager *manager, char *user_id, char *password) {
     assertl(manager, FILE_P2P_COM, FUN_NAME, -1, "manager NULL");
     assertl(user_id, FILE_P2P_COM, FUN_NAME, -1, "user_id NULL");
     assertl(password, FILE_P2P_COM, FUN_NAME, -1, "password NULL");
-    char hash[SIZE_HASH];
     P2P_msg *p2p;
     Packet *packet;
 
     managerSetUser(manager, user_id);
     p2p = initP2PMsg(P2P_CONNECTION_SERVER, user_id);
-    password_to_md5_hash(password, hash);
-    p2pMsgSetPasswordHash(p2p, hash);
+    p2pMsgSetPasswordHash(p2p, password);
     packet = initPacketP2PMsg(p2p);
 
     if (managerSend(manager, MANAGER_MOD_SERVER, packet) != MANAGER_ERR_SUCCESS) {

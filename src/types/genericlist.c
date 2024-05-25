@@ -65,6 +65,9 @@ GenList *initGenList(unsigned memory_size) {
 
     l->memory_size = memory_size;
     l->size = 0;
+    // pthread_mutexattr_t attr;
+    // pthread_mutexattr_init(&attr);
+    // pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_ROBUST);
     if (pthread_mutex_init(&(l->mutex), NULL) != 0) {
         exitl("genericlist.c", "createGenList", EXIT_FAILURE, "erreur init mutex");
     }
@@ -80,7 +83,8 @@ void deinitGenList(ptrGenList *l, freefun fun) {
     testArgNull((*l), "genericlist.c", "deleteGenList", "*l");
 
     /* libération de la mémoire */
-    while (genListSize((GenList *)(*l))) {
+    unsigned size = genListSize((GenList *)(*l));
+    for (unsigned i = 0; i < size; i++) {
         fun(genListPop((GenList *)(*l)));
     }
     free((*l)->tab);

@@ -1,3 +1,4 @@
+#include "utils/project_constants.h"
 #include <mysql.h>
 #include <openssl/evp.h>
 #include <stdbool.h>
@@ -43,7 +44,6 @@ void createUser(MYSQL *conn, char *username, char *password) {
     /* Hashage du mot de passe */
     password_to_md5_hash(password, hash);
 
-
     /* Ajout de l'utilisateur à la table user */
     sprintf(query, "INSERT INTO user (username) VALUES ('%s')", username);
     mysqlQuery(conn, query, fun_name, 1);
@@ -73,7 +73,7 @@ void setup(MYSQL *conn) {
                "id INT PRIMARY KEY AUTO_INCREMENT,"
                "username VARCHAR(30),"
                "user_nb INT,"
-               "request_by VARCHAR(30),",
+               "request_by VARCHAR(30))",
                fun_name, 1);
 
     /* Création de la table password */
@@ -84,15 +84,16 @@ void setup(MYSQL *conn) {
 }
 
 bool login(MYSQL *conn, char *username, char *password, int user_nb) {
-    char query[256];
-    char hash[256];
+    char query[SIZE_QUERY];
     char *fun_name = "login";
+
+    memset(query, 0, SIZE_QUERY);
 
     // /* Hashage du mot de passe */
     // password_to_md5_hash(password, hash);
 
     /* Recherche de l'utilisateur dans la table user */
-    sprintf(query, "SELECT id FROM user WHERE username = '%s'", username);
+    snprintf(query, SIZE_QUERY, "SELECT id FROM user WHERE username = '%s'", username);
     mysqlQuery(conn, query, fun_name, 1);
 
     MYSQL_RES *res = mysql_store_result(conn);
@@ -121,14 +122,14 @@ bool login(MYSQL *conn, char *username, char *password, int user_nb) {
         return false;
     }
 
-    if (strcmp(row[0], hash) == 0) {
+    if (strcmp(row[0], password) == 0) {
         mysql_free_result(res);
         sprintf(query, "UPDATE user SET request_by=NULL, user_nb = %d  WHERE id = %d", user_nb, user_id);
         mysqlQuery(conn, query, fun_name, 1);
         return true;
     }
     // mysql_free_result(res);
-    return strcmp(row[0], hash) == 0;
+    return strcmp(row[0], password) == 0;
 }
 
 void disconnect(MYSQL *conn, int user_nb) {
@@ -189,24 +190,23 @@ P2P_error SQLrequestP2P(MYSQL *conn, char *sender_username, char *target_usernam
 
     if (res->row_count == 1)
         return P2P_ERR_UNAVAILABLE_USER;
-  
+
     *user_nb = atoi(row[0]);
 
-
-    sprintf(query, "UPDATE user SET request_by=%s WHERE username = %s",sender_username, target_username);
+    sprintf(query, "UPDATE user SET request_by=%s WHERE username = %s", sender_username, target_username);
     mysqlQuery(conn, query, fun_name, 1);
 
-    sprintf(query, "UPDATE user SET request_by=%s WHERE username = %s",sender_username, sender_username);
+    sprintf(query, "UPDATE user SET request_by=%s WHERE username = %s", sender_username, sender_username);
     mysqlQuery(conn, query, fun_name, 1);
 
     return P2P_ERR_SUCCESS;
 }
 
-bool SQLreject(MYSQL *conn, char *sender_username, char *target_username, int *user_id){
+bool SQLreject(MYSQL *conn, char *sender_username, char *target_username, int *user_id) {
     char *fun_name = "SQLreject";
     char query[SIZE_QUERY];
 
-    sprintf(query, "SELECT id FROM user WHERE username = '%s' and resquest_by= %s",sender_username, target_username);
+    sprintf(query, "SELECT id FROM user WHERE username = '%s' and resquest_by= %s", sender_username, target_username);
     mysqlQuery(conn, query, fun_name, 1);
 
     MYSQL_RES *res = mysqlStoreResultAssert(conn, fun_name, 1);
@@ -215,21 +215,21 @@ bool SQLreject(MYSQL *conn, char *sender_username, char *target_username, int *u
     if (row == NULL) {
         return false;
     }
-    
-    sprintf(query, "UPDATE user SET request_by=NULL WHERE username = %s",target_username);
+
+    sprintf(query, "UPDATE user SET request_by=NULL WHERE username = %s", target_username);
     mysqlQuery(conn, query, fun_name, 1);
 
-    sprintf(query, "UPDATE user SET request_by=NULL WHERE username = %s",sender_username);
+    sprintf(query, "UPDATE user SET request_by=NULL WHERE username = %s", sender_username);
     mysqlQuery(conn, query, fun_name, 1);
 
     return true;
 }
 
-bool SQLaccept(MYSQL *conn, char *sender_username, char *target_username, int *user_id){
+bool SQLaccept(MYSQL *conn, char *sender_username, char *target_username, int *user_id) {
     char *fun_name = "SQLaccept";
     char query[SIZE_QUERY];
 
-    sprintf(query, "SELECT id FROM user WHERE username = '%s' and resquest_by= %s",sender_username, target_username);
+    sprintf(query, "SELECT id FROM user WHERE username = '%s' and resquest_by= %s", sender_username, target_username);
     mysqlQuery(conn, query, fun_name, 1);
 
     MYSQL_RES *res = mysqlStoreResultAssert(conn, fun_name, 1);
@@ -239,9 +239,7 @@ bool SQLaccept(MYSQL *conn, char *sender_username, char *target_username, int *u
         return false;
     }
     return true;
-
 }
-
 
 GenList *listUserAvalaible(MYSQL *conn) {
     char fun_name[32] = "listUserAvalaible";

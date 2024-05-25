@@ -133,7 +133,7 @@ void *threadServer(void *arg) {
     switch (tls_error) {
     case TLS_SUCCESS:
     case TLS_CLOSE:
-        printl("com server closed");
+        printl("threadServer > com server closed");
         break;
     default:
         warnl(FILE_MAIN, FUN_NAME, "tlsStartListenning failed with %s", tlsErrorToString(tls_error));

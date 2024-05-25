@@ -103,14 +103,12 @@ bool check_password(char *password) {
     char *hash = malloc(EVP_MAX_MD_SIZE * 2 + 1);
     password_to_md5_hash(password, hash);
     if (strlen(password) < MIN_PASSWORD_LENGTH) {
-        fprintf(stderr, "Error: password must be at least %d characters long\n",
-                MIN_PASSWORD_LENGTH);
+        fprintf(stderr, "Error: password must be at least %d characters long\n", MIN_PASSWORD_LENGTH);
         return false;
     }
 
     if (strlen(password) > MAX_PASSWORD_LENGTH) {
-        fprintf(stderr, "Error: password must be at most %d characters long\n",
-                MAX_PASSWORD_LENGTH);
+        fprintf(stderr, "Error: password must be at most %d characters long\n", MAX_PASSWORD_LENGTH);
         return false;
     }
 

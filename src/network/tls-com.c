@@ -425,6 +425,7 @@ TLS_error tlsStartListenning(TLS_infos *infos, Manager *manager, Manager_module 
             break;
         case TLS_CLOSE:
             /* end of communication */
+            // warnl(FILE_TLS_COM, FUN_NAME, "close 1");
             tlsCloseCom(infos, NULL);
             return TLS_CLOSE;
         case TLS_ERROR:
@@ -447,6 +448,7 @@ TLS_error tlsStartListenning(TLS_infos *infos, Manager *manager, Manager_module 
                 case TLS_SUCCESS:
                     break;
                 case TLS_CLOSE:
+                    // warnl(FILE_TLS_COM, FUN_NAME, "close 2");
                     return TLS_CLOSE;
                 default:
                     warnl(FILE_TLS_COM, FUN_NAME, "%s - packet_manager_receive failed", tlsErrorToString(tls_error));
@@ -530,15 +532,13 @@ TLS_error tlsManagerPacketReceived(Manager *manager, Manager_module module, Pack
             case P2P_TRY_SERVER_MODE:
             case P2P_ACCEPT:
                 managerSend(manager, MANAGER_MOD_PEER, packet);
-                return TLS_CLOSE;
+                return TLS_SUCCESS;
                 break;
             case P2P_CONNECTION_OK:
             case P2P_CONNECTION_KO:
                 managerSend(manager, MANAGER_MOD_INPUT, packet);
                 managerSend(manager, MANAGER_MOD_OUTPUT, packet);
-                return TLS_CLOSE;
-                break;
-                return TLS_CLOSE;
+                return TLS_SUCCESS;
                 break;
             /* unexpected */
             case P2P_CONNECTION_SERVER:

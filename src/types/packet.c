@@ -33,6 +33,7 @@ Packet *initPacketP2PMsg(P2P_msg *msg) {
     assertl(msg, FILE_PACKET, FUN_NAME, -1, "msg NULL");
 
     Packet *p = malloc(sizeof(Packet));
+    memset(p, 0, sizeof(Packet));
     p->type = PACKET_P2P_MSG;
     p2pMsgCopy(&(p->p2p), msg);
     return p;

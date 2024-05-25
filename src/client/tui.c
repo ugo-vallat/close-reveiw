@@ -1,5 +1,5 @@
-#include "types/genericlist.h"
 #include <client/tui.h>
+#include <network/chat.h>
 #include <network/manager.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -7,6 +7,7 @@
 #include <string.h>
 #include <time.h>
 #include <types/command.h>
+#include <types/genericlist.h>
 #include <types/message.h>
 #include <types/p2p-msg.h>
 #include <types/packet.h>
@@ -65,15 +66,6 @@ void *stdinHandler(void *arg) {
                 if (command == NULL) {
                     cmd_error = CMD_ERR_INVALID_ARG;
                 } else {
-                    printl("> type : %d\n", command->cmd);
-                    if (command->args) {
-                        for (unsigned i = 0; i < genListSize(command->args); i++) {
-                            printf("<%s> ", (char *)genListGet(command->args, i));
-                        }
-                        printf("\n");
-                    } else {
-                        printf("> No args\n");
-                    }
                     switch (command->cmd) {
                     case CMD_LIST:
                         cmd_error = commandList(command, manager);
@@ -123,7 +115,7 @@ void *stdinHandler(void *arg) {
                 }
                 deinitCommand(&command);
             } else {
-                // TODO: Chat To be Implemented
+                chatSendMessage(manager, buffer);
             }
             break;
         case TUI_INPUT_ERROR:

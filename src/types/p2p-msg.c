@@ -166,7 +166,7 @@ char *p2pMsgGetPasswordHash(P2P_msg *msg) {
     char FUN_NAME[32] = "p2pMsgGetPassword";
     assertl(msg, FILE_P2P_MSG, FUN_NAME, -1, "msg NULL");
 
-    char *password_hash = malloc(SIZE_PASSWORD);
+    char *password_hash = malloc(SIZE_HASH);
     strncpy(password_hash, msg->password_hash, SIZE_HASH);
     return password_hash;
 }

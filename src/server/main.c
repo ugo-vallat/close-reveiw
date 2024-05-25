@@ -15,8 +15,6 @@
 #define SERVER_CERT_PATH "./config/server/server-be-auto-cert.crt"
 #define SERVER_KEY_PATH "./config/server/server-be.key"
 
-#define SERVER_PORT 5555
-
 #define BLUE "\033[38;5;45m"
 #define GREEN "\033[38;5;82m"
 #define RED "\033[38;5;196m"
@@ -27,8 +25,9 @@ GenList *user;
 List *thread;
 char FILE_NAME[16] = "MAIN";
 bool end = false;
+int SERVER_PORT;
 
-typedef struct s_tuple_TLS_info{
+typedef struct s_tuple_TLS_info {
     TLS_infos *info_user1;
     TLS_infos *info_user2;
 } Tuple_TLS_info;
@@ -39,7 +38,7 @@ void okServer(char *arg);
 
 void koServer(char *arg);
 
-void acceptHandler(Packet *p, TLS_infos *info, int sender_nb); //TODO
+void acceptHandler(Packet *p, TLS_infos *info, int sender_nb); // TODO
 
 void rejecttHandler(Packet *p, TLS_infos *info);
 
@@ -53,15 +52,19 @@ void *accepteUser(void *arg);
 
 void *requestHandler(void *arg);
 
-
-
-
-int main() {
+int main(int argc, char *argv[]) {
     char *FUN_NAME = "MAIN";
 
     printf("main thread : %d\n", getpid());
 
     init_logger(NULL);
+
+    /* get args */
+    if (argc != 2) {
+        exitl(FILE_NAME, FUN_NAME, -1, "usage : %s <server port>", argv[0]);
+    } else {
+        SERVER_PORT = atoi(argv[1]);
+    }
 
     user = initGenList(10);
     thread = initList(10);
@@ -95,7 +98,7 @@ int main() {
     okServer("main setup");
 
     tryServer("main add users");
-    createUser(conn, "ugo", "5cEc56aE8.azdA21");
+    createUser(conn, "ugo", "1234");
     createUser(conn, "coco", "1234");
     okServer("main");
 
@@ -117,7 +120,6 @@ int main() {
     tryServer("main create thread handler");
     pthread_create(&temp, NULL, requestHandler, NULL);
     okServer("main");
-
 
     while (!end) {
         while (!listIsEmpty(thread)) {
@@ -149,11 +151,11 @@ void koServer(char *arg) {
     fflush(stdout);
 }
 
-void *createP2Pconnection(void *arg){
+void *createP2Pconnection(void *arg) {
     Tuple_TLS_info *info = arg;
     P2P_msg *msg = initP2PMsg(P2P_GET_INFOS, "serveur");
     Packet *p = initPacketP2PMsg(msg);
-    Packet *receive1,*receive2;
+    Packet *receive1, *receive2;
     TLS_error error1, error2;
 
     tlsSend(info->info_user1, p);
@@ -165,7 +167,7 @@ void *createP2Pconnection(void *arg){
     msg = initP2PMsg(P2P_TRY_SERVER_MODE, "serveur");
 
     int try_port = p2pMsgGetPrivatePort(&receive2->p2p);
-    char *try_ip= p2pMsgGetPrivateIp(&receive2->p2p);
+    char *try_ip = p2pMsgGetPrivateIp(&receive2->p2p);
     p2pMsgSetTryInfo(msg, try_ip, try_port);
     p = initPacketP2PMsg(msg);
     tlsSend(info->info_user1, p);
@@ -176,8 +178,7 @@ void *createP2Pconnection(void *arg){
     try_ip = p2pMsgGetPrivateIp(&receive1->p2p);
     p2pMsgSetTryInfo(msg, try_ip, try_port);
     p = initPacketP2PMsg(msg);
-    tlsSend(info->info_user2, p);  
-
+    tlsSend(info->info_user2, p);
 
     genListAdd(user, info->info_user1);
     genListAdd(user, info->info_user2);
@@ -185,7 +186,7 @@ void *createP2Pconnection(void *arg){
     return NULL;
 }
 
-void acceptHandler(Packet *p, TLS_infos *info, int sender_nb){
+void acceptHandler(Packet *p, TLS_infos *info, int sender_nb) {
     int target_nb;
     pthread_t temp;
     char *sender = p2pMsgGetSenderId(&p->p2p);
@@ -269,15 +270,14 @@ void *startConnection(void *arg) {
         while (error == TLS_RETRY) {
             error = tlsReceiveBlocking(temp, &receive);
             printf(" > error : %d\n", error);
-            sleep(1);
         }
         tryServer("startConnection check error");
         if (error == TLS_SUCCESS) {
             if (receive->type == PACKET_P2P_MSG) {
                 P2P_msg msg = receive->p2p;
                 if (msg.type == P2P_CONNECTION_SERVER) {
-                    sender = p2pMsgGetSenderId(&msg);
-                    password_hash = p2pMsgGetPasswordHash(&msg);
+                    sender = p2pMsgGetSenderId(&(receive->p2p));
+                    password_hash = p2pMsgGetPasswordHash(&(receive->p2p));
                     if (login(conn, sender, password_hash, genListSize(user))) {
                         genListAdd(user, temp);
                         msg_send = initP2PMsg(P2P_CONNECTION_OK, "server");
@@ -331,7 +331,6 @@ void *accepteUser(void *arg) {
     return NULL;
 }
 
-
 void *requestHandler(void *arg) {
     (void)arg;
     TLS_error error;
@@ -376,6 +375,7 @@ void *requestHandler(void *arg) {
                 temp = genListRemove(user, i);
                 tlsCloseCom(temp, NULL);
                 deinitTLSInfos(&temp);
+                // disconnect(conn, i);
                 break;
             case TLS_RETRY:
                 break;

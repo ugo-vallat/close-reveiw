@@ -1,6 +1,7 @@
 #include "types/p2p-msg.h"
 #include <arpa/inet.h>
 #include <client/tui.h>
+#include <netinet/in.h>
 #include <network/manager.h>
 #include <network/p2p-com.h>
 #include <server/weak_password.h>
@@ -76,7 +77,7 @@ Command *initCommand(char *buffer) {
 
 void deinitCommand(Command **command) {
     if (*command != NULL) {
-        deinitGenList(&(*command)->args, free);
+        deinitGenList(&((*command)->args), free);
         free(*command);
         *command = NULL;
     }
@@ -95,7 +96,7 @@ CMD_error commandList(Command *command, Manager *manager) {
 CMD_error commandConnect(Command *command, Manager *manager) {
     char FUN_NAME[32] = "commandList";
     char *user_id;
-    char *password;
+    char password[SIZE_HASH];
     if (command->cmd != CMD_CONNECT) {
         warnl(FILE_COMMAND, FUN_NAME, "called the wrong function");
         return CMD_ERR_WRONG_FUNCTION_CALL;
@@ -154,7 +155,8 @@ CMD_error commandDirect(Command *command, Manager *manager) {
     }
 
     char *ip = genListGet(command->args, 1);
-    if ((inet_pton(AF_INET, ip, NULL) == 0)) {
+    struct sockaddr_in addr;
+    if ((inet_pton(AF_INET, ip, &addr) != 1)) {
         warnl(FILE_COMMAND, FUN_NAME, "the given IP is invalid");
         return CMD_ERR_INVALID_ARG;
     }
