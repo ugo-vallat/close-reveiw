@@ -53,6 +53,7 @@ void deinitManagerBuffer(Buffer_module *buffer) {
     pthread_mutex_destroy(buffer->mutex_access_buffer);
     free(buffer->mutex_wait_read);
     free(buffer->mutex_access_buffer);
+    deinitGenList(&(buffer->buff), deinitPacketGen);
 }
 
 void deinitManager(Manager **manager) {

@@ -221,9 +221,11 @@ void requestP2PtHandler(Packet *p, TLS_infos *info) {
     P2P_msg *msg;
     char *sender = p2pMsgGetSenderId(&p->p2p);
     char *target = p2pMsgGetPeerId(&p->p2p);
+    printl(" > request from <%s> to <%s>", sender, target);
     P2P_error error = SQLrequestP2P(conn, sender, target, &user_nb);
 
     if (error != P2P_ERR_SUCCESS) {
+        printl(" > target unavailable");
         msg = initP2PMsg(P2P_REJECT, "serveur");
         p2pMsgSetError(msg, error);
         send = initPacketP2PMsg(msg);
@@ -231,6 +233,7 @@ void requestP2PtHandler(Packet *p, TLS_infos *info) {
         deinitPacket(&send);
         deinitP2PMsg(&msg);
     } else {
+        printl(" > send request to target");
         msg = initP2PMsg(P2P_REQUEST_IN, "serveur");
         p2pMsgSetPeerId(msg, sender);
         send = initPacketP2PMsg(msg);
@@ -341,7 +344,7 @@ void *requestHandler(void *arg) {
             error = tlsReceiveNonBlocking(genListGet(user, i), &packet);
             switch (error) {
             case TLS_SUCCESS:
-                tryServer("TLS_SUCCESS");
+                tryServer("new request in requestHandler");
                 if (packet->type == PACKET_P2P_MSG) {
                     switch (packet->p2p.type) {
                     case P2P_ACCEPT: // TODO

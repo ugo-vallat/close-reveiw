@@ -467,7 +467,7 @@ TLS_error tlsStartListenning(TLS_infos *infos, Manager *manager, Manager_module 
             return TLS_CLOSE;
         case TLS_ERROR:
         case TLS_NULL_POINTER:
-            warnl(FILE_TLS_COM, FUN_NAME, "fail tlsReceiveNonBlocking");
+            warnl(FILE_TLS_COM, FUN_NAME, "fail tlsReceiveNonBlocking - %s", tlsErrorToString(tls_error));
             tlsCloseCom(infos, NULL);
             return TLS_ERROR;
         }
@@ -627,7 +627,7 @@ TLS_error tlsSend(TLS_infos *infos, Packet *packet) {
             break;
         default:
             ERR_error_string_n(error, buff, sizeof(buff));
-            warnl(FILE_TLS_COM, FUN_NAME, "SSL_write : %s", buff);
+            warnl(FILE_TLS_COM, FUN_NAME, "SSL_write (%s) : %s", error, buff);
             infos->open = false;
             return TLS_CLOSE;
         }
@@ -741,7 +741,7 @@ TLS_error tlsReceiveBlocking(TLS_infos *infos, Packet **packet) {
         break;
     default:
         ERR_error_string_n(error, buff, sizeof(buff));
-        warnl(FILE_TLS_COM, FUN_NAME, "SSL_read : %s", buff);
+        warnl(FILE_TLS_COM, FUN_NAME, "SSL_read (%d) : %s", error, buff);
         tls_error = TLS_ERROR;
     }
 

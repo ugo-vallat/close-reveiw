@@ -3,6 +3,7 @@
 #include <network/tls-com.h>
 #include <pthread.h>
 #include <server/weak_password.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <types/p2p-msg.h>
@@ -14,7 +15,7 @@
 #define TIMEOUT_DIRECT_SERVER 5
 #define TIMEOUT_DIRECT_CLIENT 1
 #define P2P_PRIVATE_IP "127.0.0.1"
-#define P2P_PRIVATE_PORT 7000
+#define P2P_PRIVATE_PORT -1
 #define P2P_PUBLIC_PORT -1
 
 #define CLIENT_CERT_PATH "./config/server/server-be-auto-cert.crt"
@@ -26,15 +27,36 @@ typedef struct s_p2p_thread_args {
     TLS_mode mode;
 } P2P_thread_args;
 
+/**
+ * @brief Free memory, send message close to output, close manager and exit thread
+ *
+ * @param args Args of thread
+ */
 void exitThreadPeer(P2P_thread_args *args) {
+    /* close manager */
     managerSetState(args->manager, MANAGER_MOD_PEER, MANAGER_STATE_CLOSED);
-    managerMainSendPthreadToJoin(args->manager, pthread_self());
+    /* send message to output */
+    Packet *packet = initPacketTXT("P2P connection closed");
+    managerSend(args->manager, MANAGER_MOD_OUTPUT, packet);
+    deinitPacket(&packet);
+    /* deinit tls */
     if (args->tls)
         deinitTLSInfos(&(args->tls));
+    /* close thread */
+    managerMainSendPthreadToJoin(args->manager, pthread_self());
     free(args);
     pthread_exit(NULL);
 }
 
+/**
+ * @brief Try connect to peer using tls in mode mode
+ *
+ * @param manager Manager
+ * @param tls TLS_infos already init
+ * @param mode Mode of connection
+ * @param loop If true, try connect / accept while peer not connected and not received TLS_CLOSE in manager
+ * @return TLS_error {TLS_SUCCESS, TLS_CLOSE, TLS_ERROR}
+ */
 TLS_error p2pTryToConnect(Manager *manager, TLS_infos *tls, TLS_mode mode, bool loop) {
     char *FUN_NAME = "p2pTryToConnect";
     assertl(manager, FILE_P2P_COM, FUN_NAME, EXIT_FAILURE, "manager NULL");
@@ -48,6 +70,18 @@ TLS_error p2pTryToConnect(Manager *manager, TLS_infos *tls, TLS_mode mode, bool 
     /* set timeout */
     timeout = malloc(sizeof(struct timeval));
     timeout->tv_sec = (mode == TLS_CLIENT) ? (TIMEOUT_DIRECT_CLIENT) : (TIMEOUT_DIRECT_SERVER);
+
+    /* send message output */
+    char txt[SIZE_TXT];
+    if (mode == TLS_SERVER) {
+        snprintf(txt, SIZE_TXT, "P2P waiting connection on %s:%d...", tls->ip, tls->port);
+        packet = initPacketTXT(txt);
+    } else {
+        snprintf(txt, SIZE_TXT, "P2P trying to connect on %s:%d...", tls->ip, tls->port);
+        packet = initPacketTXT(txt);
+    }
+    managerSend(manager, MANAGER_MOD_OUTPUT, packet);
+    deinitPacket(&packet);
 
     /* loop try to connect */
     do {
@@ -108,15 +142,22 @@ void *funStartPeerDirect(void *arg) {
     Manager_error manager_error;
     Packet *packet;
 
+    /* try to connect */
     tls_error = p2pTryToConnect(thread_args->manager, thread_args->tls, thread_args->mode, true);
 
     if (tls_error != TLS_SUCCESS) {
         exitThreadPeer(thread_args);
     }
-    printl(" > connected !");
 
+    /* send message open output */
+    packet = initPacketTXT("P2P connection opened");
+    managerSend(thread_args->manager, MANAGER_MOD_OUTPUT, packet);
+    deinitPacket(&packet);
+
+    /* set manager open */
     managerSetState(thread_args->manager, MANAGER_MOD_PEER, MANAGER_STATE_OPEN);
 
+    /* start listenning */
     tls_error = tlsStartListenning(thread_args->tls, thread_args->manager, MANAGER_MOD_PEER, tlsManagerPacketGetNext,
                                    tlsManagerPacketReceived);
     switch (tls_error) {
@@ -131,10 +172,7 @@ void *funStartPeerDirect(void *arg) {
         break;
     }
 
-    deinitTLSInfos(&(thread_args->tls));
-    managerSetState(thread_args->manager, MANAGER_MOD_PEER, MANAGER_STATE_CLOSED);
-    managerMainSendPthreadToJoin(thread_args->manager, pthread_self());
-
+    exitThreadPeer(arg);
     return NULL;
 }
 
@@ -175,6 +213,7 @@ void *funStartPeer(void *arg) {
     deinitPacket(&packet);
 
     /* send informations */
+    // TODO : use config
     char *sender = managerGetUser(thread_args->manager);
     msg = initP2PMsg(P2P_INFOS, sender);
     free(sender);
@@ -234,12 +273,18 @@ void *funStartPeer(void *arg) {
         }
         tls_error = p2pTryToConnect(thread_args->manager, tls, mode, false);
         if (tls_error == TLS_CLOSE) {
+            deinitTLSInfos(&tls);
             exitThreadPeer(thread_args);
         }
         if (tls_error == TLS_SUCCESS)
             break;
         deinitTLSInfos(&tls);
     }
+
+    /* send message open output */
+    packet = initPacketTXT("P2P connection opened");
+    managerSend(thread_args->manager, MANAGER_MOD_OUTPUT, packet);
+    deinitPacket(&packet);
 
     managerSetState(thread_args->manager, MANAGER_MOD_PEER, MANAGER_STATE_OPEN);
 
@@ -284,7 +329,6 @@ int p2pCreateThreadPeer(Manager *manager, TLS_infos *tls, TLS_mode mode) {
     args->manager = manager;
     args->tls = tls;
     args->mode = mode;
-    printl("trying direct in mode %d", mode);
 
     if (tls) {
         if (pthread_create(&num_t, NULL, funStartPeerDirect, args) != 0) {
