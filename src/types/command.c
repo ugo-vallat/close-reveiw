@@ -100,23 +100,23 @@ CMD_error commandConnect(Command *command, Manager *manager) {
         warnl(FILE_COMMAND, FUN_NAME, "called the wrong function");
         return CMD_ERR_WRONG_FUNCTION_CALL;
     }
-    if (genListSize(command->args) != 3) {
+    if (genListSize(command->args) != 2) {
         warnl(FILE_COMMAND, FUN_NAME, "invalid number of arguments given");
         return CMD_ERR_MISSING_ARG;
     }
 
-    user_id = genListGet(command->args, 1);
+    user_id = genListGet(command->args, 0);
     if (user_id == NULL || !isValidUserId(user_id)) {
         warnl(FILE_COMMAND, FUN_NAME, "invalid user_id");
         return CMD_ERR_INVALID_ARG;
     }
 
-    size_t password_size = strnlen(genListGet(command->args, 2), SIZE_PASSWORD + 1);
-    if (password_size < SIZE_PASSWORD) {
+    size_t password_size = strnlen(genListGet(command->args, 1), SIZE_PASSWORD);
+    if (password_size >= SIZE_PASSWORD) {
         warnl(FILE_COMMAND, FUN_NAME, "invalid password size");
         return CMD_ERR_INVALID_ARG;
     }
-    password_to_md5_hash(genListGet(command->args, 2), password);
+    password_to_md5_hash(genListGet(command->args, 1), password);
     p2pConnectToServer(manager, user_id, password);
     return CMD_ERR_SUCCESS;
 }
@@ -128,12 +128,12 @@ CMD_error commandRequest(Command *command, Manager *manager) {
         warnl(FILE_COMMAND, FUN_NAME, "called the wrong function");
         return CMD_ERR_WRONG_FUNCTION_CALL;
     }
-    if (genListSize(command->args) != 2) {
+    if (genListSize(command->args) != 1) {
         warnl(FILE_COMMAND, FUN_NAME, "invalid number of arguments given");
         return CMD_ERR_MISSING_ARG;
     }
 
-    user_id = genListGet(command->args, 1);
+    user_id = genListGet(command->args, 0);
     if (user_id == NULL || !isValidUserId(user_id)) {
         warnl(FILE_COMMAND, FUN_NAME, "invalid user_id");
         return CMD_ERR_INVALID_ARG;
@@ -148,24 +148,24 @@ CMD_error commandDirect(Command *command, Manager *manager) {
         warnl(FILE_COMMAND, FUN_NAME, "called the wrong function");
         return CMD_ERR_WRONG_FUNCTION_CALL;
     }
-    if (genListSize(command->args) != 4) {
+    if (genListSize(command->args) != 3) {
         warnl(FILE_COMMAND, FUN_NAME, "invalid number of arguments given");
         return CMD_ERR_MISSING_ARG;
     }
 
-    char *ip = genListGet(command->args, 2);
+    char *ip = genListGet(command->args, 1);
     if ((inet_pton(AF_INET, ip, NULL) == 0)) {
         warnl(FILE_COMMAND, FUN_NAME, "the given IP is invalid");
         return CMD_ERR_INVALID_ARG;
     }
 
     int port = 0;
-    if (sscanf(genListGet(command->args, 3), "%d", &port) != 1 || port < 0 || port > 65536) {
+    if (sscanf(genListGet(command->args, 2), "%d", &port) != 1 || port < 0 || port > 65536) {
         warnl(FILE_COMMAND, FUN_NAME, "the given port is invalid");
         return CMD_ERR_INVALID_ARG;
     }
 
-    char *mode_string = genListGet(command->args, 1);
+    char *mode_string = genListGet(command->args, 0);
     bool is_client_mode = strncmp(mode_string, "-c", strlen("-c")) == 0;
     if (!is_client_mode && strncmp(mode_string, "-s", strlen("-s")) != 0) {
         warnl(FILE_COMMAND, FUN_NAME, "the given mode is invalid");
@@ -182,11 +182,11 @@ CMD_error commandAnswer(Command *command, Manager *manager) {
         warnl(FILE_COMMAND, FUN_NAME, "called the wrong function");
         return CMD_ERR_WRONG_FUNCTION_CALL;
     }
-    if (genListSize(command->args) != 2) {
+    if (genListSize(command->args) != 1) {
         warnl(FILE_COMMAND, FUN_NAME, "invalid number of arguments given");
         return CMD_ERR_MISSING_ARG;
     }
-    user_id = genListGet(command->args, 1);
+    user_id = genListGet(command->args, 0);
     if (user_id == NULL || !isValidUserId(user_id)) {
         warnl(FILE_COMMAND, FUN_NAME, "invalid user_id");
         return CMD_ERR_INVALID_ARG;
@@ -202,11 +202,11 @@ CMD_error commandClose(Command *command, Manager *manager) {
         warnl(FILE_COMMAND, FUN_NAME, "called the wrong function");
         return CMD_ERR_WRONG_FUNCTION_CALL;
     }
-    if (genListSize(command->args) != 2) {
+    if (genListSize(command->args) != 1) {
         warnl(FILE_COMMAND, FUN_NAME, "invalid number of arguments given");
         return CMD_ERR_MISSING_ARG;
     }
-    user_id = genListGet(command->args, 1);
+    user_id = genListGet(command->args, 0);
     if (user_id == NULL || !isValidUserId(user_id)) {
         warnl(FILE_COMMAND, FUN_NAME, "invalid user_id");
         return CMD_ERR_INVALID_ARG;
@@ -240,7 +240,7 @@ CMD_error commandQuit(Command *command, Manager *manager) {
 
 CMD_error commandHelp(Command *command, Manager *manager) {
     char FUN_NAME[32] = "commandHelp";
-    if (command->cmd != CMD_HELP) {
+    if (command->cmd != CMD_HELP && command->cmd != CMD_UNKNOWN) {
         warnl(FILE_COMMAND, FUN_NAME, "called the wrong function");
         return CMD_ERR_WRONG_FUNCTION_CALL;
     }

@@ -1,3 +1,4 @@
+#include "types/genericlist.h"
 #include <client/tui.h>
 #include <network/manager.h>
 #include <pthread.h>
@@ -26,6 +27,13 @@ TUI_error stdinGetUserInput(char **buffer) {
         free(buffer);
         return TUI_INPUT_ERROR;
     }
+    int i = 0;
+    while ((*buffer)[i] != '\0') {
+        if ((*buffer)[i] == '\n') {
+            (*buffer)[i] = '\0';
+        }
+        i++;
+    }
     return TUI_SUCCESS;
 }
 
@@ -53,35 +61,49 @@ void *stdinHandler(void *arg) {
         case TUI_SUCCESS:
             if (*buffer == '/') {
                 command = initCommand(buffer);
-                switch (command->cmd) {
-                case CMD_LIST:
-                    cmd_error = commandList(command, manager);
-                    break;
-                case CMD_CONNECT:
-                    cmd_error = commandConnect(command, manager);
-                    break;
-                case CMD_REQUEST:
-                    cmd_error = commandRequest(command, manager);
-                    break;
-                case CMD_DIRECT:
-                    cmd_error = commandDirect(command, manager);
-                    break;
-                case CMD_ACCEPT:
-                case CMD_REJECT:
-                    cmd_error = commandAnswer(command, manager);
-                    break;
-                case CMD_CLOSE:
-                    cmd_error = commandClose(command, manager);
-                    break;
-                case CMD_QUIT:
-                    cmd_error = commandQuit(command, manager);
-                    exited = true;
-                    break;
-                case CMD_UNKNOWN:
-                    cmd_error = commandUnknown(command, manager);
-                case CMD_HELP:
-                    cmd_error = commandHelp(command, manager);
-                    break;
+
+                if (command == NULL) {
+                    cmd_error = CMD_ERR_INVALID_ARG;
+                } else {
+                    printl("> type : %d\n", command->cmd);
+                    if (command->args) {
+                        for (unsigned i = 0; i < genListSize(command->args); i++) {
+                            printf("<%s> ", (char *)genListGet(command->args, i));
+                        }
+                        printf("\n");
+                    } else {
+                        printf("> No args\n");
+                    }
+                    switch (command->cmd) {
+                    case CMD_LIST:
+                        cmd_error = commandList(command, manager);
+                        break;
+                    case CMD_CONNECT:
+                        cmd_error = commandConnect(command, manager);
+                        break;
+                    case CMD_REQUEST:
+                        cmd_error = commandRequest(command, manager);
+                        break;
+                    case CMD_DIRECT:
+                        cmd_error = commandDirect(command, manager);
+                        break;
+                    case CMD_ACCEPT:
+                    case CMD_REJECT:
+                        cmd_error = commandAnswer(command, manager);
+                        break;
+                    case CMD_CLOSE:
+                        cmd_error = commandClose(command, manager);
+                        break;
+                    case CMD_QUIT:
+                        cmd_error = commandQuit(command, manager);
+                        exited = true;
+                        break;
+                    case CMD_UNKNOWN:
+                        cmd_error = commandUnknown(command, manager);
+                    case CMD_HELP:
+                        cmd_error = commandHelp(command, manager);
+                        break;
+                    }
                 }
                 switch (cmd_error) {
                 case CMD_ERR_SUCCESS:
@@ -103,6 +125,7 @@ void *stdinHandler(void *arg) {
             } else {
                 // TODO: Chat To be Implemented
             }
+            break;
         case TUI_INPUT_ERROR:
             exitl(FILE_TUI, FUN_NAME, TUI_INPUT_ERROR, "error when trying to parse input");
         case TUI_MEMORY_ALLOCATION_ERROR:
