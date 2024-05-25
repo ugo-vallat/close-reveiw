@@ -5,7 +5,6 @@
 #include <server/weak_password.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/_types/_size_t.h>
 #include <time.h>
 #include <types/command.h>
 #include <types/genericlist.h>

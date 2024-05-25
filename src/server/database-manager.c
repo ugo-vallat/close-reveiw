@@ -32,6 +32,7 @@ MYSQL_ROW mysqlFetchRowAssert(MYSQL_RES *res, char *fun_name, int exit_status) {
     if (row == NULL) {
         return false;
     }
+    return row;
 }
 
 void createUser(MYSQL *conn, char *username, char *password) {
@@ -41,7 +42,7 @@ void createUser(MYSQL *conn, char *username, char *password) {
 
     /* Hashage du mot de passe */
     password_to_md5_hash(password, hash);
-    printf("mot de passe :%s\n",hash);
+    printf("mot de passe :%s\n", hash);
 
     /* Ajout de l'utilisateur à la table user */
     sprintf(query, "INSERT INTO user (username) VALUES ('%s')", username);
@@ -107,7 +108,7 @@ bool login(MYSQL *conn, char *username, char *password, int user_nb) {
     }
 
     int user_id = atoi(row[0]);
-    
+
     mysql_free_result(res);
 
     /* Recherche du mot de passe dans la table password */
@@ -163,12 +164,12 @@ void logginDatabase(MYSQL *conn, char *server, char *sql_user, char *sql_passwor
     char *fun_name = "logginDatabase";
     /* Initialisation de la connexion à la base de données */
     conn = mysql_init(NULL);
-    assertl(conn,FILE_NAME, fun_name, 1, mysql_error(conn));
-
+    assertl(conn, FILE_NAME, fun_name, 1, mysql_error(conn));
 
     /* Connexion à la base de données */
- 
-        assertl(mysql_real_connect(conn, server, sql_user, sql_password, database, 0, NULL, 0),FILE_NAME, fun_name, 1, mysql_error(conn));
+
+    assertl(mysql_real_connect(conn, server, sql_user, sql_password, database, 0, NULL, 0), FILE_NAME, fun_name, 1,
+            mysql_error(conn));
 }
 
 int SQLrequestP2P(MYSQL *conn, char *sender_username, char *target_username, int *user_nb) {

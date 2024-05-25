@@ -115,10 +115,10 @@ void connectToServer() {
     }
 
     /* open communication tls server */
-    // if (tlsOpenCom(tls, NULL) != TLS_SUCCESS) {
-    //     warnl(FILE_MAIN, FUN_NAME, "failed to connect to server");
-    //     closeApp();
-    // }
+    if (tlsOpenCom(tls, NULL) != TLS_SUCCESS) {
+        warnl(FILE_MAIN, FUN_NAME, "failed to connect to server");
+        closeApp();
+    }
 
     /* connect client */
 
@@ -142,9 +142,8 @@ void connectToServer() {
         free(buffer);
 
         /* send request */
-        p2p = initP2PMsg(P2P_CONNECTION_SERVER);
-        p2pMsgSetUserId(p2p, user_id);
-        p2pMsgSetPassword(p2p, password);
+        p2p = initP2PMsg(P2P_CONNECTION_SERVER, user_id);
+        p2pMsgSetPasswordHash(p2p, password);
         packet = initPacketP2PMsg(p2p);
         if (tlsSend(tls, packet) != TLS_SUCCESS) {
             warnl(FILE_MAIN, FUN_NAME, "failed to send request to server");
@@ -174,6 +173,7 @@ void connectToServer() {
         } else {
             printf(" %s> connection succeed %s\n", GREEN, RESET);
         }
+        sleep(1);
     }
 
     managerSetUser(manager, user_id);

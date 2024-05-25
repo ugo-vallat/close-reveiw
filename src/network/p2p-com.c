@@ -300,7 +300,8 @@ void p2pGetlistUsersAvailable(Manager *manager) {
     assertl(manager, FILE_P2P_COM, FUN_NAME, -1, "manager NULL");
 
     Manager_error error;
-    P2P_msg *msg = initP2PMsg(P2P_GET_AVAILABLE);
+    char *sender = managerGetUser(manager);
+    P2P_msg *msg = initP2PMsg(P2P_GET_AVAILABLE, sender);
     Packet *packet = initPacketP2PMsg(msg);
 
     error = managerSend(manager, MANAGER_MOD_SERVER, packet);
@@ -318,6 +319,7 @@ void p2pGetlistUsersAvailable(Manager *manager) {
     }
     deinitPacket(&packet);
     deinitP2PMsg(&msg);
+    free(sender);
 }
 
 void p2pSendRequestConnection(Manager *manager, char *peer_id) {
@@ -334,7 +336,8 @@ void p2pSendRequestConnection(Manager *manager, char *peer_id) {
     P2P_msg *msg;
     Manager_error error;
 
-    msg = initP2PMsg(P2P_REQUEST_OUT);
+    char *sender = managerGetUser(manager);
+    msg = initP2PMsg(P2P_REQUEST_OUT, sender);
     p2pMsgSetPeerId(msg, peer_id);
     packet = initPacketP2PMsg(msg);
 
@@ -355,13 +358,14 @@ void p2pSendRequestConnection(Manager *manager, char *peer_id) {
     deinitP2PMsg(&msg);
 
     if (error == MANAGER_ERR_ERROR || error == MANAGER_ERR_CLOSED) {
-        msg = initP2PMsg(P2P_CLOSE);
+        msg = initP2PMsg(P2P_CLOSE, sender);
         p2pMsgSetError(msg, P2P_ERR_LOCAL_ERROR);
         packet = initPacketP2PMsg(msg);
         managerSend(manager, MANAGER_MOD_PEER, packet);
         deinitPacket(&packet);
         deinitP2PMsg(&msg);
     }
+    free(sender);
 }
 
 void p2pRespondToRequest(Manager *manager, char *peer_id, bool response) {
@@ -378,10 +382,11 @@ void p2pRespondToRequest(Manager *manager, char *peer_id, bool response) {
     Packet *packet;
     P2P_msg *msg;
     Manager_error error;
+    char *sender = managerGetUser(manager);
 
     /* send response*/
-    msg = (response) ? (initP2PMsg(P2P_ACCEPT)) : (initP2PMsg(P2P_REJECT));
-    p2pMsgSetUserId(msg, peer_id);
+    msg = (response) ? (initP2PMsg(P2P_ACCEPT, sender)) : (initP2PMsg(P2P_REJECT, sender));
+    p2pMsgSetPeerId(msg, peer_id);
     packet = initPacketP2PMsg(msg);
 
     error = managerSend(manager, MANAGER_MOD_SERVER, packet);
@@ -401,13 +406,14 @@ void p2pRespondToRequest(Manager *manager, char *peer_id, bool response) {
     deinitP2PMsg(&msg);
 
     if (response && (error == MANAGER_ERR_ERROR || error == MANAGER_ERR_CLOSED)) {
-        msg = initP2PMsg(P2P_CLOSE);
+        msg = initP2PMsg(P2P_CLOSE, sender);
         p2pMsgSetError(msg, P2P_ERR_LOCAL_ERROR);
         packet = initPacketP2PMsg(msg);
         managerSend(manager, MANAGER_MOD_PEER, packet);
         deinitPacket(&packet);
         deinitP2PMsg(&msg);
     }
+    free(sender);
 }
 
 void p2pStartDirectConnection(Manager *manager, TLS_mode mode, char *ip, int port) {
@@ -440,7 +446,8 @@ void p2pCloseCom(Manager *manager, char *peer_id) {
     }
 
     Manager_error error;
-    P2P_msg *msg = initP2PMsg(P2P_CLOSE);
+    char *sender = managerGetUser(manager);
+    P2P_msg *msg = initP2PMsg(P2P_CLOSE, sender);
     p2pMsgSetError(msg, P2P_ERR_USER_CLOSE);
     Packet *packet = initPacketP2PMsg(msg);
 
@@ -459,4 +466,5 @@ void p2pCloseCom(Manager *manager, char *peer_id) {
     }
     deinitPacket(&packet);
     deinitP2PMsg(&msg);
+    free(sender);
 }
