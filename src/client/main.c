@@ -26,10 +26,6 @@ TLS_infos *tls;
 char server_ip[SIZE_IP_CHAR];
 int server_port;
 
-void connectToServer();
-
-void *threadInput(void *arg);
-void *threadOutput(void *arg);
 void *threadServer(void *arg);
 
 void closeApp();
@@ -56,18 +52,24 @@ int main(int argc, char *argv[]) {
         exitl(FILE_MAIN, FUN_NAME, -1, "failed init manager");
     }
 
-    /* connection to server*/
-    connectToServer();
-
     /* set manager in progress */
     managerSetState(manager, MANAGER_MOD_SERVER, MANAGER_STATE_IN_PROGRESS);
     managerSetState(manager, MANAGER_MOD_INPUT, MANAGER_STATE_IN_PROGRESS);
     managerSetState(manager, MANAGER_MOD_OUTPUT, MANAGER_STATE_IN_PROGRESS);
 
     /* creation threads */
+    Manager_state state;
     if (pthread_create(&num_t, NULL, threadServer, NULL) != 0) {
         warnl(FILE_MAIN, FUN_NAME, "fialed create thread server");
         closeApp();
+    } else {
+
+        while ((state = managerGetState(manager, MANAGER_MOD_SERVER)) == MANAGER_STATE_IN_PROGRESS)
+            ;
+        if (state == MANAGER_STATE_CLOSED) {
+            pthread_join(num_t, NULL);
+            closeApp();
+        }
     }
     if (pthread_create(&num_t, NULL, stdinHandler, manager) != 0) {
         warnl(FILE_MAIN, FUN_NAME, "fialed create thread input");
@@ -77,11 +79,6 @@ int main(int argc, char *argv[]) {
         warnl(FILE_MAIN, FUN_NAME, "fialed create thread output");
         closeApp();
     }
-
-    /* set manager open */
-    managerSetState(manager, MANAGER_MOD_SERVER, MANAGER_STATE_OPEN);
-    managerSetState(manager, MANAGER_MOD_INPUT, MANAGER_STATE_OPEN);
-    managerSetState(manager, MANAGER_MOD_OUTPUT, MANAGER_STATE_OPEN);
 
     while (!close) {
         managerMainReceive(manager, &num_t);
@@ -99,6 +96,13 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
+/**
+ * @brief Launch thread server
+ *
+ * @param arg Ignored
+ * @return NULL
+ * @note set Manager state to OPEN if ready, CLOSED otherwise
+ */
 void *threadServer(void *arg) {
     char *FUN_NAME = "threadServer";
     assertl(tls, FILE_MAIN, FUN_NAME, -1, "tls closed");
@@ -106,6 +110,22 @@ void *threadServer(void *arg) {
     TLS_error tls_error;
     pthread_t num_t;
 
+    /* open connection server */
+    tls = initTLSInfos(server_ip, server_port, TLS_CLIENT, NULL, NULL);
+    if (!tls) {
+        warnl(FILE_MAIN, FUN_NAME, "failed to init tls infos");
+        managerSetState(manager, MANAGER_MOD_SERVER, MANAGER_STATE_CLOSED);
+        return NULL;
+    }
+    tls_error = tlsOpenCom(tls, NULL);
+    if (tls_error != TLS_SUCCESS) {
+        warnl(FILE_MAIN, FUN_NAME, "failed to open com with server");
+        managerSetState(manager, MANAGER_MOD_SERVER, MANAGER_STATE_CLOSED);
+        return NULL;
+    }
+    managerSetState(manager, MANAGER_MOD_SERVER, MANAGER_STATE_OPEN);
+
+    /* start listenning */
     tls_error = tlsStartListenning(tls, manager, MANAGER_MOD_SERVER, tlsManagerPacketGetNext, tlsManagerPacketReceived);
     switch (tls_error) {
     case TLS_SUCCESS:
@@ -116,11 +136,16 @@ void *threadServer(void *arg) {
         warnl(FILE_MAIN, FUN_NAME, "tlsStartListenning failed with %s", tlsErrorToString(tls_error));
         break;
     }
+    managerSetState(manager, MANAGER_MOD_SERVER, MANAGER_STATE_CLOSED);
     num_t = pthread_self();
     managerMainSendPthreadToJoin(manager, num_t);
     return NULL;
 }
 
+/**
+ * @brief deinit all structures off the main
+ *
+ */
 void closeApp() {
     if (tls) {
         deinitTLSInfos(&tls);
