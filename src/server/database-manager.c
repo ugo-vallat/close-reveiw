@@ -42,7 +42,7 @@ void createUser(MYSQL *conn, char *username, char *password) {
 
     /* Hashage du mot de passe */
     password_to_md5_hash(password, hash);
-    printf("mot de passe :%s\n", hash);
+
 
     /* Ajout de l'utilisateur à la table user */
     sprintf(query, "INSERT INTO user (username) VALUES ('%s')", username);
@@ -89,8 +89,8 @@ bool login(MYSQL *conn, char *username, char *password, int user_nb) {
     char hash[256];
     char *fun_name = "login";
 
-    /* Hashage du mot de passe */
-    password_to_md5_hash(password, hash);
+    // /* Hashage du mot de passe */
+    // password_to_md5_hash(password, hash);
 
     /* Recherche de l'utilisateur dans la table user */
     sprintf(query, "SELECT id FROM user WHERE username = '%s'", username);

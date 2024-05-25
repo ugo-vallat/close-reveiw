@@ -52,6 +52,8 @@ void *startConnection(void *arg) {
     Packet *send;
     P2P_msg *msg_send;
     TLS_error error;
+    char *sender;
+    char *password_hash;
     bool connection_etablish = false;
     tryServer("startConnection tlsReceiveBlocking");
     while (!connection_etablish) {
@@ -66,7 +68,9 @@ void *startConnection(void *arg) {
             if (receive->type == PACKET_P2P_MSG) {
                 P2P_msg msg = receive->p2p;
                 if (msg.type == P2P_CONNECTION_SERVER) {
-                    if (login(conn, msg.sender_id, msg.user_password, genListSize(user))) {
+                    sender = p2pMsgGetSenderId(&msg);
+                    password_hash = p2pMsgGetPasswordHash(&msg);
+                    if (login(conn, sender, password_hash, genListSize(user))) {
                         genListAdd(user, temp);
                         msg_send = initP2PMsg(P2P_CONNECTION_OK, "server");
                         p2pMsgSetError(msg_send, P2P_ERR_SUCCESS);
@@ -74,10 +78,12 @@ void *startConnection(void *arg) {
                         okServer("startConnection");
                         connection_etablish = true;
                     } else {
-                        msg_send = initP2PMsg(P2P_CONNECTION_KO);
+                        msg_send = initP2PMsg(P2P_CONNECTION_KO, "serveur");
                         p2pMsgSetError(msg_send, P2P_ERR_CONNECTION_FAILED);
                         koServer("startConnection");
                     }
+                    free(sender);
+                    free(password_hash);
                     send = initPacketP2PMsg(msg_send);
                     tlsSend(temp, send);
                 }
