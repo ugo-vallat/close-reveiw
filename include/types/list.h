@@ -1,16 +1,16 @@
 /**
  * @file list.h
- * @author VALLAT Ugo
+ * @author VALLAT Ugo, translation from french to english by MARTIN Benoit
  *
- * @brief Cette librairie implémente une liste pseudo statique d'entiers
+ * @brief This library implements a pseudo static list of integers
  *
- * Implémente la liste sous forme d'un tableau statique et alloue
- * de la mémoire dynamiquement lorsque qu'il est plein
+ * Implements the list in the form of a static array and allocates
+ * dynamic memory when it is full
  *
- * @note haute performance en lecture( O(1) ) mais faible en écriture ( O(n))
+ * @note high performance in reading (O(1)) but low in writing (O(n))
  *
- * @remark En cas d'erreur, toutes les fonctions de liste exit le progamme avec un
- * message d'erreur
+ * @remark In case of error, all list functions exit the program with an
+ * error message
  */
 
 #ifndef __LIST_H__
@@ -22,29 +22,29 @@
 #define LIST_TYPE unsigned long
 
 /*------------------------------------------------------------------*/
-/*                        STRUCTURE LIST                            */
+/*                        LIST STRUCTURE                            */
 /*------------------------------------------------------------------*/
 
-/* Définition opaque de la structure list */
+/* Opaque definition of the list structure */
 typedef struct s_list List;
 typedef List *ptrList;
 
 /**
  * @date  5/11/2023
- * @brief Crée une liste vide
+ * @brief Creates an empty list
  *
- * @param[in] memory_size Espace mémoire initial (en nombre d'éléments)
+ * @param[in] memory_size Initial memory space (in number of elements)
  *
- * @return pointeur vers la liste
- * @note Alloue la mémoire mais n'est pas initialisée (taille liste = 0)
+ * @return pointer to the list
+ * @note Allocates memory but is not initialized (list size = 0)
  */
 List *initList(unsigned memory_size);
 
 /**
  * @date  5/11/2023
- * @brief Supprime la liste et libère la mémoire
+ * @brief Deletes the list and frees the memory
  *
- * @param[in] l liste à supprimer
+ * @param[in] l list to delete
  * @pre l != NULL
  * @pre *l != NULL
  */
@@ -52,20 +52,20 @@ void deinitList(ptrList *l);
 
 /**
  * @date  5/11/2023
- * @brief Ajoute l'élément à la fin de la liste
+ * @brief Adds the element to the end of the list
  *
- * @param[in] l Pointeur vers la liste
- * @param[in] v Valeur à ajouter
+ * @param[in] l Pointer to the list
+ * @param[in] v Value to add
  * @pre l != NULL
  */
 void listAdd(List *l, LIST_TYPE v);
 
 /**
  * @date  5/11/2023
- * @brief Insert une valeur à la position i
+ * @brief Inserts a value at position i
  *
- * @param[in] l Pointeur vers la liste
- * @param[in] v Valeur à ajouter
+ * @param[in] l Pointer to the list
+ * @param[in] v Value to add
  * @param[in] i position
  * @pre l != NULL
  *
@@ -75,50 +75,50 @@ void listInsert(List *l, LIST_TYPE v, unsigned i);
 
 /**
  * @date 5/11/2023
- * @brief Supprime le dernier élément de la liste
+ * @brief Removes the last element of the list
  *
  * @param[in] l list
  * @pre l != NULL
  *
- * @pre taille liste > 0
- * @return valeur avant suppression
+ * @pre list size > 0
+ * @return value before deletion
  **/
 LIST_TYPE listPop(List *l);
 
 /**
  * @date  5/11/2023
- * @brief Supprime l'élément à la position i
+ * @brief Removes the element at position i
  *
- * @param[in] l Pointeur vers la liste
+ * @param[in] l Pointer to the list
  * @param[in] i position
  * @pre l != NULL
  *
  * @pre i < listSize
- * @return valeur avant suppression
+ * @return value before deletion
  */
 LIST_TYPE listRemove(List *l, unsigned i);
 
 /**
  * @date 5/11/2023
- * @brief Lire la valeur à la position i
+ * @brief Reads the value at position i
  *
- * @param[in] l Pointeur vers la liste
- * @param[in] i Position de l'élément
+ * @param[in] l Pointer to the list
+ * @param[in] i Position of the element
  * @pre l != NULL
  *
  * @pre i < list size
  *
- * @return Valeur lue
+ * @return Read value
  **/
 LIST_TYPE listGet(List *l, unsigned i);
 
 /**
  * @author VALLAT Ugo
  * @date 31/10/2023
- * @brief Change la valeur à la position i par une nouvelle valeur
+ * @brief Changes the value at position i to a new value
  *
- * @param[in] l Pointeur vers la liste
- * @param[in] v Nouvelle valeur
+ * @param[in] l Pointer to the list
+ * @param[in] v New value
  * @param[in] i Position
  * @pre l != NULL
  */
@@ -127,20 +127,20 @@ void listSet(List *l, LIST_TYPE v, unsigned i);
 /**
  * @date 5/11/2023
  *
- * @brief Renvoie si la liste est vide
+ * @brief Returns if the list is empty
  *
- * @param[in] l Pointeur vers la liste
+ * @param[in] l Pointer to the list
  * @pre l != NULL
- * @return true si vide, false sinon
+ * @return true if empty, false otherwise
  */
 bool listIsEmpty(List *l);
 
 /**
  * @date  5/11/2023
- * @brief Renvoie la taille de la liste (position + 1 du dernier élément)
+ * @brief Returns the size of the list (position + 1 of the last element)
  *
- * @param[in] l Pointeur vers la liste
- * @return taille de la liste
+ * @param[in] l Pointer to the list
+ * @return size of the list
  *
  */
 
@@ -148,21 +148,21 @@ unsigned listSize(List *l);
 
 /**
  * @date 30/10/2023
- * @brief Copie la liste en entrée
+ * @brief Copies the input list
  *
- * @param[in] l Pointeur de la liste à copier
+ * @param[in] l Pointer of the list to copy
  * @pre l != NULL
  *
- * @return  Pointeur vers la copie
+ * @return  Pointer to the copy
  *
  */
 
 List *listCopy(List *l);
 
 /**
- * @brief Remet la liste à 0
+ * @brief Resets the list to 0
  *
- * @param l Liste à vider
+ * @param l List to empty
  */
 void listClear(List *l);
 
