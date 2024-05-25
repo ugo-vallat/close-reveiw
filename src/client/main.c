@@ -2,6 +2,7 @@
 #include <network/manager.h>
 #include <network/tls-com.h>
 #include <pthread.h>
+#include <server/weak_password.h>
 #include <stdio.h>
 #include <string.h>
 #include <types/message.h>
@@ -96,87 +97,6 @@ int main(int argc, char *argv[]) {
     closeApp();
 
     return 0;
-}
-
-void connectToServer() {
-    char *FUN_NAME = "connectToServer";
-    P2P_error p2p_error = P2P_ERR_CONNECTION_FAILED;
-    char user_id[SIZE_NAME];
-    char password[SIZE_PASSWORD];
-    char *buffer;
-    Packet *packet;
-    P2P_msg *p2p;
-
-    /* init tls infos */
-    tls = initTLSInfos(server_ip, server_port, TLS_CLIENT, NULL, NULL);
-    if (!tls) {
-        warnl(FILE_MAIN, FUN_NAME, "failed to init tls infos");
-        closeApp();
-    }
-
-    /* open communication tls server */
-    if (tlsOpenCom(tls, NULL) != TLS_SUCCESS) {
-        warnl(FILE_MAIN, FUN_NAME, "failed to connect to server");
-        closeApp();
-    }
-
-    /* connect client */
-
-    while (p2p_error != P2P_ERR_SUCCESS) {
-        /* get user id */
-        printf("user id : ");
-        if (stdinGetUserInput(&buffer) != TUI_SUCCESS) {
-            warnl(FILE_MAIN, FUN_NAME, "failed to read input");
-            continue;
-        }
-        sscanf(buffer, "%s", user_id);
-        free(buffer);
-
-        /* get password */
-        printf("password : ");
-        if (stdinGetUserInput(&buffer) != TUI_SUCCESS) {
-            warnl(FILE_MAIN, FUN_NAME, "failed to read input");
-            continue;
-        }
-        sscanf(buffer, "%s", password);
-        free(buffer);
-
-        /* send request */
-        p2p = initP2PMsg(P2P_CONNECTION_SERVER, user_id);
-        p2pMsgSetPasswordHash(p2p, password);
-        packet = initPacketP2PMsg(p2p);
-        if (tlsSend(tls, packet) != TLS_SUCCESS) {
-            warnl(FILE_MAIN, FUN_NAME, "failed to send request to server");
-            deinitPacket(&packet);
-            deinitP2PMsg(&p2p);
-            closeApp();
-        }
-        deinitPacket(&packet);
-        deinitP2PMsg(&p2p);
-
-        /* wait answer */
-        if (tlsReceiveBlocking(tls, &packet) != TLS_SUCCESS) {
-            warnl(FILE_MAIN, FUN_NAME, "failed to receive answer from server");
-            deinitPacket(&packet);
-            deinitP2PMsg(&p2p);
-            closeApp();
-        }
-
-        /* check answer */
-        if (packet->type != PACKET_P2P_MSG) {
-            warnl(FILE_MAIN, FUN_NAME, "unexpected packet received (%s)", packetTypeToString(packet->type));
-        }
-        p2p_error = p2pMsgGetError(&(packet->p2p));
-        deinitPacket(&packet);
-        if (p2p_error != P2P_ERR_SUCCESS) {
-            printf("%s > failled connection : %s %s\n", RED, p2pErrorToString(p2p_error), RESET);
-        } else {
-            printf(" %s> connection succeed %s\n", GREEN, RESET);
-        }
-        sleep(1);
-    }
-
-    managerSetUser(manager, user_id);
 }
 
 void *threadServer(void *arg) {

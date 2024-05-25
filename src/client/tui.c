@@ -167,7 +167,10 @@ void *stdoutHandler(void *arg) {
     while (!exited) {
         switch (managerReceiveBlocking(manager, MANAGER_MOD_OUTPUT, &packet)) {
         case MANAGER_ERR_SUCCESS:
-            if (stdoutDisplayPacket(packet) == TUI_OUTPUT_FORMATTING_ERROR) {
+            if (packet->type == PACKET_P2P_MSG && packet->p2p.type == P2P_CLOSE) {
+                printf("Application closed\n");
+                exited = true;
+            } else if (stdoutDisplayPacket(packet) == TUI_OUTPUT_FORMATTING_ERROR) {
                 buffer = packetTypeToString(packet->type);
                 printf("Couldn't display the recieved packet of type : %s\n", buffer);
                 free(buffer);

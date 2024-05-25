@@ -38,7 +38,7 @@ char *p2pMsgToTXT(P2P_msg *msg) {
     memset(txt, 0, SIZE_TXT);
     switch (msg->type) {
     case P2P_REQUEST_IN:
-        snprintf(txt, SIZE_TXT, "REQUEST from <%s>", msg->sender_id);
+        snprintf(txt, SIZE_TXT, "REQUEST from <%s>", msg->peer_id);
         break;
     case P2P_GET_INFOS:
         snprintf(txt, SIZE_TXT, "Request accepted");

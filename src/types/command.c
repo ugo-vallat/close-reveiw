@@ -1,3 +1,4 @@
+#include "types/p2p-msg.h"
 #include <arpa/inet.h>
 #include <client/tui.h>
 #include <network/manager.h>
@@ -116,7 +117,7 @@ CMD_error commandConnect(Command *command, Manager *manager) {
         return CMD_ERR_INVALID_ARG;
     }
     password_to_md5_hash(genListGet(command->args, 2), password);
-    // TODO: p2pConnectToServer(manager, user_id, password);
+    p2pConnectToServer(manager, user_id, password);
     return CMD_ERR_SUCCESS;
 }
 
@@ -220,7 +221,24 @@ CMD_error commandQuit(Command *command, Manager *manager) {
         warnl(FILE_COMMAND, FUN_NAME, "called the wrong function");
         return CMD_ERR_WRONG_FUNCTION_CALL;
     }
-    // TODO: To be Implemented
+
+    /* create close request */
+    char *sender = managerGetUser(manager);
+    P2P_msg *p2p = initP2PMsg(P2P_CLOSE, sender);
+    free(sender);
+    Packet *packet = initPacketP2PMsg(p2p);
+
+    /* send request to modules */
+    managerSend(manager, MANAGER_MOD_SERVER, packet);
+    managerSend(manager, MANAGER_MOD_PEER, packet);
+    managerSend(manager, MANAGER_MOD_OUTPUT, packet);
+    deinitPacket(&packet);
+    deinitP2PMsg(&p2p);
+
+    /* close input */
+    managerSetState(manager, MANAGER_MOD_INPUT, MANAGER_STATE_CLOSED);
+    managerMainSendPthreadToJoin(manager, pthread_self());
+
     return CMD_ERR_SUCCESS;
 }
 

@@ -3,6 +3,7 @@
 #include <network/p2p-com.h>
 #include <network/tls-com.h>
 #include <pthread.h>
+#include <server/weak_password.h>
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <types/p2p-msg.h>
@@ -17,10 +18,8 @@
 #define P2P_PRIVATE_PORT 7000
 #define P2P_PUBLIC_PORT -1
 
-#define CLIENT_CERT_PATH                                                                                               \
-    "/home/ugolinux/documents_linux/S6_Info_Linux/BE/close-review/config/server/"                                      \
-    "server-be-auto-cert.crt"
-#define CLIENT_KEY_PATH "/home/ugolinux/documents_linux/S6_Info_Linux/BE/close-review/config/server/server-be.key"
+#define CLIENT_CERT_PATH "./config/server/server-be-auto-cert.crt"
+#define CLIENT_KEY_PATH "./config/server/server-be.key"
 
 typedef struct s_p2p_thread_args {
     Manager *manager;
@@ -433,6 +432,43 @@ void p2pStartDirectConnection(Manager *manager, TLS_mode mode, char *ip, int por
         warnl(FILE_P2P_COM, FUN_NAME, "failed to create peer thread");
         return;
     }
+}
+
+void p2pConnectToServer(Manager *manager, char *user_id, char *password) {
+    char *FUN_NAME = "p2pConnectToServer";
+    assertl(manager, FILE_P2P_COM, FUN_NAME, -1, "manager NULL");
+    assertl(user_id, FILE_P2P_COM, FUN_NAME, -1, "user_id NULL");
+    assertl(password, FILE_P2P_COM, FUN_NAME, -1, "password NULL");
+    char hash[SIZE_HASH];
+    P2P_msg *p2p;
+    Packet *packet;
+
+    managerSetUser(manager, user_id);
+    p2p = initP2PMsg(P2P_CONNECTION_SERVER, user_id);
+    password_to_md5_hash(password, hash);
+    p2pMsgSetPasswordHash(p2p, hash);
+    packet = initPacketP2PMsg(p2p);
+
+    if (managerSend(manager, MANAGER_MOD_SERVER, packet) != MANAGER_ERR_SUCCESS) {
+        warnl(FILE_P2P_COM, FUN_NAME, "failed to send packet to server module");
+        deinitPacket(&packet);
+        deinitP2PMsg(&p2p);
+        return;
+    }
+    deinitPacket(&packet);
+    deinitP2PMsg(&p2p);
+
+    /* wait answer */
+    if (managerReceiveBlocking(manager, MANAGER_MOD_INPUT, &packet) != MANAGER_ERR_SUCCESS) {
+        warnl(FILE_P2P_COM, FUN_NAME, "failed to receive answer");
+    } else {
+        if (packet->type != PACKET_P2P_MSG ||
+            (packet->p2p.type != P2P_CONNECTION_OK && packet->p2p.type != P2P_CONNECTION_KO)) {
+            warnl(FILE_P2P_COM, FUN_NAME, "unexpected packet received of type %s", packetTypeToString(packet->type));
+        }
+    }
+    deinitPacket(&packet);
+    return;
 }
 
 void p2pCloseCom(Manager *manager, char *peer_id) {
