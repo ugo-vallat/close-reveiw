@@ -80,6 +80,10 @@ int main(int argc, char *argv[]) {
         closeApp();
     }
 
+    printf("\n%s === App Started ===%s\n\n", BLUE, RESET);
+
+    /* wait threads */
+    managerSetState(manager, MANAGER_MOD_MAIN, MANAGER_STATE_OPEN);
     while (!close) {
         managerMainReceive(manager, &num_t);
         error = pthread_join(num_t, NULL);
@@ -105,7 +109,6 @@ int main(int argc, char *argv[]) {
  */
 void *threadServer(void *arg) {
     char *FUN_NAME = "threadServer";
-    assertl(tls, FILE_MAIN, FUN_NAME, -1, "tls closed");
     assertl(manager, FILE_MAIN, FUN_NAME, -2, "manager closed");
     TLS_error tls_error;
     pthread_t num_t;

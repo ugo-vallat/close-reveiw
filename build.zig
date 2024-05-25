@@ -17,12 +17,12 @@ pub fn build(b: *std.Build) void {
         "types/packet.c",
         "utils/config.c",
         "utils/logger.c",
+        "server/weak_password.c",
         // "utils/token.c",
     };
     const c_include_list_server = &.{
         "database-manager.c",
         // "passlist_to_hashlist.c",
-        "weak_password.c",
         "request-handler.c",
     };
     const c_include_list_client = &.{
