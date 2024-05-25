@@ -44,6 +44,7 @@ Manager *initManager() {
     initManagerBuffer(&(manager->server));
     initManagerBuffer(&(manager->peer));
     initManagerBuffer(&(manager->main));
+    strncpy(manager->user_id, "<undefined>", SIZE_NAME);
     return manager;
 }
 
