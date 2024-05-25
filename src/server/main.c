@@ -2,7 +2,6 @@
 #include <network/tls-com.h>
 #include <pthread.h>
 #include <server/database-manager.h>
-#include <server/request-handler.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,6 +28,112 @@ List *thread;
 char FILE_NAME[16] = "MAIN";
 bool end = false;
 
+typedef struct s_tuple_TLS_info{
+    TLS_infos *info_user1;
+    TLS_infos *info_user2;
+} Tuple_TLS_info;
+
+void tryServer(char *arg);
+
+void okServer(char *arg);
+
+void koServer(char *arg);
+
+void acceptHandler(Packet *p, TLS_infos *info, int sender_nb); //TODO
+
+void rejecttHandler(Packet *p, TLS_infos *info);
+
+void requestP2PtHandler(Packet *p, TLS_infos *info);
+
+void getAvailableHandler(Packet *p, TLS_infos *info);
+
+void *startConnection(void *arg);
+
+void *accepteUser(void *arg);
+
+void *requestHandler(void *arg);
+
+
+
+
+int main() {
+    char *FUN_NAME = "MAIN";
+
+    printf("main thread : %d\n", getpid());
+
+    init_logger(NULL);
+
+    user = initGenList(10);
+    thread = initList(10);
+
+    char server[32] = "localhost"; // TODO les faire passer en argument
+    char sql_user[32] = "newuser";
+    char sql_password[32] = "password";
+    char database[32] = "testdb";
+
+    char *path_cert;
+    char *path_key;
+
+    char *ip_server;
+    int port_server;
+
+    // TODO modifier pour que se soit dans u scripte appart
+    /* Initialisation de la connexion à la base de données */
+    tryServer("main init SQL");
+    conn = mysql_init(NULL);
+    if (conn == NULL) {
+        exitl(FILE_NAME, FUN_NAME, -1, "%s\n", mysql_error(conn));
+    }
+    /* Connexion à la base de données */
+    if (mysql_real_connect(conn, server, sql_user, sql_password, database, 0, NULL, 0) == NULL) {
+        exitl(FILE_NAME, FUN_NAME, -1, "%s\n", mysql_error(conn));
+    }
+    okServer("main");
+
+    tryServer("main setup");
+    setup(conn);
+    okServer("main setup");
+
+    tryServer("main add users");
+    createUser(conn, "ugo", "5cEc56aE8.azdA21");
+    createUser(conn, "coco", "1234");
+    okServer("main");
+
+    tryServer("main init tls");
+    TLS_infos *tls = initTLSInfos(NULL, SERVER_PORT, TLS_MAIN_SERVER, SERVER_CERT_PATH, SERVER_KEY_PATH);
+
+    if (!tls) {
+        warnl("main.c", "main", "fail init TLS info");
+        return 1;
+    }
+
+    printf("end initialisation\n");
+    okServer("main");
+    pthread_t num_t, temp;
+    tryServer("main create thread accept");
+    pthread_create(&num_t, NULL, accepteUser, tls);
+    okServer("main");
+
+    tryServer("main create thread handler");
+    pthread_create(&temp, NULL, requestHandler, NULL);
+    okServer("main");
+
+
+    while (!end) {
+        while (!listIsEmpty(thread)) {
+            pthread_join(listPop(thread), NULL);
+            printf("RIP Threads\n");
+        }
+        sleep(1);
+    }
+
+    tlsCloseCom(tls, NULL);
+    deinitTLSInfos(&tls);
+    pthread_join(num_t, NULL);
+    tryServer("main je me suicide...");
+    return 0;
+}
+
 void tryServer(char *arg) {
     printf("\n %s[SERVER] > %s %s\n", BLUE, arg, RESET);
     fflush(stdout);
@@ -42,6 +147,110 @@ void okServer(char *arg) {
 void koServer(char *arg) {
     printf("\t\t %s <+>---------- %s KO %s\n", RED, arg, RESET);
     fflush(stdout);
+}
+
+void *createP2Pconnection(void *arg){
+    Tuple_TLS_info *info = arg;
+    P2P_msg *msg = initP2PMsg(P2P_GET_INFOS, "serveur");
+    Packet *p = initPacketP2PMsg(msg);
+    Packet *receive1,*receive2;
+    TLS_error error1, error2;
+
+    tlsSend(info->info_user1, p);
+    tlsSend(info->info_user2, p);
+
+    error1 = tlsReceiveBlocking(info->info_user1, &receive1);
+    error2 = tlsReceiveBlocking(info->info_user2, &receive2);
+
+    msg = initP2PMsg(P2P_TRY_SERVER_MODE, "serveur");
+
+    int try_port = p2pMsgGetPrivatePort(&receive2->p2p);
+    char *try_ip= p2pMsgGetPrivateIp(&receive2->p2p);
+    p2pMsgSetTryInfo(msg, try_ip, try_port);
+    p = initPacketP2PMsg(msg);
+    tlsSend(info->info_user1, p);
+
+    msg = initP2PMsg(P2P_TRY_CLIENT_MODE, "serveur");
+
+    try_port = p2pMsgGetPrivatePort(&receive1->p2p);
+    try_ip = p2pMsgGetPrivateIp(&receive1->p2p);
+    p2pMsgSetTryInfo(msg, try_ip, try_port);
+    p = initPacketP2PMsg(msg);
+    tlsSend(info->info_user2, p);  
+
+
+    genListAdd(user, info->info_user1);
+    genListAdd(user, info->info_user2);
+    listAdd(thread, pthread_self());
+    return NULL;
+}
+
+void acceptHandler(Packet *p, TLS_infos *info, int sender_nb){
+    int target_nb;
+    pthread_t temp;
+    char *sender = p2pMsgGetSenderId(&p->p2p);
+    char *target = p2pMsgGetPeerId(&p->p2p);
+    if (SQLaccept(conn, sender, target, &target_nb)) {
+        Tuple_TLS_info *info = malloc(sizeof(Tuple_TLS_info));
+        info->info_user1 = genListRemove(user, sender_nb);
+        info->info_user2 = genListRemove(user, sender_nb);
+        pthread_create(&temp, NULL, createP2Pconnection, info);
+    }
+}
+
+void rejecttHandler(Packet *p, TLS_infos *info) {
+    int user_nb;
+    char *sender = p2pMsgGetSenderId(&p->p2p);
+    char *target = p2pMsgGetPeerId(&p->p2p);
+    if (SQLreject(conn, sender, target, &user_nb)) {
+        Packet *send;
+        P2P_msg *msg;
+        msg = initP2PMsg(P2P_REJECT, "serveur");
+        p2pMsgSetPeerId(msg, sender);
+        send = initPacketP2PMsg(msg);
+        tlsSend(genListGet(user, user_nb), send);
+        deinitPacket(&send);
+        deinitP2PMsg(&msg);
+    }
+}
+
+void requestP2PtHandler(Packet *p, TLS_infos *info) {
+    int user_nb;
+    Packet *send;
+    P2P_msg *msg;
+    char *sender = p2pMsgGetSenderId(&p->p2p);
+    char *target = p2pMsgGetPeerId(&p->p2p);
+    P2P_error error = SQLrequestP2P(conn, sender, target, &user_nb);
+
+    if (error != P2P_ERR_SUCCESS) {
+        msg = initP2PMsg(P2P_REJECT, "serveur");
+        p2pMsgSetError(msg, error);
+        send = initPacketP2PMsg(msg);
+        tlsSend(info, send);
+        deinitPacket(&send);
+        deinitP2PMsg(&msg);
+    } else {
+        msg = initP2PMsg(P2P_REQUEST_IN, "serveur");
+        p2pMsgSetPeerId(msg, sender);
+        send = initPacketP2PMsg(msg);
+        tlsSend(genListGet(user, user_nb), send);
+        deinitPacket(&send);
+        deinitP2PMsg(&msg);
+    }
+}
+
+void getAvailableHandler(Packet *p, TLS_infos *info) {
+    GenList *res = listUserAvalaible(conn);
+
+    P2P_msg *msg = initP2PMsg(P2P_AVAILABLE, "server");
+    p2pMsgSetListUserOnline(msg, res);
+
+    Packet *send = initPacketP2PMsg(msg);
+
+    tlsSend(info, send);
+
+    deinitPacket(&send);
+    deinitP2PMsg(&msg);
 }
 
 void *startConnection(void *arg) {
@@ -122,16 +331,6 @@ void *accepteUser(void *arg) {
     return NULL;
 }
 
-void *CLI(void *arg) {
-    char buff[256];
-    scanf("%s", buff);
-    end = true;
-
-    listAdd(thread, pthread_self());
-    printf("je meur CLI\n");
-
-    return NULL;
-}
 
 void *requestHandler(void *arg) {
     (void)arg;
@@ -150,11 +349,11 @@ void *requestHandler(void *arg) {
                         break;
                     case P2P_REJECT: // TODO
                         break;
-                    case P2P_REQUEST_OUT: // TODO
-                        requestP2PtHandler(packet, conn, genListGet(user, i));
+                    case P2P_REQUEST_OUT:
+                        requestP2PtHandler(packet, genListGet(user, i));
                         break;
                     case P2P_GET_AVAILABLE:
-                        getAvailableHandler(packet, conn, genListGet(user, i));
+                        getAvailableHandler(packet, genListGet(user, i));
                         break;
                     default:
                         break;
@@ -186,122 +385,4 @@ void *requestHandler(void *arg) {
     listAdd(thread, pthread_self());
     printf("je meur requestHandler\n");
     return NULL;
-}
-
-// int main(void){j
-//     char *FUN_NAME = "MAIN";
-//     init_logger(NULL);
-//     char server[32] = "localhost"; // TODO les faire passer en argument
-//     char sql_user[32] = "newuser";
-//     char sql_password[32] = "password";
-//     char database[32] = "testdb";
-
-//     tryServer("main init SQL");
-//     conn = mysql_init(NULL);
-//     if (conn == NULL) {
-//         exitl(FILE_NAME, FUN_NAME, -1, "%s\n", mysql_error(conn));
-//     }
-//     /* Connexion à la base de données */
-//     if (mysql_real_connect(conn, server, sql_user, sql_password, database, 0, NULL, 0) == NULL) {
-//         exitl(FILE_NAME, FUN_NAME, -1, "%s\n", mysql_error(conn));
-//     }
-//     okServer("main");
-
-//     tryServer("main setup");
-//     setup(conn);
-//     okServer("main setup");
-
-//     tryServer("main add users");
-//     createUser(conn, "ugo", "5cEc56aE8.azdA21");
-//     createUser(conn, "coco", "LapouleACOCOdu31");
-//     createUser(conn, "jack", "1234");
-//     okServer("main");
-
-//     login(conn, "ugo", "5cEc56aE8.azdA21", 0);
-//     login(conn, "coco", "LapouleACOCOdu31", 1);
-//     login(conn, "jack", "1234", 2);
-
-//     // SQLrequestP2P(conn, "ugo", "coco");
-//     // SQLrequestP2P(conn, "jack", "ugo");
-//     okServer("FIN");
-
-// }
-
-int main() {
-    char *FUN_NAME = "MAIN";
-
-    printf("main thread : %d\n", getpid());
-
-    init_logger(NULL);
-
-    user = initGenList(10);
-    thread = initList(10);
-
-    char server[32] = "localhost"; // TODO les faire passer en argument
-    char sql_user[32] = "newuser";
-    char sql_password[32] = "password";
-    char database[32] = "testdb";
-
-    char *path_cert;
-    char *path_key;
-
-    char *ip_server;
-    int port_server;
-
-    // TODO modifier pour que se soit dans u scripte appart
-    /* Initialisation de la connexion à la base de données */
-    tryServer("main init SQL");
-    conn = mysql_init(NULL);
-    if (conn == NULL) {
-        exitl(FILE_NAME, FUN_NAME, -1, "%s\n", mysql_error(conn));
-    }
-    /* Connexion à la base de données */
-    if (mysql_real_connect(conn, server, sql_user, sql_password, database, 0, NULL, 0) == NULL) {
-        exitl(FILE_NAME, FUN_NAME, -1, "%s\n", mysql_error(conn));
-    }
-    okServer("main");
-
-    tryServer("main setup");
-    setup(conn);
-    okServer("main setup");
-
-    tryServer("main add users");
-    createUser(conn, "ugo", "5cEc56aE8.azdA21");
-    createUser(conn, "coco", "1234");
-    okServer("main");
-
-    tryServer("main init tls");
-    TLS_infos *tls = initTLSInfos(NULL, SERVER_PORT, TLS_MAIN_SERVER, SERVER_CERT_PATH, SERVER_KEY_PATH);
-
-    if (!tls) {
-        warnl("main.c", "main", "fail init TLS info");
-        return 1;
-    }
-
-    printf("end initialisation\n");
-    okServer("main");
-    pthread_t num_t, temp;
-    tryServer("main create thread accept");
-    pthread_create(&num_t, NULL, accepteUser, tls);
-    okServer("main");
-
-    tryServer("main create thread handler");
-    pthread_create(&temp, NULL, requestHandler, NULL);
-    okServer("main");
-
-    pthread_create(&temp, NULL, CLI, NULL);
-
-    while (!end) {
-        while (!listIsEmpty(thread)) {
-            pthread_join(listPop(thread), NULL);
-            printf("RIP Threads\n");
-        }
-        sleep(1);
-    }
-
-    tlsCloseCom(tls, NULL);
-    deinitTLSInfos(&tls);
-    pthread_join(num_t, NULL);
-    tryServer("main je me suicide...");
-    return 0;
 }

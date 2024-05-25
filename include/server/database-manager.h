@@ -4,6 +4,7 @@
 #include <mysql.h>
 #include <stdbool.h>
 #include <types/genericlist.h>
+#include <types/p2p-msg.h>
 
 /**
  * @brief Set up the database, creating necessary tables.
@@ -48,7 +49,12 @@ bool usernameExists(MYSQL *conn, char *username);
  */
 void logginDatabase(MYSQL *conn, char *server, char *sql_user, char *sql_password, char *database);
 
-int SQLrequestP2P(MYSQL *conn, char *sender_username, char *target_username, int *user_id);
+P2P_error SQLrequestP2P(MYSQL *conn, char *sender_username, char *target_username, int *user_id);
+
+bool SQLreject(MYSQL *conn, char *sender_username, char *target_username, int *user_id);
+
+bool SQLaccept(MYSQL *conn, char *sender_username, char *target_username, int *user_id);
+
 
 GenList *listUser(MYSQL *conn);
 

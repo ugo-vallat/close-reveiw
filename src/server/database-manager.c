@@ -73,8 +73,7 @@ void setup(MYSQL *conn) {
                "id INT PRIMARY KEY AUTO_INCREMENT,"
                "username VARCHAR(30),"
                "user_nb INT,"
-               "request_by INT,"
-               "FOREIGN KEY (request_by) REFERENCES user(id))",
+               "request_by VARCHAR(30),",
                fun_name, 1);
 
     /* Création de la table password */
@@ -172,10 +171,10 @@ void logginDatabase(MYSQL *conn, char *server, char *sql_user, char *sql_passwor
             mysql_error(conn));
 }
 
-int SQLrequestP2P(MYSQL *conn, char *sender_username, char *target_username, int *user_nb) {
+P2P_error SQLrequestP2P(MYSQL *conn, char *sender_username, char *target_username, int *user_nb) {
     char *fun_name = "SQLrequestP2P";
     if (!usernameExists(conn, target_username))
-        return 1;
+        return P2P_ERR_UNKNOWN_USER;
 
     char query[SIZE_QUERY];
 
@@ -186,15 +185,63 @@ int SQLrequestP2P(MYSQL *conn, char *sender_username, char *target_username, int
 
     MYSQL_ROW row = mysql_fetch_row(res);
     if (row == NULL)
-        return 3;
+        return P2P_ERR_USER_DISCONNECTED;
 
-    if (res->row_count == 2)
-        return 2;
-
+    if (res->row_count == 1)
+        return P2P_ERR_UNAVAILABLE_USER;
+  
     *user_nb = atoi(row[0]);
 
-    return 0;
+
+    sprintf(query, "UPDATE user SET request_by=%s WHERE username = %s",sender_username, target_username);
+    mysqlQuery(conn, query, fun_name, 1);
+
+    sprintf(query, "UPDATE user SET request_by=%s WHERE username = %s",sender_username, sender_username);
+    mysqlQuery(conn, query, fun_name, 1);
+
+    return P2P_ERR_SUCCESS;
 }
+
+bool SQLreject(MYSQL *conn, char *sender_username, char *target_username, int *user_id){
+    char *fun_name = "SQLreject";
+    char query[SIZE_QUERY];
+
+    sprintf(query, "SELECT id FROM user WHERE username = '%s' and resquest_by= %s",sender_username, target_username);
+    mysqlQuery(conn, query, fun_name, 1);
+
+    MYSQL_RES *res = mysqlStoreResultAssert(conn, fun_name, 1);
+
+    MYSQL_ROW row = mysql_fetch_row(res);
+    if (row == NULL) {
+        return false;
+    }
+    
+    sprintf(query, "UPDATE user SET request_by=NULL WHERE username = %s",target_username);
+    mysqlQuery(conn, query, fun_name, 1);
+
+    sprintf(query, "UPDATE user SET request_by=NULL WHERE username = %s",sender_username);
+    mysqlQuery(conn, query, fun_name, 1);
+
+    return true;
+}
+
+bool SQLaccept(MYSQL *conn, char *sender_username, char *target_username, int *user_id){
+    char *fun_name = "SQLaccept";
+    char query[SIZE_QUERY];
+
+    sprintf(query, "SELECT id FROM user WHERE username = '%s' and resquest_by= %s",sender_username, target_username);
+    mysqlQuery(conn, query, fun_name, 1);
+
+    MYSQL_RES *res = mysqlStoreResultAssert(conn, fun_name, 1);
+
+    MYSQL_ROW row = mysql_fetch_row(res);
+    if (row == NULL) {
+        return false;
+    }
+    return true;
+
+}
+
 
 GenList *listUserAvalaible(MYSQL *conn) {
     char fun_name[32] = "listUserAvalaible";
