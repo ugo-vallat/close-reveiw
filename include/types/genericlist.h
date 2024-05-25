@@ -1,20 +1,19 @@
-
 /**
  * @file genericlist.h
  *
- * @brief Cette librairie implémente une liste générique pseudo statique d'entiers
+ * @brief This library implements a pseudo static generic list of integers
  *
- * Implémente la liste sous forme d'un tableau statique et alloue
- * de la mémoire dynamiquement lorsque qu'il est plein
+ * Implements the list in the form of a static array and allocates
+ * dynamic memory when it is full
  *
- * La liste générique est thread-safe (sauf delete)
+ * The generic list is thread-safe (except delete)
  *
- * La liste ne contient que des pointeur génériques vers la donnée (void*)
+ * The list only contains generic pointers to the data (void*)
  *
- * @note haute performance en lecture( O(1) ) mais faible en écriture ( O(n))
+ * @note high performance in reading (O(1)) but low in writing (O(n))
  *
- * @remark En cas d'erreur, toutes les fonctions de liste générique exit le progamme avec un
- * message d'erreur
+ * @remark In case of error, all generic list functions exit the program with an
+ * error message
  */
 
 #ifndef __GENLIST_H__
@@ -23,30 +22,30 @@
 #include <stdbool.h>
 
 /*------------------------------------------------------------------*/
-/*                     STRUCTURE LIST GENERIC                       */
+/*                     GENERIC LIST STRUCTURE                       */
 /*------------------------------------------------------------------*/
 
-/* Définition opaque de la structure list */
+/* Opaque definition of the list structure */
 typedef struct s_gen_list GenList;
 typedef GenList *ptrGenList;
 typedef void (*freefun)(void *);
 
 /**
- * @brief Crée une liste vide
+ * @brief Creates an empty list
  *
- * @param[in] memory_size Espace mémoire initial (en nombre d'éléments)
+ * @param[in] memory_size Initial memory space (in number of elements)
  *
- * @return pointeur vers la liste
- * @note Alloue la mémoire mais n'est pas initialisée (taille liste = 0)
+ * @return pointer to the list
+ * @note Allocates memory but is not initialized (list size = 0)
  */
 GenList *initGenList(unsigned memory_size);
 
 /**
- * @brief Supprime la liste mais ne supprime pas la donées pointée
+ * @brief Deletes the list but does not delete the pointed data
  * @pre l != NULL
  * @pre *l != NULL
  *
- * @param[in] l liste à supprimer
+ * @param[in] l list to delete
  */
 void deinitGenList(ptrGenList *l, freefun fun);
 
@@ -54,24 +53,24 @@ void deinitGenList(ptrGenList *l, freefun fun);
  * @brief Remove all elements from the list and free memory
  *
  * @param l List to clear
- * @param fun Fun to free data
+ * @param fun Function to free data
  */
 void genListClear(GenList *l, freefun fun);
 
 /**
- * @brief Ajoute l'élément à la fin de la liste
+ * @brief Adds the element to the end of the list
  *
- * @param[in] l Pointeur vers la liste
- * @param[in] v Valeur à ajouter
+ * @param[in] l Pointer to the list
+ * @param[in] v Value to add
  * @pre l != NULL
  */
 void genListAdd(GenList *l, void *v);
 
 /**
- * @brief Insert une valeur à la position i
+ * @brief Inserts a value at position i
  *
- * @param[in] l Pointeur vers la liste
- * @param[in] v Valeur à ajouter
+ * @param[in] l Pointer to the list
+ * @param[in] v Value to add
  * @param[in] i position
  * @pre l != NULL
  *
@@ -80,47 +79,47 @@ void genListAdd(GenList *l, void *v);
 void genListInsert(GenList *l, void *v, unsigned i);
 
 /**
- * @brief Supprime le dernier élément de la liste
+ * @brief Removes the last element of the list
  *
  * @param[in] l list
  * @pre l != NULL
  *
- * @pre taille liste > 0
- * @return Valeur avant supression
+ * @pre list size > 0
+ * @return Value before deletion
  **/
 void *genListPop(GenList *l);
 
 /**
- * @brief Supprime l'élément à la position i
+ * @brief Removes the element at position i
  *
- * @param[in] l Pointeur vers la liste
+ * @param[in] l Pointer to the list
  * @param[in] i position
  * @pre l != NULL
  *
  * @pre i < listSize
- * @return Valeur avant supression
+ * @return Value before deletion
  */
 void *genListRemove(GenList *l, unsigned i);
 
 /**
- * @brief Lire la valeur à la position i
+ * @brief Reads the value at position i
  *
- * @param[in] l Pointeur vers la liste
- * @param[in] i Position de l'élément
+ * @param[in] l Pointer to the list
+ * @param[in] i Position of the element
  *
  * @pre l != NULL
  * @pre i < list size
  *
- * @return Valeur lue
+ * @return Read value
  **/
 void *genListGet(GenList *l, unsigned i);
 
 /**
  * @author VALLAT Ugo
- * @brief Change la valeur à la position i par une nouvelle valeur
+ * @brief Changes the value at position i to a new value
  *
- * @param[in] l Pointeur vers la liste
- * @param[in] v Nouvelle valeur
+ * @param[in] l Pointer to the list
+ * @param[in] v New value
  * @param[in] i Position
  * @pre l != NULL
  */
@@ -128,45 +127,45 @@ void genListSet(GenList *l, void *v, unsigned i);
 
 /**
  *
- * @brief Renvoie si la liste est vide
+ * @brief Returns if the list is empty
  *
- * @param[in] l Pointeur vers la liste
+ * @param[in] l Pointer to the list
  * @pre l != NULL
  *
- * @return true si vide, false sinon
+ * @return true if empty, false otherwise
  */
 bool genListIsEmpty(GenList *l);
 
 /**
  * @author LAFORGE Mateo
- * @brief Cherche un élément e dans une liste l et renvoie un booléen correspondant
+ * @brief Searches for an element e in a list l and returns a corresponding boolean
  *
- * @param[in] l la liste dans laquelle chercher
- * @param[in] e l'élément à chercher
+ * @param[in] l the list in which to search
+ * @param[in] e the element to search for
  *
- * @return true si e est dans l, false sinon
+ * @return true if e is in l, false otherwise
  */
 bool genListContains(GenList *l, void *e);
 
 /**
- * @brief Renvoie la taille de la liste (position + 1 du dernier élément)
+ * @brief Returns the size of the list (position + 1 of the last element)
  *
- * @param[in] l Pointeur vers la liste
+ * @param[in] l Pointer to the list
  * @pre l != NULL
  *
- * @return taille de la liste
+ * @return size of the list
  *
  */
 
 unsigned genListSize(GenList *l);
 
 /**
- * @brief Copie la liste en entrée
+ * @brief Copies the input list
  *
- * @param[in] l Pointeur de la liste à copier
+ * @param[in] l Pointer of the list to copy
  * @pre l != NULL
  *
- * @return  Pointeur vers la copie
+ * @return  Pointer to the copy
  *
  */
 GenList *genListCopy(GenList *l);
