@@ -34,6 +34,10 @@ t_config *initConfig(FILE *config) {
     char header[BUFFER_SIZE];
     char token[BUFFER_SIZE];
     t_config *configuration = malloc(sizeof(t_config));
+    if (configuration == NULL) {
+        warnl(FILE_CONFIG, FUN_NAME, "couldn't allocate memory for config struct");
+        return NULL;
+    }
 
     while (fgets(header, sizeof(header), config)) {
         if (sscanf(header, "[ %[^]] ]", token) == 1) {
@@ -84,7 +88,6 @@ t_config *initConfig(FILE *config) {
     if (ferror(config)) {
         fclose(config);
         warnl(FILE_CONFIG, FUN_NAME, "Error reading config file");
-        return NULL;
     }
 
     return configuration;
