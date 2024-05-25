@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <threads.h>
 #include <types/genericlist.h>
 #include <types/list.h>
 #include <types/p2p-msg.h>

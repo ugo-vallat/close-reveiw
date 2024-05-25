@@ -17,9 +17,10 @@
 #define __LIST_H__
 
 #include <errno.h>
+#include <pthread.h>
 #include <stdbool.h>
 
-#define LIST_TYPE unsigned long
+#define LIST_TYPE pthread_t
 
 /*------------------------------------------------------------------*/
 /*                        LIST STRUCTURE                            */
@@ -167,3 +168,4 @@ List *listCopy(List *l);
 void listClear(List *l);
 
 #endif
+

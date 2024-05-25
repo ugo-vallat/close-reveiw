@@ -41,45 +41,62 @@ void *stdinHandler(void *arg) {
     char FUN_NAME[32] = "stdinHandler";
     Manager *manager = (Manager *)arg;
     char *buffer, *token;
-    TUI_error error;
+    TUI_error tui_error;
     Command *command;
     Msg *msg;
     Packet *packet;
+    CMD_error cmd_error;
     bool exited = false;
     managerSetState(manager, MANAGER_MOD_INPUT, MANAGER_STATE_OPEN);
     while (!exited) {
-        switch (error = stdinGetUserInput(&buffer)) {
+        switch (tui_error = stdinGetUserInput(&buffer)) {
         case TUI_SUCCESS:
             if (*buffer == '/') {
                 command = initCommand(buffer);
                 switch (command->cmd) {
                 case CMD_LIST:
-                    commandList(command, manager);
+                    cmd_error = commandList(command, manager);
                     break;
                 case CMD_CONNECT:
-                    commandConnect(command, manager);
+                    cmd_error = commandConnect(command, manager);
                     break;
                 case CMD_REQUEST:
-                    commandRequest(command, manager);
+                    cmd_error = commandRequest(command, manager);
                     break;
                 case CMD_DIRECT:
-                    commandDirect(command, manager);
+                    cmd_error = commandDirect(command, manager);
                     break;
                 case CMD_ACCEPT:
                 case CMD_REJECT:
-                    commandAnswer(command, manager);
+                    cmd_error = commandAnswer(command, manager);
                     break;
                 case CMD_CLOSE:
-                    commandClose(command, manager);
+                    cmd_error = commandClose(command, manager);
                     break;
                 case CMD_QUIT:
-                    commandQuit(command, manager);
+                    cmd_error = commandQuit(command, manager);
                     exited = true;
                     break;
                 case CMD_UNKNOWN:
-                    commandUnknown(command, manager);
+                    cmd_error = commandUnknown(command, manager);
                 case CMD_HELP:
-                    commandHelp(command, manager);
+                    cmd_error = commandHelp(command, manager);
+                    break;
+                }
+                switch (cmd_error) {
+                case CMD_ERR_SUCCESS:
+                    break;
+                case CMD_ERR_WRONG_FUNCTION_CALL:
+                    exitl(FILE_TUI, FUN_NAME, CMD_ERR_WRONG_FUNCTION_CALL, "malformed error shouldn't happen");
+                case CMD_ERR_MISSING_ARG:
+                    packet = initPacketTXT("RTFM : Wrong number of argument for this command\n" HELP_TXT);
+                    managerSend(manager, MANAGER_MOD_OUTPUT, packet);
+                    deinitPacket(&packet);
+                    break;
+                case CMD_ERR_INVALID_ARG:
+                    packet = initPacketTXT("RTFM : Invalid argument (most likely user_id is malformed)" HELP_TXT);
+                    managerSend(manager, MANAGER_MOD_OUTPUT, packet);
+                    deinitPacket(&packet);
                     break;
                 }
                 deinitCommand(&command);
@@ -87,12 +104,11 @@ void *stdinHandler(void *arg) {
                 // TODO: Chat To be Implemented
             }
         case TUI_INPUT_ERROR:
+            exitl(FILE_TUI, FUN_NAME, TUI_INPUT_ERROR, "error when trying to parse input");
         case TUI_MEMORY_ALLOCATION_ERROR:
-            warnl(FILE_TUI, FUN_NAME, "an error occured");
-            exit(error);
+            exitl(FILE_TUI, FUN_NAME, TUI_MEMORY_ALLOCATION_ERROR, "most likely ran out of memory");
         case TUI_OUTPUT_FORMATTING_ERROR:
-            warnl(FILE_TUI, FUN_NAME, "Unreachable !!!");
-            exit(error);
+            exitl(FILE_TUI, FUN_NAME, tui_error, "Unreachable !!!");
         }
     }
     managerSetState(manager, MANAGER_MOD_INPUT, MANAGER_STATE_CLOSED);
