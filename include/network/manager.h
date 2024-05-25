@@ -147,6 +147,14 @@ Manager_error managerMainReceive(Manager *manager, pthread_t *num_t);
 Manager_error managerMainSendPthreadToJoin(Manager *manager, pthread_t num_t);
 
 /**
+ * @brief Check if a module state is set to MANAGER_STATE_OPEN or MANAGER_STATE_IN_PROGRESS
+ *
+ * @param manager Manager
+ * @return true if a module is open, false otherwise
+ */
+bool isManagerModuleOpen(Manager *manager);
+
+/**
  * @brief Return the string associated to the Manager_error
  *
  * @param error Manager_error
