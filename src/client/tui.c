@@ -44,7 +44,6 @@ void *stdinHandler(void *arg) {
     Command *command;
     Msg *msg;
     Packet *packet;
-    char *user_id = managerGetUser(manager);
     bool exited = false;
     while (!exited) {
         switch (error = stdinGetUserInput(&buffer)) {
@@ -83,21 +82,17 @@ void *stdinHandler(void *arg) {
                 }
                 deinitCommand(&command);
             } else {
-                msg = initMsg(user_id, buffer);
-                packet = initPacketMsg(msg);
                 // TODO: Chat To be Implemented
-                deinitMsg(&msg);
-                deinitPacket(&packet);
             }
         case TUI_INPUT_ERROR:
         case TUI_MEMORY_ALLOCATION_ERROR:
+            warnl(FILE_TUI, FUN_NAME, "an error occured");
             exit(error);
         default:
             warnl(FILE_TUI, FUN_NAME, "Unreachable !!!");
             exit(error);
         }
     }
-    free(user_id);
     return NULL;
 }
 
