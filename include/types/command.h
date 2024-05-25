@@ -30,13 +30,14 @@ typedef enum e_cmd_error {
 
 typedef enum e_type_cmd {
     CMD_LIST = 0,
-    CMD_REQUEST = 1,
-    CMD_DIRECT = 2,
-    CMD_ACCEPT = 3,
-    CMD_REJECT = 4,
-    CMD_CLOSE = 5,
-    CMD_QUIT = 6,
-    CMD_HELP = 7,
+    CMD_CONNECT = 1,
+    CMD_REQUEST = 2,
+    CMD_DIRECT = 3,
+    CMD_ACCEPT = 4,
+    CMD_REJECT = 5,
+    CMD_CLOSE = 6,
+    CMD_QUIT = 7,
+    CMD_HELP = 8,
     CMD_UNKNOWN = -1
 } Type_cmd;
 
@@ -52,6 +53,8 @@ Command *initCommand(char *buffer);
 void deinitCommand(Command **command);
 
 CMD_error commandList(Command *command, Manager *manager);
+
+CMD_error commandConnect(Command *command, Manager *manager);
 
 CMD_error commandRequest(Command *command, Manager *manager);
 

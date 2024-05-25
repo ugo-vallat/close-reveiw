@@ -2,13 +2,16 @@
 #include <client/tui.h>
 #include <network/manager.h>
 #include <network/p2p-com.h>
+#include <server/weak_password.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/_types/_size_t.h>
 #include <time.h>
 #include <types/command.h>
 #include <types/genericlist.h>
 #include <types/packet.h>
 #include <utils/logger.h>
+#include <utils/project_constants.h>
 
 #define FILE_COMMAND "command.c"
 
@@ -26,7 +29,7 @@ bool isValidUserId(char *user_id) {
 }
 
 Type_cmd getCommandType(char *command) {
-    char *cases[NB_COMMANDS] = {"list", "request", "direct", "accept", "reject", "close", "quit", "help"};
+    char *cases[NB_COMMANDS] = {"list", "connect", "request", "direct", "accept", "reject", "close", "quit", "help"};
     for (int i = 0; i < NB_COMMANDS; i++) {
         if (strncmp(command, cases[i], strnlen(command, SIZE_MAX_CMD)) == 0) {
             return i;
@@ -89,6 +92,35 @@ CMD_error commandList(Command *command, Manager *manager) {
     return CMD_ERR_SUCCESS;
 }
 
+CMD_error commandConnect(Command *command, Manager *manager) {
+    char FUN_NAME[32] = "commandList";
+    char *user_id;
+    char *password;
+    if (command->cmd != CMD_CONNECT) {
+        warnl(FILE_COMMAND, FUN_NAME, "called the wrong function");
+        return CMD_ERR_WRONG_FUNCTION_CALL;
+    }
+    if (genListSize(command->args) != 3) {
+        warnl(FILE_COMMAND, FUN_NAME, "invalid number of arguments given");
+        return CMD_ERR_MISSING_ARG;
+    }
+
+    user_id = genListGet(command->args, 1);
+    if (user_id == NULL || !isValidUserId(user_id)) {
+        warnl(FILE_COMMAND, FUN_NAME, "invalid user_id");
+        return CMD_ERR_INVALID_ARG;
+    }
+
+    size_t password_size = strnlen(genListGet(command->args, 2), SIZE_PASSWORD + 1);
+    if (password_size < SIZE_PASSWORD) {
+        warnl(FILE_COMMAND, FUN_NAME, "invalid password size");
+        return CMD_ERR_INVALID_ARG;
+    }
+    password_to_md5_hash(genListGet(command->args, 2), password);
+    // TODO: p2pConnectToServer(manager, user_id, password);
+    return CMD_ERR_SUCCESS;
+}
+
 CMD_error commandRequest(Command *command, Manager *manager) {
     char FUN_NAME[32] = "commandRequest";
     char *user_id;
@@ -100,9 +132,10 @@ CMD_error commandRequest(Command *command, Manager *manager) {
         warnl(FILE_COMMAND, FUN_NAME, "invalid number of arguments given");
         return CMD_ERR_MISSING_ARG;
     }
+
     user_id = genListGet(command->args, 1);
     if (user_id == NULL || !isValidUserId(user_id)) {
-        warnl(FILE_COMMAND, FUN_NAME, "invalid argument received");
+        warnl(FILE_COMMAND, FUN_NAME, "invalid user_id");
         return CMD_ERR_INVALID_ARG;
     }
     p2pSendRequestConnection(manager, user_id);
@@ -155,7 +188,7 @@ CMD_error commandAnswer(Command *command, Manager *manager) {
     }
     user_id = genListGet(command->args, 1);
     if (user_id == NULL || !isValidUserId(user_id)) {
-        warnl(FILE_COMMAND, FUN_NAME, "invalid argument received");
+        warnl(FILE_COMMAND, FUN_NAME, "invalid user_id");
         return CMD_ERR_INVALID_ARG;
     }
     p2pRespondToRequest(manager, user_id, command->cmd == CMD_ACCEPT);
@@ -175,7 +208,7 @@ CMD_error commandClose(Command *command, Manager *manager) {
     }
     user_id = genListGet(command->args, 1);
     if (user_id == NULL || !isValidUserId(user_id)) {
-        warnl(FILE_COMMAND, FUN_NAME, "invalid argument received");
+        warnl(FILE_COMMAND, FUN_NAME, "invalid user_id");
         return CMD_ERR_INVALID_ARG;
     }
     p2pCloseCom(manager, user_id);

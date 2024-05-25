@@ -55,6 +55,9 @@ void *stdinHandler(void *arg) {
                 case CMD_LIST:
                     commandList(command, manager);
                     break;
+                case CMD_CONNECT:
+                    commandConnect(command, manager);
+                    break;
                 case CMD_REQUEST:
                     commandRequest(command, manager);
                     break;

@@ -1,5 +1,3 @@
-
-#include <bits/pthreadtypes.h>
 #include <client/tui.h>
 #include <network/manager.h>
 #include <network/tls-com.h>

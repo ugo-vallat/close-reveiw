@@ -28,7 +28,7 @@
 /* Command */
 #define SIZE_CMD_RES 1024
 #define SIZE_MAX_CMD 32
-#define NB_COMMANDS 8
+#define NB_COMMANDS 9
 
 /* TUI */
 #define INPUT_HEIGHT 3
