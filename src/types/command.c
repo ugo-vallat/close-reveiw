@@ -235,10 +235,6 @@ CMD_error commandQuit(Command *command, Manager *manager) {
     deinitPacket(&packet);
     deinitP2PMsg(&p2p);
 
-    /* close input */
-    managerSetState(manager, MANAGER_MOD_INPUT, MANAGER_STATE_CLOSED);
-    managerMainSendPthreadToJoin(manager, pthread_self());
-
     return CMD_ERR_SUCCESS;
 }
 

@@ -1,5 +1,6 @@
 #include <client/tui.h>
 #include <network/manager.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -45,6 +46,7 @@ void *stdinHandler(void *arg) {
     Msg *msg;
     Packet *packet;
     bool exited = false;
+    managerSetState(manager, MANAGER_MOD_INPUT, MANAGER_STATE_OPEN);
     while (!exited) {
         switch (error = stdinGetUserInput(&buffer)) {
         case TUI_SUCCESS:
@@ -88,11 +90,13 @@ void *stdinHandler(void *arg) {
         case TUI_MEMORY_ALLOCATION_ERROR:
             warnl(FILE_TUI, FUN_NAME, "an error occured");
             exit(error);
-        default:
+        case TUI_OUTPUT_FORMATTING_ERROR:
             warnl(FILE_TUI, FUN_NAME, "Unreachable !!!");
             exit(error);
         }
     }
+    managerSetState(manager, MANAGER_MOD_INPUT, MANAGER_STATE_CLOSED);
+    managerMainSendPthreadToJoin(manager, pthread_self());
     return NULL;
 }
 
@@ -159,6 +163,7 @@ void *stdoutHandler(void *arg) {
     bool exited = false;
     Packet *packet;
     char *buffer;
+    managerSetState(manager, MANAGER_MOD_OUTPUT, MANAGER_STATE_OPEN);
     while (!exited) {
         switch (managerReceiveBlocking(manager, MANAGER_MOD_OUTPUT, &packet)) {
         case MANAGER_ERR_SUCCESS:
@@ -183,6 +188,8 @@ void *stdoutHandler(void *arg) {
         }
         deinitPacket(&packet);
     }
+    managerSetState(manager, MANAGER_MOD_OUTPUT, MANAGER_STATE_CLOSED);
+    managerMainSendPthreadToJoin(manager, pthread_self());
     return NULL;
 }
 
