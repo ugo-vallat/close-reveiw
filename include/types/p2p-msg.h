@@ -33,23 +33,23 @@ typedef enum e_p2p_msg_type {
 } P2P_msg_type;
 
 typedef enum e_p2p_error {
-    P2P_ERR_SUCCESS,
-    P2P_ERR_UNKNOWN_USER,
-    P2P_ERR_UNAVAILABLE_USER,
-    P2P_ERR_USER_DISCONNECTED,
-    P2P_ERR_ALREADY_PEERING,
-    P2P_ERR_USER_CLOSE,
-    P2P_ERR_LOCAL_ERROR,
-    P2P_ERR_CONNECTION_FAILED,
-    P2P_ERR_OTHER
+    P2P_ERR_SUCCESS,           /* Success */
+    P2P_ERR_UNKNOWN_USER,      /* Unknown user_id for request/accept/reject */
+    P2P_ERR_UNAVAILABLE_USER,  /* User unavailable for request */
+    P2P_ERR_USER_DISCONNECTED, /* User disconnected for request */
+    P2P_ERR_USER_CLOSE,        /* Peer closed during connection establishment */
+    P2P_ERR_LOCAL_ERROR,       /* Error in client/server */
+    P2P_ERR_CONNECTION_FAILED, /* Failed to estabish connection */
+    P2P_ERR_OTHER              /* other */
 } P2P_error;
 
 typedef struct s_p2p_msg {
     P2P_msg_type type;
 
     /* id */
-    char user_id[SIZE_NAME];
-    char user_password[SIZE_PASSWORD];
+    char peer_id[SIZE_NAME];
+    char sender_id[SIZE_NAME];
+    char password_hash[SIZE_HASH];
 
     /* list requests */
     unsigned nb_user_online;
@@ -71,11 +71,11 @@ typedef struct s_p2p_msg {
 /**
  * @brief Init struct P2P_msg
  *
- * @param[out] msg P2P_msg* to init
  * @param[in] type Type of the message
- * @return O if success, -1 otherwise
+ * @param[in] sender Id sender
+ * @return P2P_msg*
  */
-P2P_msg *initP2PMsg(P2P_msg_type type);
+P2P_msg *initP2PMsg(P2P_msg_type type, char *sender);
 
 /**
  * @brief Deletes struct P2P_msg and free the memory
@@ -132,9 +132,11 @@ char *p2pErrorToString(P2P_error error);
 
 P2P_msg_type p2pMsgGetType(P2P_msg *msg);
 
-char *p2pMsgGetUserId(P2P_msg *msg);
+char *p2pMsgGetSenderId(P2P_msg *msg);
 
-char *p2pMsgGetPassword(P2P_msg *msg);
+char *p2pMsgGetPeerId(P2P_msg *msg);
+
+char *p2pMsgGetPasswordHash(P2P_msg *msg);
 
 GenList *p2pMsgGetListUserOnline(P2P_msg *msg);
 
@@ -155,9 +157,11 @@ P2P_error p2pMsgGetError(P2P_msg *msg);
 */
 void p2pMsgSetType(P2P_msg *msg, P2P_msg_type type);
 
-void p2pMsgSetUserId(P2P_msg *msg, char *user_id);
+void p2pMsgSetSenderId(P2P_msg *msg, char *user_id);
 
-void p2pMsgSetPassword(P2P_msg *msg, char *password);
+void p2pMsgSetPeerId(P2P_msg *msg, char *user_id);
+
+void p2pMsgSetPasswordHash(P2P_msg *msg, char *password_hash);
 
 void p2pMsgSetListUserOnline(P2P_msg *msg, GenList *list_online);
 

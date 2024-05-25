@@ -7,7 +7,9 @@
 
 #define FILE_P2P_MSG "p2p-msg.c"
 
-P2P_msg *initP2PMsg(P2P_msg_type type) {
+P2P_msg *initP2PMsg(P2P_msg_type type, char *sender) {
+    char *FUN_NAME = "initP2PMsg";
+    assertl(sender, FILE_P2P_MSG, FUN_NAME, -1, "sender NULL");
     P2P_msg *msg = malloc(sizeof(P2P_msg));
     memset(msg, 0, sizeof(P2P_msg));
     msg->type = type;
@@ -15,6 +17,7 @@ P2P_msg *initP2PMsg(P2P_msg_type type) {
     msg->private_port = -1;
     msg->public_port = -1;
     msg->try_port = -1;
+    strncpy(msg->sender_id, sender, SIZE_NAME);
     return msg;
 }
 
@@ -35,7 +38,7 @@ char *p2pMsgToTXT(P2P_msg *msg) {
     memset(txt, 0, SIZE_TXT);
     switch (msg->type) {
     case P2P_REQUEST_IN:
-        snprintf(txt, SIZE_TXT, "REQUEST from <%s>", msg->user_id);
+        snprintf(txt, SIZE_TXT, "REQUEST from <%s>", msg->sender_id);
         break;
     case P2P_GET_INFOS:
         snprintf(txt, SIZE_TXT, "Request accepted");
@@ -120,8 +123,6 @@ char *p2pErrorToString(P2P_error error) {
         return "P2P_ERR_UNAVAILABLE_USER";
     case P2P_ERR_USER_DISCONNECTED:
         return "P2P_ERR_USER_DISCONNECTED";
-    case P2P_ERR_ALREADY_PEERING:
-        return "P2P_ERR_ALREADY_PEERING";
     case P2P_ERR_USER_CLOSE:
         return "P2P_ERR_USER_CLOSE";
     case P2P_ERR_LOCAL_ERROR:
@@ -143,22 +144,31 @@ P2P_msg_type p2pMsgGetType(P2P_msg *msg) {
     return msg->type;
 }
 
-char *p2pMsgGetUserId(P2P_msg *msg) {
-    char FUN_NAME[32] = "p2pMsgGetUserId";
+char *p2pMsgGetSenderId(P2P_msg *msg) {
+    char FUN_NAME[32] = "p2pMsgGetSenderId";
     assertl(msg, FILE_P2P_MSG, FUN_NAME, -1, "msg NULL");
 
     char *id = malloc(SIZE_NAME);
-    strncpy(id, msg->user_id, SIZE_NAME);
+    strncpy(id, msg->sender_id, SIZE_NAME);
     return id;
 }
 
-char *p2pMsgGetPassword(P2P_msg *msg) {
+char *p2pMsgGetPeerId(P2P_msg *msg) {
+    char FUN_NAME[32] = "p2pMsgGetPeerId";
+    assertl(msg, FILE_P2P_MSG, FUN_NAME, -1, "msg NULL");
+
+    char *id = malloc(SIZE_NAME);
+    strncpy(id, msg->peer_id, SIZE_NAME);
+    return id;
+}
+
+char *p2pMsgGetPasswordHash(P2P_msg *msg) {
     char FUN_NAME[32] = "p2pMsgGetPassword";
     assertl(msg, FILE_P2P_MSG, FUN_NAME, -1, "msg NULL");
 
-    char *password = malloc(SIZE_PASSWORD);
-    strncpy(password, msg->user_password, SIZE_PASSWORD);
-    return password;
+    char *password_hash = malloc(SIZE_PASSWORD);
+    strncpy(password_hash, msg->password_hash, SIZE_HASH);
+    return password_hash;
 }
 
 GenList *p2pMsgGetListUserOnline(P2P_msg *msg) {
@@ -225,20 +235,28 @@ void p2pMsgSetType(P2P_msg *msg, P2P_msg_type type) {
     msg->type = type;
 }
 
-void p2pMsgSetUserId(P2P_msg *msg, char *user_id) {
-    char FUN_NAME[32] = "p2pMsgSetUserId";
+void p2pMsgSetSenderId(P2P_msg *msg, char *user_id) {
+    char FUN_NAME[32] = "p2pMsgSetSenderId";
     assertl(msg, FILE_P2P_MSG, FUN_NAME, -1, "msg NULL");
     assertl(user_id, FILE_P2P_MSG, FUN_NAME, -1, "usze_id NULL");
 
-    strncpy(msg->user_id, user_id, SIZE_NAME);
+    strncpy(msg->sender_id, user_id, SIZE_NAME);
 }
 
-void p2pMsgSetPassword(P2P_msg *msg, char *password) {
+void p2pMsgSetPeerId(P2P_msg *msg, char *user_id) {
+    char FUN_NAME[32] = "p2pMsgSetPeerId";
+    assertl(msg, FILE_P2P_MSG, FUN_NAME, -1, "msg NULL");
+    assertl(user_id, FILE_P2P_MSG, FUN_NAME, -1, "usze_id NULL");
+
+    strncpy(msg->peer_id, user_id, SIZE_NAME);
+}
+
+void p2pMsgSetPasswordHash(P2P_msg *msg, char *password_hash) {
     char FUN_NAME[32] = "p2pMsgSetPassword";
     assertl(msg, FILE_P2P_MSG, FUN_NAME, -1, "msg NULL");
-    assertl(password, FILE_P2P_MSG, FUN_NAME, -1, "password NULL");
+    assertl(password_hash, FILE_P2P_MSG, FUN_NAME, -1, "password NULL");
 
-    strncpy(msg->user_password, password, SIZE_PASSWORD);
+    strncpy(msg->password_hash, password_hash, SIZE_HASH);
 }
 
 void p2pMsgSetListUserOnline(P2P_msg *msg, GenList *list_online) {
@@ -295,7 +313,8 @@ void p2pMsgSetError(P2P_msg *msg, P2P_error error) {
 
 void p2pMsgPrintl(P2P_msg *msg) {
     printl("\n| type : <%s>", p2pMsgTypeToString(msg->type));
-    printl("| user_id : <%s>", msg->user_id);
+    printl("| sender_id : <%s>", msg->sender_id);
+    printl("| peer_id : <%s>", msg->peer_id);
     printl("| nb_user_online : <%d>", msg->nb_user_online);
     for (unsigned i = 0; i < msg->nb_user_online; i++) {
         printl("  | <%s>", msg->list_user_online[i]);

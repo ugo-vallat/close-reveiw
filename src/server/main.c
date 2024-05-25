@@ -66,9 +66,9 @@ void *startConnection(void *arg) {
             if (receive->type == PACKET_P2P_MSG) {
                 P2P_msg msg = receive->p2p;
                 if (msg.type == P2P_CONNECTION_SERVER) {
-                    if (login(conn, msg.user_id, msg.user_password, genListSize(user))) {
+                    if (login(conn, msg.sender_id, msg.user_password, genListSize(user))) {
                         genListAdd(user, temp);
-                        msg_send = initP2PMsg(P2P_CONNECTION_OK);
+                        msg_send = initP2PMsg(P2P_CONNECTION_OK, "server");
                         p2pMsgSetError(msg_send, P2P_ERR_SUCCESS);
                         printf("user connected\n");
                         okServer("startConnection");
@@ -98,11 +98,16 @@ void *startConnection(void *arg) {
 }
 
 void *accepteUser(void *arg) {
+    char *FUN_NAME = "accepteUser";
     TLS_infos *temp, *tsl = arg;
     pthread_t num_t;
     while (!end) {
         tryServer("accepteUser tlsAcceptCom");
         temp = tlsAcceptCom(tsl);
+        if (!temp) {
+            warnl(FILE_NAME, FUN_NAME, "accept accept com");
+            return NULL;
+        }
         okServer("accepteUser");
         pthread_create(&num_t, NULL, startConnection, temp);
     }
