@@ -246,7 +246,7 @@ CMD_error commandHelp(Command *command, Manager *manager) {
         warnl(FILE_COMMAND, FUN_NAME, "called the wrong function");
         return CMD_ERR_WRONG_FUNCTION_CALL;
     }
-    Packet *packet = initPacketTXT(HELP_TXT);
+    Packet *packet = initPacketTXT(HELP2_TXT);
     managerSend(manager, MANAGER_MOD_OUTPUT, packet);
     deinitPacket(&packet);
     return CMD_ERR_SUCCESS;
@@ -258,7 +258,7 @@ CMD_error commandUnknown(Command *command, Manager *manager) {
         warnl(FILE_COMMAND, FUN_NAME, "called the wrong function");
         return CMD_ERR_WRONG_FUNCTION_CALL;
     }
-    Packet *packet = initPacketTXT(UNKNOWN_TXT);
+    Packet *packet = initPacketTXT(UNKNOWN2_TXT);
     managerSend(manager, MANAGER_MOD_OUTPUT, packet);
     deinitPacket(&packet);
     return CMD_ERR_SUCCESS;

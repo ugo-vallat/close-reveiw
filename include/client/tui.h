@@ -17,7 +17,7 @@ typedef enum e_tui_error {
 
 TUI_error stdinGetUserInput(char **buffer);
 
-TUI_error stdinGetUserInput2(char *buffer, WINDOW *input_win);
+TUI_error stdinGetUserInput2(char **buffer, WINDOW *input_win);
 
 void *stdinHandler(void *arg);
 

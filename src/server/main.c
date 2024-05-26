@@ -55,7 +55,7 @@ void *requestHandler(void *arg);
 int main(int argc, char *argv[]) {
     char *FUN_NAME = "MAIN";
 
-    printf("main thread : %d\n", getpid());
+    // printf("main thread : %d\n", getpid());
 
     init_logger(NULL);
 

@@ -11,15 +11,27 @@
     "\033[1;34mAvailable Commands:\033[0m\n"                                                                           \
     "\n"                                                                                                               \
     "\033[1m/list\033[0m:\t\tDisplays a list of all currently available users.\n"                                      \
-    "\033[1m/request <user_id>\033[0m:\tSends a connection request to the user with the "                              \
-    "specified ID.\n"                                                                                                  \
-    "\033[1m/direct [-c][-s] <ip> <port>\033[0m:\t\tStarts a direct connection. Bypasses the "                         \
-    "server.\n"                                                                                                        \
+    "\033[1m/request <user_id>\033[0m:\tSends a connection request to the user with the specified ID.\n"               \
+    "\033[1m/direct [-c][-s] <ip> <port>\033[0m:\t\tStarts a direct connection. Bypasses the server.\n"                \
     "\033[1m/accept <user_id>\033[0m:\tAccepts an incoming connection request.\n"                                      \
     "\033[1m/reject <user_id>\033[0m:\tRejects an incoming connection request.\n"                                      \
     "\033[1m/close <user_id>\033[0m:\tCloses an existing connection with the specified user.\n"                        \
     "\033[1m/quit\033[0m:\t\tExits the application.\n"                                                                 \
     "\033[1m/help\033[0m:\t\tShows this help message.\n"
+
+#define UNKNOWN2_TXT "Unknown command.\n"
+
+#define HELP2_TXT                                                                                                      \
+    "Available Commands:\n"                                                                                            \
+    "\n"                                                                                                               \
+    "/list:\t\tDisplays a list of all currently available users.\n"                                                    \
+    "/request <user_id>:\tSends a connection request to the user with the specified ID.\n"                             \
+    "/direct [-c][-s] <ip> <port>:\t\tStarts a direct connection. Bypasses the server.\n"                              \
+    "/accept <user_id>:\tAccepts an incoming connection request.\n"                                                    \
+    "/reject <user_id>:\tRejects an incoming connection request.\n"                                                    \
+    "/close <user_id>:\tCloses an existing connection with the specified user.\n"                                      \
+    "/quit:\t\tExits the application.\n"                                                                               \
+    "/help:\t\tShows this help message.\n"
 
 typedef enum e_cmd_error {
     CMD_ERR_SUCCESS = 0,

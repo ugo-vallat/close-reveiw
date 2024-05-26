@@ -36,8 +36,15 @@ int main(int argc, char *argv[]) {
     bool close = false;
     int error;
 
+    initscr();
+    cbreak();
+    noecho();
+    keypad(stdscr, TRUE);
+    scrollok(stdscr, FALSE);
+    refresh();
+
     /* logger */
-    init_logger(NULL);
+    init_logger("logs.log");
 
     /* get server infos */
     // temporary
@@ -96,7 +103,7 @@ int main(int argc, char *argv[]) {
     /* close app */
     close_logger();
     closeApp();
-
+    endwin();
     return 0;
 }
 
