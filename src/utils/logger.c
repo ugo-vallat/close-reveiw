@@ -74,8 +74,10 @@ void warnl(const char *file_name, const char *fun_name, const char *format, ...)
 
     va_list args;
     va_start(args, format);
-    if (errno)
+    if (errno) {
         perror("Warnl with errno ");
+        errno = 0;
+    }
     // format de sortie dépendant
     if (console) {
         fprintf(output, YELLOW);
@@ -122,8 +124,10 @@ void exitl(const char *file_name, const char *fun_name, int exit_value, const ch
 #endif
     va_list args;
     va_start(args, format);
-    if (errno)
-        perror("Exit with errno");
+    if (errno) {
+        perror("Exit with errno ");
+        errno = 0;
+    }
     // format de sortie dépendant
     if (console) {
         fprintf(output, RED);
@@ -149,8 +153,10 @@ void assertl(bool assert, const char *file_name, const char *fun_name, int exit_
 
     /* else */
     va_start(args, format);
-    if (errno)
-        perror("Exit with errno ");
+    if (errno) {
+        perror("Assert with errno ");
+        errno = 0;
+    }
     // format de sortie dépendant
     if (console) {
         fprintf(output, RED);

@@ -1,8 +1,8 @@
-#include "network/manager.h"
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <netinet/in.h>
+#include <network/manager.h>
 #include <network/tls-com.h>
 #include <openssl/err.h>
 #include <openssl/ssl.h>
@@ -21,6 +21,31 @@
 #define ERROR_BUFF_SIZE 512
 
 #define FILE_TLS_COM "tls-com.c"
+
+const char *SSL_error_to_string(int ssl_error) {
+    switch (ssl_error) {
+    case SSL_ERROR_NONE:
+        return "SSL_ERROR_NONE";
+    case SSL_ERROR_SSL:
+        return "SSL_ERROR_SSL";
+    case SSL_ERROR_WANT_READ:
+        return "SSL_ERROR_WANT_READ";
+    case SSL_ERROR_WANT_WRITE:
+        return "SSL_ERROR_WANT_WRITE";
+    case SSL_ERROR_WANT_X509_LOOKUP:
+        return "SSL_ERROR_WANT_X509_LOOKUP";
+    case SSL_ERROR_SYSCALL:
+        return "SSL_ERROR_SYSCALL";
+    case SSL_ERROR_ZERO_RETURN:
+        return "SSL_ERROR_ZERO_RETURN";
+    case SSL_ERROR_WANT_CONNECT:
+        return "SSL_ERROR_WANT_CONNECT";
+    case SSL_ERROR_WANT_ACCEPT:
+        return "SSL_ERROR_WANT_ACCEPT";
+    default:
+        return "SSL_ERROR_UNKNOWN";
+    }
+}
 
 TLS_infos *initTLSInfos(const char *ip, const int port, TLS_mode tls_mode, char *path_cert, char *path_key) {
     char FUN_NAME[32] = "initTLSInfos";
@@ -69,6 +94,7 @@ void deinitTLSInfos(TLS_infos **infos) {
     }
 
     free(tls);
+
     *infos = NULL;
 }
 
@@ -77,6 +103,7 @@ TLS_error tlsOpenCom(TLS_infos *infos, struct timeval *timeout) {
     assertl(infos, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "infos NULL");
     assertl(infos->mode != TLS_MAIN_SERVER, FILE_TLS_COM, FUN_NAME, TLS_ERROR,
             "cant call tlsOpenCom in TLS_MAIN_SERVER mode");
+    ERR_clear_error();
 
     /* close old connexion */
     if (tlsCloseCom(infos, NULL) != TLS_SUCCESS) {
@@ -279,6 +306,7 @@ TLS_infos *tlsAcceptCom(TLS_infos *infos) {
     assertl(infos, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "infos NULL");
     assertl(infos->mode == TLS_MAIN_SERVER, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER,
             "call tlsAcceptCom only in TLS_MAIN_SERVER mode");
+    ERR_clear_error();
 
     int ret;
     struct sockaddr_in serv_addr, cli_addr;
@@ -387,6 +415,7 @@ TLS_infos *tlsAcceptCom(TLS_infos *infos) {
 TLS_error tlsCloseCom(TLS_infos *infos, GenList *last_received) {
     char FUN_NAME[32] = "tlsCloseCom";
     assertl(infos, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "infos NULL");
+    ERR_clear_error();
 
     TLS_error error = TLS_SUCCESS;
 
@@ -642,6 +671,7 @@ TLS_error tlsSend(TLS_infos *infos, Packet *packet) {
 
     do {
         /* try send packet */
+        ERR_clear_error();
         ret = SSL_write(infos->ssl, packet, sizeof(Packet));
         if (ret > 0) {
             return TLS_SUCCESS;
@@ -684,6 +714,7 @@ TLS_error tlsReceiveNonBlocking(TLS_infos *infos, Packet **packet) {
     Packet p;
 
     /* read packet */
+    ERR_clear_error();
     ret = SSL_read(infos->ssl, &p, sizeof(Packet));
 
     /* return packet if success */
@@ -708,14 +739,17 @@ TLS_error tlsReceiveNonBlocking(TLS_infos *infos, Packet **packet) {
         break;
     case SSL_ERROR_SYSCALL:
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            errno = 0;
             return TLS_RETRY;
             break;
         }
     default:
         ERR_error_string_n(error, buff, sizeof(buff));
-        warnl(FILE_TLS_COM, FUN_NAME, "SSL_read (%d) : %s", error, buff);
+        warnl(FILE_TLS_COM, FUN_NAME, "SSL_read (%d - %s) on socket %d : %s", error, SSL_error_to_string(error),
+              infos->sockfd, buff);
         return TLS_ERROR;
     }
+    return TLS_ERROR;
 }
 
 TLS_error tlsReceiveBlocking(TLS_infos *infos, Packet **packet) {
@@ -749,6 +783,7 @@ TLS_error tlsReceiveBlocking(TLS_infos *infos, Packet **packet) {
     }
 
     /* read packet */
+    ERR_clear_error();
     ret = SSL_read(infos->ssl, &p, sizeof(Packet));
 
     /* return packet if success */
@@ -772,9 +807,16 @@ TLS_error tlsReceiveBlocking(TLS_infos *infos, Packet **packet) {
         infos->open = false;
         tls_error = TLS_CLOSE;
         break;
+    case SSL_ERROR_SYSCALL:
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            errno = 0;
+            return TLS_RETRY;
+            break;
+        }
     default:
         ERR_error_string_n(error, buff, sizeof(buff));
-        warnl(FILE_TLS_COM, FUN_NAME, "SSL_read (%d) : %s", error, buff);
+        warnl(FILE_TLS_COM, FUN_NAME, "SSL_read (%d - %s) on socket %d : %s", error, SSL_error_to_string(error),
+              infos->sockfd, buff);
         tls_error = TLS_ERROR;
     }
 

@@ -301,7 +301,6 @@ void *startConnection(void *arg) {
             }
         } else {
             connection_etablish = true;
-            tlsCloseCom(temp, NULL);
             deinitTLSInfos(&temp);
         }
     }
@@ -322,7 +321,7 @@ void *accepteUser(void *arg) {
         tryServer("accepteUser tlsAcceptCom");
         temp = tlsAcceptCom(tsl);
         if (!temp) {
-            warnl(FILE_NAME, FUN_NAME, "accept accept com");
+            warnl(FILE_NAME, FUN_NAME, "failed accept com");
             return NULL;
         }
         okServer("accepteUser");
@@ -339,8 +338,12 @@ void *requestHandler(void *arg) {
     TLS_error error;
     Packet *packet;
     TLS_infos *temp;
+    unsigned int i;
+
     while (!end) {
-        for (unsigned int i = 0; i < genListSize(user); i++) {
+        for (i = 0; i < genListSize(user); i++) {
+            temp = NULL;
+            packet = NULL;
             error = tlsReceiveNonBlocking(genListGet(user, i), &packet);
             switch (error) {
             case TLS_SUCCESS:
@@ -367,7 +370,6 @@ void *requestHandler(void *arg) {
             case TLS_CLOSE:
                 tryServer("TLS_CLOSE");
                 temp = genListRemove(user, i);
-                tlsCloseCom(temp, NULL);
                 deinitTLSInfos(&temp);
                 disconnect(conn, i);
                 printf("user disconneted\n");
@@ -378,7 +380,6 @@ void *requestHandler(void *arg) {
             case TLS_ERROR:
                 tryServer("TLS_ERROR");
                 temp = genListRemove(user, i);
-                tlsCloseCom(temp, NULL);
                 deinitTLSInfos(&temp);
                 disconnect(conn, i);
                 break;
