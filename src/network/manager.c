@@ -181,7 +181,8 @@ Manager_error managerSend(Manager *manager, Manager_module module, Packet *packe
     buffer = getModuleBuffer(manager, module);
     pthread_mutex_lock(buffer->mutex_access_buffer);
     if (buffer->state == MANAGER_STATE_CLOSED) {
-        warnl(FILE_MANAGER, FUN_NAME, "manager close, failed to send packet");
+        warnl(FILE_MANAGER, FUN_NAME, "manager %s in STATE_CLOSED, failed to send packet",
+              managerModuleToString(module));
         error = MANAGER_ERR_CLOSED;
         deinitPacket(&p_send);
     } else {
@@ -223,7 +224,8 @@ Manager_error managerReceiveNonBlocking(Manager *manager, Manager_module module,
     pthread_mutex_lock(buffer->mutex_access_buffer);
 
     if (buffer->state == MANAGER_STATE_CLOSED) {
-        warnl(FILE_MANAGER, FUN_NAME, "manager close, failed to read packet");
+        warnl(FILE_MANAGER, FUN_NAME, "manager %s in STATE_CLOSED, failed to read packet",
+              managerModuleToString(module));
         *packet = NULL;
         pthread_mutex_unlock(buffer->mutex_wait_read);
         error = MANAGER_ERR_CLOSED;
@@ -319,5 +321,20 @@ char *managerErrorToString(Manager_error error) {
         return "MANAGER_ERR_RETRY";
     default:
         return "Unknown";
+    }
+}
+
+char *managerModuleToString(Manager_module module) {
+    switch (module) {
+    case MANAGER_MOD_INPUT:
+        return "MANAGER_MOD_INPUT";
+    case MANAGER_MOD_OUTPUT:
+        return "MANAGER_MOD_OUTPUT";
+    case MANAGER_MOD_SERVER:
+        return "MANAGER_MOD_SERVER";
+    case MANAGER_MOD_PEER:
+        return "MANAGER_MOD_PEER";
+    case MANAGER_MOD_MAIN:
+        return "MANAGER_MOD_MAIN";
     }
 }

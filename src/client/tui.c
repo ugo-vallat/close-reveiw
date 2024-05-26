@@ -101,7 +101,9 @@ void *stdinHandler(void *arg) {
                 case CMD_ERR_SUCCESS:
                     break;
                 case CMD_ERR_WRONG_FUNCTION_CALL:
-                    exitl(FILE_TUI, FUN_NAME, CMD_ERR_WRONG_FUNCTION_CALL, "malformed error shouldn't happen");
+                    warnl(FILE_TUI, FUN_NAME, "malformed error shouldn't happen <%s>", commandTypeToChar(command->cmd));
+                    deinitPacket(&packet);
+                    break;
                 case CMD_ERR_MISSING_ARG:
                     packet = initPacketTXT("RTFM : Wrong number of argument for this command\n" HELP_TXT);
                     managerSend(manager, MANAGER_MOD_OUTPUT, packet);

@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <types/genericlist.h>
 #include <types/message.h>
 #include <types/p2p-msg.h>
@@ -83,6 +84,7 @@ TLS_error tlsOpenCom(TLS_infos *infos, struct timeval *timeout) {
     }
 
     int ret;
+    int result;
     struct sockaddr_in serv_addr, cli_addr;
 
     /* Open socket */
@@ -151,6 +153,7 @@ TLS_error tlsOpenCom(TLS_infos *infos, struct timeval *timeout) {
             return TLS_ERROR;
         }
         if (timeout) {
+            printl(" > set timeout %d on server socket", timeout->tv_sec);
             if (setsockopt(infos->sockfd, SOL_SOCKET, SO_RCVTIMEO, (void *)timeout, sizeof(struct timeval)) < 0) {
                 warnl(FILE_TLS_COM, FUN_NAME, "error set timeout");
                 tlsCloseCom(infos, NULL);
@@ -159,11 +162,14 @@ TLS_error tlsOpenCom(TLS_infos *infos, struct timeval *timeout) {
         }
     } else {
         if (timeout) {
-            if (setsockopt(infos->sockfd, SOL_SOCKET, SO_SNDTIMEO, (void *)timeout, sizeof(struct timeval)) < 0) {
-                warnl(FILE_TLS_COM, FUN_NAME, "error set timeout");
-                tlsCloseCom(infos, NULL);
-                return TLS_ERROR;
-            }
+            printl(" > set timeout %d on client socket", timeout->tv_sec);
+            // if (setsockopt(infos->sockfd, SOL_SOCKET, SO_SNDTIMEO, (void *)timeout, sizeof(struct timeval)) < 0) {
+            //     warnl(FILE_TLS_COM, FUN_NAME, "error set timeout");
+            //     tlsCloseCom(infos, NULL);
+            //     return TLS_ERROR;
+            // }
+            // int flags = fcntl(infos->sockfd, F_GETFL, 0);
+            // fcntl(infos->sockfd, F_SETFL, flags | O_NONBLOCK);
         }
     }
 
@@ -184,14 +190,45 @@ TLS_error tlsOpenCom(TLS_infos *infos, struct timeval *timeout) {
             infos->sockfd = client_sockfd;
         }
     } else {
-        if (connect(infos->sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                warnl(FILE_TLS_COM, FUN_NAME, "connect() stoped by timeout");
-                return TLS_RETRY;
+        if (timeout) {
+            struct timeval start_time, current_time;
+            gettimeofday(&start_time, NULL);
+            int connected = 0;
+            long elapsed_seconds, elapsed_microseconds;
+
+            while (!connected) {
+                int result = connect(infos->sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+                if (result == 0) {
+                    printf("Connexion réussie\n");
+                    connected = 1;
+                } else {
+                    if (errno != EINPROGRESS && errno != EALREADY && errno != EISCONN) {
+                        warnl(FILE_TLS_COM, FUN_NAME, "error connect to server");
+                        tlsCloseCom(infos, NULL);
+                        return TLS_ERROR;
+                    }
+                    gettimeofday(&current_time, NULL);
+                    elapsed_seconds = current_time.tv_sec - start_time.tv_sec;
+                    elapsed_microseconds = current_time.tv_usec - start_time.tv_usec;
+                    if (elapsed_seconds >= timeout->tv_sec ||
+                        (elapsed_seconds == timeout->tv_sec && elapsed_microseconds > timeout->tv_usec)) {
+                        warnl(FILE_TLS_COM, FUN_NAME, "connect() stoped by timeout");
+                        tlsCloseCom(infos, NULL);
+                        return TLS_ERROR;
+                    }
+                    usleep(500000); // wait 0.5s
+                }
             }
-            warnl(FILE_TLS_COM, FUN_NAME, "error connect to server");
-            tlsCloseCom(infos, NULL);
-            return TLS_ERROR;
+        } else {
+            if (connect(infos->sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+                if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                    warnl(FILE_TLS_COM, FUN_NAME, "connect() stoped by timeout");
+                    return TLS_RETRY;
+                }
+                warnl(FILE_TLS_COM, FUN_NAME, "error connect to server");
+                tlsCloseCom(infos, NULL);
+                return TLS_ERROR;
+            }
         }
     }
 

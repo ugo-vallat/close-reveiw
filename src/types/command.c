@@ -180,7 +180,7 @@ CMD_error commandDirect(Command *command, Manager *manager) {
 CMD_error commandAnswer(Command *command, Manager *manager) {
     char FUN_NAME[32] = "commandAnswer";
     char *user_id;
-    if (command->cmd != CMD_ACCEPT || command->cmd != CMD_REJECT) {
+    if (command->cmd != CMD_ACCEPT && command->cmd != CMD_REJECT) {
         warnl(FILE_COMMAND, FUN_NAME, "called the wrong function");
         return CMD_ERR_WRONG_FUNCTION_CALL;
     }
@@ -262,4 +262,42 @@ CMD_error commandUnknown(Command *command, Manager *manager) {
     managerSend(manager, MANAGER_MOD_OUTPUT, packet);
     deinitPacket(&packet);
     return CMD_ERR_SUCCESS;
+}
+
+char *commandTypeToChar(Type_cmd type) {
+    switch (type) {
+    case CMD_LIST:
+        return "CMD_LIST";
+    case CMD_CONNECT:
+        return "CMD_CONNECT";
+    case CMD_REQUEST:
+        return "CMD_REQUEST";
+    case CMD_DIRECT:
+        return "CMD_DIRECT";
+    case CMD_ACCEPT:
+        return "CMD_ACCEPT";
+    case CMD_REJECT:
+        return "CMD_REJECT";
+    case CMD_CLOSE:
+        return "CMD_CLOSE";
+    case CMD_QUIT:
+        return "CMD_QUIT";
+    case CMD_HELP:
+        return "CMD_HELP";
+    case CMD_UNKNOWN:
+        return "CMD_UNKNOWN";
+    }
+}
+
+char *commandErrorToChar(CMD_error error) {
+    switch (error) {
+    case CMD_ERR_SUCCESS:
+        return "CMD_ERR_SUCCESS";
+    case CMD_ERR_WRONG_FUNCTION_CALL:
+        return "CMD_ERR_WRONG_FUNCTION_CALL";
+    case CMD_ERR_MISSING_ARG:
+        return "CMD_ERR_MISSING_ARG";
+    case CMD_ERR_INVALID_ARG:
+        return "CMD_ERR_INVALID_ARG";
+    }
 }

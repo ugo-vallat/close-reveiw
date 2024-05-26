@@ -13,10 +13,10 @@
 
 #define FILE_P2P_COM "p2p-com.c"
 #define TIMEOUT_DIRECT_SERVER 5
-#define TIMEOUT_DIRECT_CLIENT 1
+#define TIMEOUT_DIRECT_CLIENT 5
 #define P2P_PRIVATE_IP "127.0.0.1"
-#define P2P_PRIVATE_PORT -1
-#define P2P_PUBLIC_PORT -1
+#define P2P_PRIVATE_PORT 7002
+#define P2P_PUBLIC_PORT 7002
 
 #define CLIENT_CERT_PATH "./config/server/server-be-auto-cert.crt"
 #define CLIENT_KEY_PATH "./config/server/server-be.key"
@@ -36,7 +36,7 @@ void exitThreadPeer(P2P_thread_args *args) {
     /* close manager */
     managerSetState(args->manager, MANAGER_MOD_PEER, MANAGER_STATE_CLOSED);
     /* send message to output */
-    Packet *packet = initPacketTXT("P2P connection closed");
+    Packet *packet = initPacketTXT(" > P2P connection closed");
     managerSend(args->manager, MANAGER_MOD_OUTPUT, packet);
     deinitPacket(&packet);
     /* deinit tls */
@@ -203,6 +203,7 @@ void *funStartPeer(void *arg) {
         break;
     case P2P_CLOSE:
     case P2P_REJECT:
+        warnl(FILE_P2P_COM, FUN_NAME, " received <%s>", p2pMsgTypeToString(packet->p2p.type));
         exitThreadPeer(thread_args);
         break;
     default:
@@ -214,6 +215,7 @@ void *funStartPeer(void *arg) {
 
     /* send informations */
     // TODO : use config
+    printl(" > sending infos to server");
     char *sender = managerGetUser(thread_args->manager);
     msg = initP2PMsg(P2P_INFOS, sender);
     free(sender);
@@ -234,7 +236,7 @@ void *funStartPeer(void *arg) {
     TLS_mode mode;
     while (true) {
         /* receive connection informations */
-        manager_error = managerReceiveNonBlocking(thread_args->manager, MANAGER_MOD_PEER, &packet);
+        manager_error = managerReceiveBlocking(thread_args->manager, MANAGER_MOD_PEER, &packet);
         if (manager_error != MANAGER_ERR_SUCCESS) {
             exitThreadPeer(thread_args);
         }
@@ -256,7 +258,7 @@ void *funStartPeer(void *arg) {
             ip = p2pMsgGetTryIp(&(packet->p2p));
             port = p2pMsgGetTryPort(&(packet->p2p));
             mode = TLS_SERVER;
-            tls = initTLSInfos(ip, port, mode, NULL, NULL);
+            tls = initTLSInfos(ip, port, mode, CLIENT_CERT_PATH, CLIENT_KEY_PATH);
             free(ip);
             break;
         default:
@@ -280,13 +282,12 @@ void *funStartPeer(void *arg) {
             break;
         deinitTLSInfos(&tls);
     }
+    managerSetState(thread_args->manager, MANAGER_MOD_PEER, MANAGER_STATE_OPEN);
 
     /* send message open output */
     packet = initPacketTXT("P2P connection opened");
     managerSend(thread_args->manager, MANAGER_MOD_OUTPUT, packet);
     deinitPacket(&packet);
-
-    managerSetState(thread_args->manager, MANAGER_MOD_PEER, MANAGER_STATE_OPEN);
 
     tls_error = tlsStartListenning(tls, thread_args->manager, MANAGER_MOD_PEER, tlsManagerPacketGetNext,
                                    tlsManagerPacketReceived);
@@ -423,9 +424,11 @@ void p2pRespondToRequest(Manager *manager, char *peer_id, bool response) {
     assertl(peer_id, FILE_P2P_COM, FUN_NAME, -1, "peer_id NULL");
 
     /* create thread peer */
-    if (response && p2pCreateThreadPeer(manager, NULL, TLS_CLIENT) != 0) {
-        warnl(FILE_P2P_COM, FUN_NAME, "failed to create peer thread");
-        response = false;
+    if (response) {
+        if (p2pCreateThreadPeer(manager, NULL, TLS_CLIENT) != 0) {
+            warnl(FILE_P2P_COM, FUN_NAME, "failed to create peer thread");
+            response = false;
+        }
     }
 
     Packet *packet;
@@ -454,13 +457,15 @@ void p2pRespondToRequest(Manager *manager, char *peer_id, bool response) {
     deinitPacket(&packet);
     deinitP2PMsg(&msg);
 
-    if (response && (error == MANAGER_ERR_ERROR || error == MANAGER_ERR_CLOSED)) {
-        msg = initP2PMsg(P2P_CLOSE, sender);
-        p2pMsgSetError(msg, P2P_ERR_LOCAL_ERROR);
-        packet = initPacketP2PMsg(msg);
-        managerSend(manager, MANAGER_MOD_PEER, packet);
-        deinitPacket(&packet);
-        deinitP2PMsg(&msg);
+    if (response) {
+        if (error == MANAGER_ERR_ERROR || error == MANAGER_ERR_CLOSED) {
+            msg = initP2PMsg(P2P_CLOSE, sender);
+            p2pMsgSetError(msg, P2P_ERR_LOCAL_ERROR);
+            packet = initPacketP2PMsg(msg);
+            managerSend(manager, MANAGER_MOD_PEER, packet);
+            deinitPacket(&packet);
+            deinitP2PMsg(&msg);
+        }
     }
     free(sender);
 }

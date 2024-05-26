@@ -347,9 +347,11 @@ void *requestHandler(void *arg) {
                 tryServer("new request in requestHandler");
                 if (packet->type == PACKET_P2P_MSG) {
                     switch (packet->p2p.type) {
-                    case P2P_ACCEPT: // TODO
+                    case P2P_ACCEPT:
+                        acceptHandler(packet, genListGet(user, i), i);
                         break;
-                    case P2P_REJECT: // TODO
+                    case P2P_REJECT:
+                        rejecttHandler(packet, genListGet(user, i));
                         break;
                     case P2P_REQUEST_OUT:
                         requestP2PtHandler(packet, genListGet(user, i));
@@ -378,7 +380,7 @@ void *requestHandler(void *arg) {
                 temp = genListRemove(user, i);
                 tlsCloseCom(temp, NULL);
                 deinitTLSInfos(&temp);
-                // disconnect(conn, i);
+                disconnect(conn, i);
                 break;
             case TLS_RETRY:
                 break;

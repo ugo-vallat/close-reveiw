@@ -17,7 +17,9 @@
 #define FILE_NAME "database-manager"
 
 void mysqlQuery(MYSQL *conn, const char *query, char *fun_name, int exit_status) {
+    char *FUN_NAME = "mysqlQuery";
     if (mysql_query(conn, query)) {
+        warnl(FILE_NAME, FUN_NAME, "error with query : %s", query);
         exitl("database-manager", fun_name, exit_status, mysql_error(conn));
     }
 }
@@ -188,15 +190,15 @@ P2P_error SQLrequestP2P(MYSQL *conn, char *sender_username, char *target_usernam
     if (row == NULL)
         return P2P_ERR_USER_DISCONNECTED;
 
-    if (res->row_count == 1)
+    if (res->row_count == 2)
         return P2P_ERR_UNAVAILABLE_USER;
 
     *user_nb = atoi(row[0]);
 
-    sprintf(query, "UPDATE user SET request_by=%s WHERE username = %s", sender_username, target_username);
+    sprintf(query, "UPDATE user SET request_by='%s' WHERE username = '%s'", sender_username, target_username);
     mysqlQuery(conn, query, fun_name, 1);
 
-    sprintf(query, "UPDATE user SET request_by=%s WHERE username = %s", sender_username, sender_username);
+    sprintf(query, "UPDATE user SET request_by='%s' WHERE username = '%s'", sender_username, sender_username);
     mysqlQuery(conn, query, fun_name, 1);
 
     return P2P_ERR_SUCCESS;
@@ -206,7 +208,7 @@ bool SQLreject(MYSQL *conn, char *sender_username, char *target_username, int *u
     char *fun_name = "SQLreject";
     char query[SIZE_QUERY];
 
-    sprintf(query, "SELECT id FROM user WHERE username = '%s' and resquest_by= %s", sender_username, target_username);
+    sprintf(query, "SELECT id FROM user WHERE username = '%s' and request_by= '%s'", sender_username, target_username);
     mysqlQuery(conn, query, fun_name, 1);
 
     MYSQL_RES *res = mysqlStoreResultAssert(conn, fun_name, 1);
@@ -216,10 +218,10 @@ bool SQLreject(MYSQL *conn, char *sender_username, char *target_username, int *u
         return false;
     }
 
-    sprintf(query, "UPDATE user SET request_by=NULL WHERE username = %s", target_username);
+    sprintf(query, "UPDATE user SET request_by=NULL WHERE username = '%s'", target_username);
     mysqlQuery(conn, query, fun_name, 1);
 
-    sprintf(query, "UPDATE user SET request_by=NULL WHERE username = %s", sender_username);
+    sprintf(query, "UPDATE user SET request_by=NULL WHERE username = '%s'", sender_username);
     mysqlQuery(conn, query, fun_name, 1);
 
     return true;
@@ -229,7 +231,7 @@ bool SQLaccept(MYSQL *conn, char *sender_username, char *target_username, int *u
     char *fun_name = "SQLaccept";
     char query[SIZE_QUERY];
 
-    sprintf(query, "SELECT id FROM user WHERE username = '%s' and resquest_by= %s", sender_username, target_username);
+    sprintf(query, "SELECT id FROM user WHERE username = '%s' and request_by= '%s'", sender_username, target_username);
     mysqlQuery(conn, query, fun_name, 1);
 
     MYSQL_RES *res = mysqlStoreResultAssert(conn, fun_name, 1);

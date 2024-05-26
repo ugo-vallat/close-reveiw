@@ -75,7 +75,7 @@ void warnl(const char *file_name, const char *fun_name, const char *format, ...)
     va_list args;
     va_start(args, format);
     if (errno)
-        perror("Warnl with errno : ");
+        perror("Warnl with errno ");
     // format de sortie dépendant
     if (console) {
         fprintf(output, YELLOW);
@@ -123,7 +123,7 @@ void exitl(const char *file_name, const char *fun_name, int exit_value, const ch
     va_list args;
     va_start(args, format);
     if (errno)
-        perror("Exit with errno : ");
+        perror("Exit with errno");
     // format de sortie dépendant
     if (console) {
         fprintf(output, RED);

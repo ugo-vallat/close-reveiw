@@ -162,4 +162,12 @@ bool isManagerModuleOpen(Manager *manager);
  */
 char *managerErrorToString(Manager_error error);
 
+/**
+ * @brief Return the string associated to the module
+ *
+ * @param module Module of manager
+ * @return char* (don't free)
+ */
+char *managerModuleToString(Manager_module module);
+
 #endif

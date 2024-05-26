@@ -70,4 +70,20 @@ CMD_error commandHelp(Command *command, Manager *manager);
 
 CMD_error commandUnknown(Command *command, Manager *manager);
 
+/**
+ * @brief Return the string associated to the type
+ *
+ * @param type Type commande
+ * @return char* (don't free)
+ */
+char *commandTypeToChar(Type_cmd type);
+
+/**
+ * @brief Return the string associated to the command error
+ *
+ * @param error Error command
+ * @return char* (don't free)
+ */
+char *commandErrorToChar(CMD_error error);
+
 #endif // !__COMMAND_H__
