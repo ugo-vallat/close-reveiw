@@ -74,10 +74,10 @@ TLS_error p2pTryToConnect(Manager *manager, TLS_infos *tls, TLS_mode mode, bool 
     /* send message output */
     char txt[SIZE_TXT];
     if (mode == TLS_SERVER) {
-        snprintf(txt, SIZE_TXT, "P2P waiting connection on %s:%d...", tls->ip, tls->port);
+        snprintf(txt, SIZE_TXT, " > P2P waiting connection on %s:%d...", tls->ip, tls->port);
         packet = initPacketTXT(txt);
     } else {
-        snprintf(txt, SIZE_TXT, "P2P trying to connect on %s:%d...", tls->ip, tls->port);
+        snprintf(txt, SIZE_TXT, " > P2P trying to connect on %s:%d...", tls->ip, tls->port);
         packet = initPacketTXT(txt);
     }
     managerSend(manager, MANAGER_MOD_OUTPUT, packet);
