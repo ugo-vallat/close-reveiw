@@ -8,3 +8,6 @@ compile_commands.json
 
 # Config File
 config.toml
+
+# logs
+logs.log

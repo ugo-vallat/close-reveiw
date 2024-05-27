@@ -18,9 +18,10 @@
  * @remark en mode DEBUG la sortie sera toujours la valeur par défaut
  *
  * @param[in] file_name Le chemin du fichier où écrira le logger
+ * @param[in] id Id de l'utilisateur du logger ajouté à devant chaque message (NULL pour utiliser pid par défault)
  * @note mettre NULL pour laisser la valeur par défaut (stdout)
  */
-void init_logger(const char *file_path);
+void init_logger(const char *file_path, char *id);
 
 /**
  * @brief Écrit dans la sortie du logger
@@ -63,8 +64,7 @@ void exitl(const char *file_name, const char *fun_name, int exit_value, const ch
  * @param[in] exit_value Value returned at exit
  * @param[in] format Format of the message
  */
-void assertl(bool assert, const char *file_name, const char *fun_name, int exit_value, const char *format,
-             ...);
+void assertl(bool assert, const char *file_name, const char *fun_name, int exit_value, const char *format, ...);
 
 /**
  * @brief Ferme le logger

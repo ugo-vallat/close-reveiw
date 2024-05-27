@@ -102,6 +102,15 @@ void *genListPop(GenList *l);
 void *genListRemove(GenList *l, unsigned i);
 
 /**
+ * @brief Remove all pointers equals to p from the list
+ *
+ * @param[in] l Pointer to the list
+ * @param[in] p Pointer to remove in the list
+ * @return Number of poiters removed
+ */
+unsigned genListRemovePointer(GenList *l, void *p);
+
+/**
  * @brief Reads the value at position i
  *
  * @param[in] l Pointer to the list

@@ -203,6 +203,32 @@ void *genListRemove(GenList *l, unsigned i) {
 /**
  * @author Ugo VALLAT
  */
+unsigned genListRemovePointer(GenList *l, void *p) {
+    /* vérification paramêtres */
+    testArgNull(l, "genericlist.c", "genListRemove", "l");
+    pthread_mutex_lock(&(l->mutex));
+
+    unsigned i = 0;
+    unsigned count = 0;
+    while (i < l->size) {
+        if (l->tab[i] == p) {
+            for (unsigned j = i; j < l->size - 1; j++)
+                l->tab[j] = l->tab[j + 1];
+            l->size--;
+            count++;
+        } else {
+            i++;
+        }
+    }
+
+    adjustMemorySizeGenList(l, l->size);
+    pthread_mutex_unlock(&(l->mutex));
+    return count;
+}
+
+/**
+ * @author Ugo VALLAT
+ */
 bool genListIsEmpty(GenList *l) {
     testArgNull(l, "genericlist.c", "listEmpty", "l");
 

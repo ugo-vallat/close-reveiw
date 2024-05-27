@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
 
     // printf("main thread : %d\n", getpid());
 
-    init_logger(NULL);
+    init_logger("logs.log", "server");
 
     /* get args */
     if (argc != 2) {

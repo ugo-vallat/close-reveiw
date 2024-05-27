@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
     refresh();
 
     /* logger */
-    init_logger("logs.log");
+    init_logger("logs.log", NULL);
 
     /* get server infos */
     // temporary
