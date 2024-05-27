@@ -1,4 +1,5 @@
 #include <client/tui.h>
+#include <curses.h>
 #include <ncurses.h>
 #include <network/chat.h>
 #include <network/manager.h>
@@ -184,20 +185,20 @@ TUI_error stdoutDisplayPacket(Packet *packet) {
     return TUI_SUCCESS;
 }
 
-TUI_error stdoutDisplayPacket2(Packet *packet, WINDOW *output_win) {
+TUI_error stdoutDisplayPacket2(Packet *packet, WINDOW *output_win, Manager *manager) {
     char FUN_NAME[32] = "stdoutDisplayPacket2";
     char *output;
 
     switch (packet->type) {
     case PACKET_TXT:
-        wprintw(output_win, "%s", packet->txt);
+        wprintw(output_win, "%s\n\n", packet->txt);
         break;
     case PACKET_MSG:
         if ((output = msgToTXT(&packet->msg)) == NULL) {
             warnl(FILE_TUI, FUN_NAME, "failed to format Msg to TXT");
             return TUI_OUTPUT_FORMATTING_ERROR;
         }
-        wprintw(output_win, "%s", output);
+        wprintw(output_win, "%s\n", output);
         free(output);
         break;
     case PACKET_P2P_MSG:
@@ -205,7 +206,11 @@ TUI_error stdoutDisplayPacket2(Packet *packet, WINDOW *output_win) {
             warnl(FILE_TUI, FUN_NAME, "failed to format p2pMsg to TXT");
             return TUI_OUTPUT_FORMATTING_ERROR;
         }
-        wprintw(output_win, "%s\n", output);
+        wprintw(output_win, "%s", output);
+        P2P_msg_type type = p2pMsgGetType(&packet->p2p);
+        if (type == P2P_CONNECTION_OK) {
+            wprintw(output_win, "\n === Welcome %s === \n\n", managerGetUser(manager));
+        }
         free(output);
         break;
     }
@@ -241,7 +246,7 @@ void *stdoutHandler(void *arg) {
             if (packet->type == PACKET_P2P_MSG && packet->p2p.type == P2P_CLOSE) {
                 printf("Application closed\n");
                 exited = true;
-            } else if (stdoutDisplayPacket2(packet, output_win) == TUI_OUTPUT_FORMATTING_ERROR) {
+            } else if (stdoutDisplayPacket2(packet, output_win, manager) == TUI_OUTPUT_FORMATTING_ERROR) {
                 buffer = packetTypeToString(packet->type);
                 printf("Couldn't display the recieved packet of type : %s\n", buffer);
                 free(buffer);

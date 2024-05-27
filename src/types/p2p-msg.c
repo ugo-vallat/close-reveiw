@@ -1,3 +1,4 @@
+#include "network/manager.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,23 +38,35 @@ char *p2pMsgToTXT(P2P_msg *msg) {
     char *txt = malloc(SIZE_TXT);
     memset(txt, 0, SIZE_TXT);
     switch (msg->type) {
-    case P2P_REQUEST_IN:
-        snprintf(txt, SIZE_TXT, "REQUEST from <%s>", msg->peer_id);
+    case P2P_CONNECTION_OK:
+        snprintf(txt, SIZE_TXT, "[ INFOS ] P2P_CONNECTION_OK\n");
         break;
-    case P2P_GET_INFOS:
-        snprintf(txt, SIZE_TXT, "Request accepted");
+    case P2P_CONNECTION_KO:
+        snprintf(txt, SIZE_TXT, "[ INFOS ] P2P_CONNECTION_KO\n");
+        break;
+    case P2P_ACCEPT:
+        snprintf(txt, SIZE_TXT, "[ INFOS ] Connection to %s accepted\n", msg->sender_id);
         break;
     case P2P_REJECT:
-        snprintf(txt, SIZE_TXT, "Request rejected");
+        snprintf(txt, SIZE_TXT, "[ INFOS ] Connection to %s rejected\n", msg->sender_id);
+        break;
+    case P2P_REQUEST_IN:
+        snprintf(txt, SIZE_TXT, "[ INFOS ] Connection request from %s ? [Accept / reject]\n", msg->peer_id);
         break;
     case P2P_AVAILABLE:
+        if (msg->nb_user_online <= 0) {
+            snprintf(txt, SIZE_TXT, "[ INFOS ] No users availables\n");
+            break;
+        }
+        char tmp[SIZE_TXT];
+        snprintf(txt, SIZE_TXT, "[ INFOS ] Users availables :\n");
         for (unsigned i = 0; i < msg->nb_user_online; i++) {
-            strncat(txt, msg->list_user_online[i], SIZE_TXT);
-            strncat(txt, " ", SIZE_TXT);
+            snprintf(tmp, SIZE_TXT, "%s - %s\n", txt, msg->list_user_online[i]);
+            strncpy(txt, tmp, SIZE_TXT);
         }
         break;
     default:
-        snprintf(txt, SIZE_TXT, "P2P_msg : %s", p2pMsgTypeToString(msg->type));
+        snprintf(txt, SIZE_TXT, "[ INFOS ] %s\n", p2pMsgTypeToString(msg->type));
     }
     return txt;
 }

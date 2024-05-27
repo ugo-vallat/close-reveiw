@@ -2,6 +2,7 @@
 #define __TUI_H__
 
 #include <ncurses.h>
+#include <network/manager.h>
 #include <stdbool.h>
 #include <types/packet.h>
 
@@ -23,7 +24,7 @@ void *stdinHandler(void *arg);
 
 TUI_error stdoutDisplayPacket(Packet *packet);
 
-TUI_error stdoutDisplayPacket2(Packet *packet, WINDOW *output_win);
+TUI_error stdoutDisplayPacket2(Packet *packet, WINDOW *output_win, Manager *manager);
 
 void *stdoutHandler(void *arg);
 

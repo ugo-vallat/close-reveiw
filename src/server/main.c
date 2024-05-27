@@ -100,6 +100,9 @@ int main(int argc, char *argv[]) {
     tryServer("main add users");
     createUser(conn, "ugo", "1234");
     createUser(conn, "coco", "1234");
+    createUser(conn, "daoud", "1234");
+    createUser(conn, "benoit", "1234");
+    createUser(conn, "mateo", "1234");
     okServer("main");
 
     tryServer("main init tls");
@@ -194,7 +197,7 @@ void acceptHandler(Packet *p, TLS_infos *info, int sender_nb) {
     if (SQLaccept(conn, sender, target, &target_nb)) {
         Tuple_TLS_info *info = malloc(sizeof(Tuple_TLS_info));
         info->info_user1 = genListRemove(user, sender_nb);
-        info->info_user2 = genListRemove(user, sender_nb);
+        info->info_user2 = genListRemove(user, target_nb);
         pthread_create(&temp, NULL, createP2Pconnection, info);
     }
 }

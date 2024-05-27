@@ -19,7 +19,7 @@
     "\033[1m/quit\033[0m:\t\tExits the application.\n"                                                                 \
     "\033[1m/help\033[0m:\t\tShows this help message.\n"
 
-#define UNKNOWN2_TXT "Unknown command.\n"
+#define UNKNOWN2_TXT "Unknown command."
 
 #define HELP2_TXT                                                                                                      \
     "Available Commands:\n"                                                                                            \
@@ -31,7 +31,7 @@
     "/reject <user_id>:\tRejects an incoming connection request.\n"                                                    \
     "/close <user_id>:\tCloses an existing connection with the specified user.\n"                                      \
     "/quit:\t\tExits the application.\n"                                                                               \
-    "/help:\t\tShows this help message.\n"
+    "/help:\t\tShows this help message."
 
 typedef enum e_cmd_error {
     CMD_ERR_SUCCESS = 0,

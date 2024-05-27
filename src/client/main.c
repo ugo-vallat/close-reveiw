@@ -103,8 +103,7 @@ int main(int argc, char *argv[]) {
     /* close app */
     close_logger();
     closeApp();
-    endwin();
-    return 0;
+    return 1;
 }
 
 /**
@@ -164,5 +163,6 @@ void closeApp() {
         deinitManager(&manager);
     }
     printf("\n%s === Application closed === %s\n\n", BLUE, RESET);
+    endwin();
     exit(0);
 }

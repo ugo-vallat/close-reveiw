@@ -1,2 +1,0 @@
-[warnl] manager.c > managerSend : manager MANAGER_MOD_PEER in STATE_CLOSED, failed to send packet
-threadServer > com server closed
