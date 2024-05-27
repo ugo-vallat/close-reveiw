@@ -1,0 +1,16 @@
+[user]
+ip = "127.0.0.1"
+local_port = 7000
+public_port = 7000
+
+[server]
+ip = "127.0.0.1"
+port = 5555
+
+[history]
+user_consent = false
+path = "/path/to/history"
+
+[ssl]
+certificate = "./config/server/server-be-auto-cert.crt"
+key = "./config/server/server-be.key"

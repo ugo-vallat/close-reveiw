@@ -9,6 +9,7 @@
 #include <types/p2p-msg.h>
 #include <types/packet.h>
 #include <unistd.h>
+#include <utils/config.h>
 #include <utils/logger.h>
 #include <utils/project_constants.h>
 
@@ -17,14 +18,11 @@
 #define RED "\033[38;5;196m"
 #define RESET "\033[0m"
 
-#define PATH_CONFIG_FILE "path/to/config/file"
-
 #define FILE_MAIN "main.c"
 
 Manager *manager;
 TLS_infos *tls;
-char server_ip[SIZE_IP_CHAR];
-int server_port;
+t_config *config;
 
 void *threadServer(void *arg);
 
@@ -43,15 +41,25 @@ int main(int argc, char *argv[]) {
     scrollok(stdscr, FALSE);
     refresh();
 
-    /* logger */
-    init_logger("logs.log", NULL);
+    /* init logger */
+    if (argc > 2)
+        exitl(FILE_MAIN, FUN_NAME, -1, "usage : %s [logger_id]", argv[0]);
+    if (argc == 2) {
+        init_logger(PATH_LOG, argv[1]);
+    } else {
+        init_logger(PATH_LOG, NULL);
+    }
 
     /* get server infos */
-    // temporary
-    if (argc != 3)
-        exitl(FILE_MAIN, FUN_NAME, -1, "usage : %s <server ip> <server port>", argv[0]);
-    strncpy(server_ip, argv[1], SIZE_IP_CHAR);
-    server_port = atoi(argv[2]);
+    config = loadConfig();
+    if (config == NULL) {
+        warnl(FILE_MAIN, FUN_NAME, "failed to load config");
+        closeApp();
+    }
+    if (config->server.is_defined == false) {
+        warnl(FILE_MAIN, FUN_NAME, "server address/port undefined");
+        closeApp();
+    }
 
     /* create manager */
     manager = initManager();
@@ -87,7 +95,7 @@ int main(int argc, char *argv[]) {
         closeApp();
     }
 
-    printf("\n%s === App Started ===%s\n\n", BLUE, RESET);
+    printl("%s === App Started === %s", BLUE, RESET);
 
     /* wait threads */
     managerSetState(manager, MANAGER_MOD_MAIN, MANAGER_STATE_OPEN);
@@ -120,7 +128,7 @@ void *threadServer(void *arg) {
     pthread_t num_t;
 
     /* open connection server */
-    tls = initTLSInfos(server_ip, server_port, TLS_CLIENT, NULL, NULL);
+    tls = initTLSInfos(config->server.ip, config->server.port, TLS_CLIENT, NULL, NULL);
     if (!tls) {
         warnl(FILE_MAIN, FUN_NAME, "failed to init tls infos");
         managerSetState(manager, MANAGER_MOD_SERVER, MANAGER_STATE_CLOSED);
@@ -162,7 +170,10 @@ void closeApp() {
     if (manager) {
         deinitManager(&manager);
     }
-    printf("\n%s === Application closed === %s\n\n", BLUE, RESET);
+    if (config) {
+        deinitConfig(&config);
+    }
+    printl("%s === Application closed === %s", BLUE, RESET);
     endwin();
     exit(0);
 }

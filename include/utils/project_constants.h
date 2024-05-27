@@ -36,4 +36,8 @@
 #define SIZE_DIRECTORY 256
 #define SIZE_ERROR_CHAR 256
 
+/* paths */
+#define PATH_LOG "./logs.log"
+#define PATH_CONFIG_CLIENT "./config/client/config.toml"
+
 #endif
