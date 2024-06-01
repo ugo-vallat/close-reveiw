@@ -1,4 +1,3 @@
-#include "types/p2p-msg.h"
 #include <arpa/inet.h>
 #include <client/tui.h>
 #include <netinet/in.h>
@@ -10,6 +9,7 @@
 #include <time.h>
 #include <types/command.h>
 #include <types/genericlist.h>
+#include <types/p2p-msg.h>
 #include <types/packet.h>
 #include <utils/logger.h>
 #include <utils/project_constants.h>

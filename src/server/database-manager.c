@@ -1,14 +1,12 @@
-#include "utils/project_constants.h"
 #include <mysql.h>
 #include <openssl/evp.h>
+#include <server/database-manager.h>
+#include <server/weak_password.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <types/genericlist.h>
-
-#include <server/database-manager.h>
-#include <server/weak_password.h>
 #include <utils/logger.h>
 
 #define SIZE_HASH 256

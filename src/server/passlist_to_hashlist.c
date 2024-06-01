@@ -1,4 +1,3 @@
-#include <omp.h>
 #include <openssl/evp.h>
 #include <stdio.h>
 #include <stdlib.h>

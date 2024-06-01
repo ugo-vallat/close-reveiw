@@ -1,9 +1,8 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
-#include "utils/project_constants.h"
 #include <stdbool.h>
-#include <stdio.h>
+#include <utils/project_constants.h>
 
 #define CONFIG_CHAR_IP_SIZE SIZE_IP_CHAR
 #define CONFIG_DIRECTORY_MAX_SIZE 128
@@ -13,7 +12,7 @@ typedef struct {
     bool is_defined;
     char ip[CONFIG_CHAR_IP_SIZE];
     int port;
-} t_addr_serv;
+} Config_server;
 
 typedef struct {
     bool is_defined;
@@ -21,28 +20,28 @@ typedef struct {
     char ip[CONFIG_CHAR_IP_SIZE];
     int local_port;
     int public_port;
-} t_addr_user;
+} Config_user;
 
 typedef struct {
     bool is_defined;
 
     bool user_consent;
     char path[CONFIG_BUFFER_SIZE];
-} t_history;
+} Config_history;
 
 typedef struct {
     bool is_defined;
 
     char certificate[CONFIG_BUFFER_SIZE];
     char key[CONFIG_BUFFER_SIZE];
-} t_conf_ssl;
+} Config_infos_ssl;
 
 typedef struct {
-    t_addr_user user;
-    t_addr_serv server;
-    t_history history;
-    t_conf_ssl config_ssl;
-} t_config;
+    Config_user user;
+    Config_server server;
+    Config_history history;
+    Config_infos_ssl config_ssl;
+} Config_infos;
 
 /**
  * @brief DEPRECATED load config file path into buffer config_file
@@ -57,13 +56,13 @@ bool getConfigFilePath(char config_file[CONFIG_DIRECTORY_MAX_SIZE]);
  *
  * @return t_config*, NULL if error
  */
-t_config *loadConfig(void);
+Config_infos *loadConfig(void);
 
 /**
  * @brief delete the t_config structure and free memory
  *
  * @param config struct t_config
  */
-void deinitConfig(t_config **config);
+void deinitConfig(Config_infos **config);
 
 #endif // !__CONFIG_H__

@@ -22,7 +22,7 @@
 
 Manager *manager;
 TLS_infos *tls;
-t_config *config;
+Config_infos *config;
 
 void *threadServer(void *arg);
 

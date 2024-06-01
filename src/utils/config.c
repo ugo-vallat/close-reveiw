@@ -10,7 +10,7 @@
 
 #define FILE_CONFIG "config.c"
 
-void deinitConfig(t_config **config) {
+void deinitConfig(Config_infos **config) {
     free(*config);
     *config = NULL;
 }
@@ -36,7 +36,7 @@ bool getConfigFilePath(char config_file[CONFIG_DIRECTORY_MAX_SIZE]) {
     return true;
 }
 
-t_config *loadConfig(void) {
+Config_infos *loadConfig(void) {
     char FUN_NAME[32] = "initConfig";
     char header[CONFIG_BUFFER_SIZE];
     char token[CONFIG_BUFFER_SIZE];
@@ -50,13 +50,13 @@ t_config *loadConfig(void) {
     }
 
     /* malloc struct t_config */
-    t_config *configuration = malloc(sizeof(t_config));
+    Config_infos *configuration = malloc(sizeof(Config_infos));
     if (configuration == NULL) {
         warnl(FILE_CONFIG, FUN_NAME, "couldn't allocate memory for config struct");
         fclose(config);
         return NULL;
     }
-    bzero(configuration, sizeof(t_config));
+    bzero(configuration, sizeof(Config_infos));
 
     /* read config file */
     while (fgets(header, sizeof(header), config)) {
