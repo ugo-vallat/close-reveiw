@@ -16,7 +16,6 @@ typedef struct {
 
 typedef struct {
     bool is_defined;
-
     char ip[CONFIG_CHAR_IP_SIZE];
     int local_port;
     int public_port;
@@ -31,7 +30,6 @@ typedef struct {
 
 typedef struct {
     bool is_defined;
-
     char certificate[CONFIG_BUFFER_SIZE];
     char key[CONFIG_BUFFER_SIZE];
 } Config_infos_ssl;
