@@ -1,3 +1,5 @@
+#include "types/clientlist.h"
+#include "utils/project_constants.h"
 #include <mysql.h>
 #include <network/tls-com.h>
 #include <pthread.h>
@@ -21,16 +23,16 @@
 #define RESET "\033[0m"
 
 MYSQL *conn;
-GenList *user;
+ClientList *user;
 List *thread;
 char FILE_NAME[16] = "MAIN";
 bool end = false;
 int SERVER_PORT;
 
-typedef struct s_tuple_TLS_info {
-    TLS_infos *info_user1;
-    TLS_infos *info_user2;
-} Tuple_TLS_info;
+typedef struct s_tuple_client {
+    Client *c1;
+    Client *c2;
+} Tuple_Client;
 
 void tryServer(char *arg);
 
@@ -38,19 +40,21 @@ void okServer(char *arg);
 
 void koServer(char *arg);
 
-void acceptHandler(Packet *p, TLS_infos *info, int sender_nb); // TODO
+void acceptHandler(Packet *p, Client *c); // TODO
 
-void rejecttHandler(Packet *p, TLS_infos *info);
+void rejecttHandler(Packet *p, Client *c);
 
-void requestP2PtHandler(Packet *p, TLS_infos *info);
+void requestP2PtHandler(Packet *p, Client *c);
 
-void getAvailableHandler(Packet *p, TLS_infos *info);
+void getAvailableHandler(Packet *p, Client *c);
 
 void *startConnection(void *arg);
 
 void *accepteUser(void *arg);
 
 void *requestHandler(void *arg);
+
+bool genListContainsString(GenList *l, char *name);
 
 int main(int argc, char *argv[]) {
     char *FUN_NAME = "MAIN";
@@ -66,7 +70,7 @@ int main(int argc, char *argv[]) {
         SERVER_PORT = atoi(argv[1]);
     }
 
-    user = initGenList(10);
+    user = initClientList(10);
     thread = initList(10);
 
     char server[32] = "localhost"; // TODO les faire passer en argument
@@ -155,17 +159,23 @@ void koServer(char *arg) {
 }
 
 void *createP2Pconnection(void *arg) {
-    Tuple_TLS_info *info = arg;
+    Tuple_Client *info = arg;
     P2P_msg *msg = initP2PMsg(P2P_GET_INFOS, "serveur");
     Packet *p = initPacketP2PMsg(msg);
     Packet *receive1, *receive2;
     TLS_error error1, error2;
+    TLS_infos *i1 = info->c1->info_user;
+    TLS_infos *i2 = info->c2->info_user;
 
-    tlsSend(info->info_user1, p);
-    tlsSend(info->info_user2, p);
+    tlsSend(i1, p);
+    tlsSend(i2, p);
 
-    error1 = tlsReceiveBlocking(info->info_user1, &receive1);
-    error2 = tlsReceiveBlocking(info->info_user2, &receive2);
+    printl(" demande des information envoyer\n");
+
+    error1 = tlsReceiveBlocking(i1, &receive1);
+    error2 = tlsReceiveBlocking(i2, &receive2);
+
+    printl(" information recu\n");
 
     msg = initP2PMsg(P2P_TRY_SERVER_MODE, "serveur");
 
@@ -173,7 +183,7 @@ void *createP2Pconnection(void *arg) {
     char *try_ip = p2pMsgGetPrivateIp(&receive2->p2p);
     p2pMsgSetTryInfo(msg, try_ip, try_port);
     p = initPacketP2PMsg(msg);
-    tlsSend(info->info_user1, p);
+    tlsSend(i1, p);
 
     msg = initP2PMsg(P2P_TRY_CLIENT_MODE, "serveur");
 
@@ -181,80 +191,107 @@ void *createP2Pconnection(void *arg) {
     try_ip = p2pMsgGetPrivateIp(&receive1->p2p);
     p2pMsgSetTryInfo(msg, try_ip, try_port);
     p = initPacketP2PMsg(msg);
-    tlsSend(info->info_user2, p);
+    tlsSend(i2, p);
 
-    genListAdd(user, info->info_user1);
-    genListAdd(user, info->info_user2);
+    printl("connection etablie\n");
+
+    info->c1->etat = IN_CONNECTION;
+    info->c2->etat = IN_CONNECTION;
     listAdd(thread, pthread_self());
     return NULL;
 }
 
-void acceptHandler(Packet *p, TLS_infos *info, int sender_nb) {
+void acceptHandler(Packet *p, Client *c) {
     int target_nb;
     pthread_t temp;
     char *sender = p2pMsgGetSenderId(&p->p2p);
     char *target = p2pMsgGetPeerId(&p->p2p);
-    if (SQLaccept(conn, sender, target, &target_nb)) {
-        Tuple_TLS_info *info = malloc(sizeof(Tuple_TLS_info));
-        info->info_user1 = genListRemove(user, sender_nb);
-        info->info_user2 = genListRemove(user, target_nb);
+    printf("demande accepter\n");
+
+    if (genListContainsString(c->request_by, target)) {
+        printf("demande en cours\n");
+        Tuple_Client *info = malloc(sizeof(Tuple_Client));
+        info->c1 = clientListGetId(user, getId(conn, target));
+        info->c2 = c;
+        c->etat = TRY_CONNECTION;
+        info->c1->etat = TRY_CONNECTION;
         pthread_create(&temp, NULL, createP2Pconnection, info);
     }
 }
 
-void rejecttHandler(Packet *p, TLS_infos *info) {
+void rejecttHandler(Packet *p, Client *c) {
     int user_nb;
     char *sender = p2pMsgGetSenderId(&p->p2p);
     char *target = p2pMsgGetPeerId(&p->p2p);
-    if (SQLreject(conn, sender, target, &user_nb)) {
+
+    if (genListContainsString(c->request_by, target)) {
         Packet *send;
         P2P_msg *msg;
         msg = initP2PMsg(P2P_REJECT, "serveur");
         p2pMsgSetPeerId(msg, sender);
         send = initPacketP2PMsg(msg);
-        tlsSend(genListGet(user, user_nb), send);
+        tlsSend(clientListGet(user, user_nb)->info_user, send);
         deinitPacket(&send);
         deinitP2PMsg(&msg);
     }
 }
 
-void requestP2PtHandler(Packet *p, TLS_infos *info) {
+void requestP2PtHandler(Packet *p, Client *c) {
     int user_nb;
     Packet *send;
     P2P_msg *msg;
     char *sender = p2pMsgGetSenderId(&p->p2p);
     char *target = p2pMsgGetPeerId(&p->p2p);
     printl(" > request from <%s> to <%s>", sender, target);
-    P2P_error error = SQLrequestP2P(conn, sender, target, &user_nb);
 
-    if (error != P2P_ERR_SUCCESS) {
-        printl(" > target unavailable");
+    Client *t = clientListGetId(user, getId(conn, target));
+
+    if (t == NULL) {
+        printl(" > target disconnected");
         msg = initP2PMsg(P2P_REJECT, "serveur");
-        p2pMsgSetError(msg, error);
+        p2pMsgSetError(msg, P2P_ERR_USER_DISCONNECTED);
         send = initPacketP2PMsg(msg);
-        tlsSend(info, send);
+        tlsSend(c->info_user, send);
         deinitPacket(&send);
         deinitP2PMsg(&msg);
     } else {
-        printl(" > send request to target");
-        msg = initP2PMsg(P2P_REQUEST_IN, "serveur");
-        p2pMsgSetPeerId(msg, sender);
-        send = initPacketP2PMsg(msg);
-        tlsSend(genListGet(user, user_nb), send);
-        deinitPacket(&send);
-        deinitP2PMsg(&msg);
+        if (t->etat != AVAILABLE) {
+            printf("t = %d\n", t->etat);
+            printl(" > target unavailable");
+            msg = initP2PMsg(P2P_REJECT, "serveur");
+            p2pMsgSetError(msg, P2P_ERR_UNAVAILABLE_USER);
+            send = initPacketP2PMsg(msg);
+            tlsSend(c->info_user, send);
+            deinitPacket(&send);
+            deinitP2PMsg(&msg);
+        } else {
+            genListAdd(t->request_by, sender);
+            printl(" > send request to target");
+            msg = initP2PMsg(P2P_REQUEST_IN, "serveur");
+            p2pMsgSetPeerId(msg, sender);
+            send = initPacketP2PMsg(msg);
+
+            tlsSend(t->info_user, send);
+            deinitPacket(&send);
+            deinitP2PMsg(&msg);
+        }
     }
 }
 
-void getAvailableHandler(Packet *p, TLS_infos *info) {
-    GenList *res = listUserAvalaible(conn);
-
+void getAvailableHandler(Packet *p, Client *c) {
+    GenList *res = initGenList(clientListSize(user));
+    Client *temp;
+    for (unsigned i = 0; i < clientListSize(user); i++) {
+        temp = clientListGet(user, i);
+        if (temp != c)
+            genListAdd(res, temp->username);
+    }
     P2P_msg *msg = initP2PMsg(P2P_AVAILABLE, "server");
     p2pMsgSetListUserOnline(msg, res);
 
     Packet *send = initPacketP2PMsg(msg);
 
-    tlsSend(info, send);
+    tlsSend(c->info_user, send);
 
     deinitPacket(&send);
     deinitP2PMsg(&msg);
@@ -262,7 +299,7 @@ void getAvailableHandler(Packet *p, TLS_infos *info) {
 
 void *startConnection(void *arg) {
     TLS_infos *temp = arg;
-
+    Client *c;
     Packet *receive;
     Packet *send;
     P2P_msg *msg_send;
@@ -284,8 +321,14 @@ void *startConnection(void *arg) {
                 if (msg.type == P2P_CONNECTION_SERVER) {
                     sender = p2pMsgGetSenderId(&(receive->p2p));
                     password_hash = p2pMsgGetPasswordHash(&(receive->p2p));
-                    if (login(conn, sender, password_hash, genListSize(user))) {
-                        genListAdd(user, temp);
+                    if (login(conn, sender, password_hash)) {
+                        c = malloc(sizeof(Client));
+                        c->info_user = temp;
+                        strncpy(c->username, sender, SIZE_NAME);
+                        c->etat = AVAILABLE;
+                        c->request_by = initGenList(1);
+                        c->id = getId(conn, sender);
+                        clientListAdd(user, c);
                         msg_send = initP2PMsg(P2P_CONNECTION_OK, "server");
                         p2pMsgSetError(msg_send, P2P_ERR_SUCCESS);
                         printf("user connected\n");
@@ -341,29 +384,34 @@ void *requestHandler(void *arg) {
     TLS_error error;
     Packet *packet;
     TLS_infos *temp;
+    Client *c;
     unsigned int i;
 
     while (!end) {
-        for (i = 0; i < genListSize(user); i++) {
-            temp = NULL;
+        for (i = 0; i < clientListSize(user); i++) {
+            error = TLS_RETRY;
+            c = clientListGet(user, i);
+            temp = c->info_user;
             packet = NULL;
-            error = tlsReceiveNonBlocking(genListGet(user, i), &packet);
+            if(c->etat != TRY_CONNECTION){
+                error = tlsReceiveNonBlocking(temp, &packet);
+            }
             switch (error) {
             case TLS_SUCCESS:
                 tryServer("new request in requestHandler");
                 if (packet->type == PACKET_P2P_MSG) {
                     switch (packet->p2p.type) {
                     case P2P_ACCEPT:
-                        acceptHandler(packet, genListGet(user, i), i);
+                        acceptHandler(packet, c);
                         break;
                     case P2P_REJECT:
-                        rejecttHandler(packet, genListGet(user, i));
+                        rejecttHandler(packet, c);
                         break;
                     case P2P_REQUEST_OUT:
-                        requestP2PtHandler(packet, genListGet(user, i));
+                        requestP2PtHandler(packet, c);
                         break;
                     case P2P_GET_AVAILABLE:
-                        getAvailableHandler(packet, genListGet(user, i));
+                        getAvailableHandler(packet, c);
                         break;
                     default:
                         break;
@@ -372,19 +420,16 @@ void *requestHandler(void *arg) {
                 break;
             case TLS_CLOSE:
                 tryServer("TLS_CLOSE");
-                temp = genListRemove(user, i);
-                deinitTLSInfos(&temp);
-                disconnect(conn, i);
+                clientListDelete(user, i);
                 printf("user disconneted\n");
                 break;
             case TLS_NULL_POINTER:
-                genListRemove(user, i);
+                clientListRemove(user, i);
                 break;
             case TLS_ERROR:
-                tryServer("TLS_ERROR");
-                temp = genListRemove(user, i);
-                deinitTLSInfos(&temp);
-                disconnect(conn, i);
+                tryServer("TLS_CLOSE");
+                clientListDelete(user, i);
+                printf("user disconneted\n");
                 break;
             case TLS_RETRY:
                 break;
@@ -392,6 +437,17 @@ void *requestHandler(void *arg) {
         }
     }
     listAdd(thread, pthread_self());
-    printf("je meur requestHandler\n");
+    printf("je meurt requestHandler\n");
     return NULL;
+}
+
+bool genListContainsString(GenList *l, char *name) {
+    char *temp;
+    for (unsigned int i = 0; i < genListSize(l); i++){
+        temp = genListGet(l, i);
+        if (strcmp(temp, name) == 0) {
+            return true;
+        }
+    }
+    return false;
 }

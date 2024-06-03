@@ -18,6 +18,7 @@ pub fn build(b: *std.Build) void {
         "utils/config.c",
         "utils/logger.c",
         "server/weak_password.c",
+        "types/clientlist.c",
         // "utils/token.c",
     };
     const c_include_list_server = &.{

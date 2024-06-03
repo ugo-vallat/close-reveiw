@@ -239,14 +239,18 @@ bool genListIsEmpty(GenList *l) {
  * @author LAFORGE Mateo
  */
 bool genListContains(GenList *l, void *e) {
+    printf("dans contains\n");
     testArgNull(l, "genericlist.c", "listContains", "l");
     pthread_mutex_lock(&(l->mutex));
-    for (unsigned int i = 0; i < genListSize(l); i++)
+    printf("youhou on as passer le mutex\n");
+    for (unsigned int i = 0; i < l->size; i++)
         if (genListGet(l, i) == e) {
             pthread_mutex_unlock(&(l->mutex));
+            printf("sortie contains\n");
             return true;
         }
     pthread_mutex_unlock(&(l->mutex));
+    printf("sortie contains\n");
     return false;
 }
 

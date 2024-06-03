@@ -27,9 +27,8 @@ void createUser(MYSQL *conn, char *username, char *password);
  * @param[in] password The password to log in with.
  * @return true if login was successful, false otherwise.
  */
-bool login(MYSQL *conn, char *username, char *password, int user_nb);
+bool login(MYSQL *conn, char *username, char *password);
 
-void disconnect(MYSQL *conn, int user_nb);
 
 /**
  * @brief Check if a username exists in the database.
@@ -49,17 +48,7 @@ bool usernameExists(MYSQL *conn, char *username);
  */
 void logginDatabase(MYSQL *conn, char *server, char *sql_user, char *sql_password, char *database);
 
-P2P_error SQLrequestP2P(MYSQL *conn, char *sender_username, char *target_username, int *user_id);
+int getId(MYSQL *conn, char *username);
 
-bool SQLreject(MYSQL *conn, char *sender_username, char *target_username, int *user_id);
-
-bool SQLaccept(MYSQL *conn, char *sender_username, char *target_username, int *user_id);
-
-
-GenList *listUser(MYSQL *conn);
-
-GenList *listUserConnected(MYSQL *conn);
-
-GenList *listUserAvalaible(MYSQL *conn);
 
 #endif // TEST_MYSQL_H

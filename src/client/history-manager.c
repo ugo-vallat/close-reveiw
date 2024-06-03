@@ -35,6 +35,7 @@ HistoryInfo *initHistory(char *path_dossier_historique, char *name_conversation)
         return NULL;
     }
 
+
     char *dir = malloc(MAX_SIZE_PATH + SIZE_NAME);
     snprintf(dir, MAX_SIZE_PATH + SIZE_NAME, "%s/%s", path_dossier_historique, name_conversation);
 
