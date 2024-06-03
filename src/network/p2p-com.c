@@ -15,8 +15,8 @@
 #define TIMEOUT_DIRECT_SERVER 5
 #define TIMEOUT_DIRECT_CLIENT 5
 #define P2P_PRIVATE_IP "127.0.0.1"
-#define P2P_PRIVATE_PORT 7002
-#define P2P_PUBLIC_PORT 7002
+#define P2P_PRIVATE_PORT 9999
+#define P2P_PUBLIC_PORT 9999
 
 #define CLIENT_CERT_PATH "./config/server/server-be-auto-cert.crt"
 #define CLIENT_KEY_PATH "./config/server/server-be.key"

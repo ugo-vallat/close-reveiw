@@ -187,7 +187,7 @@ TUI_error stdoutDisplayPacket(Packet *packet) {
 
 TUI_error stdoutDisplayPacket2(Packet *packet, WINDOW *output_win, Manager *manager) {
     char FUN_NAME[32] = "stdoutDisplayPacket2";
-    char *output;
+    char *output, *peer_id;
 
     switch (packet->type) {
     case PACKET_TXT:
@@ -208,8 +208,31 @@ TUI_error stdoutDisplayPacket2(Packet *packet, WINDOW *output_win, Manager *mana
         }
         wprintw(output_win, "%s", output);
         P2P_msg_type type = p2pMsgGetType(&packet->p2p);
-        if (type == P2P_CONNECTION_OK) {
-            wprintw(output_win, "\n === Welcome %s === \n\n", managerGetUser(manager));
+        switch (type) {
+        case P2P_CONNECTION_OK:
+            wprintw(output_win, "\t\t=== Welcome %s ===\n\n", managerGetUser(manager));
+            break;
+        case P2P_CON_SUCCESS:
+            peer_id = p2pMsgGetPeerId(&packet->p2p);
+            wclear(output_win);
+            wprintw(output_win, "\t\t=== Communication with %s started : ===\n", peer_id);
+            free(peer_id);
+            break;
+        case P2P_CONNECTION_SERVER:
+        case P2P_CONNECTION_KO:
+        case P2P_ACCEPT:
+        case P2P_REJECT:
+        case P2P_REQUEST_IN:
+        case P2P_REQUEST_OUT:
+        case P2P_GET_AVAILABLE:
+        case P2P_AVAILABLE:
+        case P2P_GET_INFOS:
+        case P2P_INFOS:
+        case P2P_CON_FAILURE:
+        case P2P_TRY_SERVER_MODE:
+        case P2P_TRY_CLIENT_MODE:
+        case P2P_CLOSE:
+            break;
         }
         free(output);
         break;

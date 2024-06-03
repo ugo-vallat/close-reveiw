@@ -30,7 +30,7 @@ void init_logger(const char *file_path, char *id) {
         if (!output) {
             fprintf(stderr, "[logger] failed to open log file\n");
         }
-        freopen(file_path, "w", stderr);
+        freopen(file_path, "a", stderr);
         console = false;
         c_yellow = "";
         c_orange = "";
