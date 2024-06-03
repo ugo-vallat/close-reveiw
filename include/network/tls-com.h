@@ -35,12 +35,6 @@ typedef struct s_tls_infos {
     SSL_CTX *ctx;
     SSL *ssl;
     int sockfd;
-
-    /* packetManager */
-    funTLSGetNextPacket next_packet;
-    funTLSPacketReceivedManager P2P_manager;
-    funTLSPacketReceivedManager MSG_manager;
-
 } TLS_infos;
 
 /**

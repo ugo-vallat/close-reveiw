@@ -27,6 +27,10 @@ char *c_rstc;
 void init_logger(const char *file_path, char *id) {
     if (file_path) {
         output = fopen(file_path, "a");
+        if (!output) {
+            fprintf(stderr, "[logger] failed to open log file\n");
+        }
+        freopen(file_path, "w", stderr);
         console = false;
         c_yellow = "";
         c_orange = "";
