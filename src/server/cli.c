@@ -8,10 +8,6 @@
 
 #define FILE_NAME "cli"
 
-extern MYSQL *conn;
-extern ClientList *user;
-extern List *thread;
-extern bool end;
 
 typedef enum e_type_cmd_server {
     CMD_SRV_LIST = 0,
