@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <types/genericlist.h>
 #include <types/p2p-msg.h>
+#include <types/clientlist.h>
 
 /**
  * @brief Set up the database, creating necessary tables.
@@ -19,6 +20,15 @@ void setup(MYSQL *conn);
  * @param[in] password The password of the new user.
  */
 void createUser(MYSQL *conn, char *username, char *password);
+
+
+/**
+ * @brief Create a new user in the database.
+ * @param[in] conn The MySQL connection handle.
+ * @param[in] username The username of the new user.
+ * @param[in] password The password of the new user.
+ */
+void deleteUser(MYSQL *conn, int id);
 
 /**
  * @brief Attempt to log in with a given username and password.
@@ -50,5 +60,6 @@ void logginDatabase(MYSQL *conn, char *server, char *sql_user, char *sql_passwor
 
 int getId(MYSQL *conn, char *username);
 
+ClientList *getUserList(MYSQL *conn);
 
 #endif // TEST_MYSQL_H

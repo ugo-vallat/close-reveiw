@@ -24,6 +24,8 @@ pub fn build(b: *std.Build) void {
     const c_include_list_server = &.{
         "database-manager.c",
         // "passlist_to_hashlist.c",
+        "request-handler.c",
+        "cli.c",
     };
     const c_include_list_client = &.{
         "tui.c",

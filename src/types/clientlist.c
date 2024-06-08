@@ -83,8 +83,10 @@ void deinitClientList(ClientList **l) { // TODO
     Client *temp;
     for (unsigned i = 0; i < size; i++) {
         temp = clientListPop((ClientList *)(*l));
-        tlsCloseCom(temp->info_user, NULL);
-        deinitGenList(&temp->request_by, free);
+        if(temp->info_user != NULL)
+            tlsCloseCom(temp->info_user, NULL);
+        if(temp->request_by != NULL)
+            deinitGenList(&temp->request_by, free);
         free(temp);
     }
     free((*l)->tab);

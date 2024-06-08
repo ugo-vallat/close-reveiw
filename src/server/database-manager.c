@@ -1,3 +1,4 @@
+#include "types/clientlist.h"
 #include <mysql.h>
 #include <openssl/evp.h>
 #include <server/database-manager.h>
@@ -56,6 +57,16 @@ void createUser(MYSQL *conn, char *username, char *password) {
     mysqlQuery(conn, query, fun_name, 1);
 }
 
+void deleteUser(MYSQL *conn, int id) {
+    char fun_name[16] = "deleteUser";
+    char query[SIZE_QUERY];
+
+
+    /* Ajout de l'utilisateur à la table user */
+    sprintf(query, "DELETE FROM user WHERE id =%d", id);
+    mysqlQuery(conn, query, fun_name, 1);
+}
+
 void setup(MYSQL *conn) {
     char fun_name[16] = "setup";
     /* Suppression de la base de données */
@@ -77,7 +88,7 @@ void setup(MYSQL *conn) {
     /* Création de la table password */
     mysqlQuery(conn,
                "CREATE TABLE IF NOT EXISTS password(user_id INT, password VARCHAR(32), "
-               "FOREIGN KEY(user_id) REFERENCES user(id))",
+               "FOREIGN KEY(user_id) REFERENCES user(id) ON DELETE CASCADE)",
                fun_name, 1);
 }
 
@@ -176,4 +187,29 @@ int getId(MYSQL *conn, char *username){
     int user_id = atoi(row[0]);
 
     return user_id;
+}
+
+
+ClientList *getUserList(MYSQL *conn){
+    char fun_name[32] = "getUserList";
+    char query[SIZE_QUERY];
+    sprintf(query, "SELECT id, username FROM user");
+    mysqlQuery(conn, query, fun_name, 1);
+
+    MYSQL_RES *res = mysql_store_result(conn);
+    assertl(res, "database-manager.c", fun_name, 1, mysql_error(conn));
+    int num_rows = mysql_num_rows(res);
+
+    MYSQL_ROW row;
+    ClientList *l = initClientList(num_rows);
+    int i = 0;
+    while ((row = mysql_fetch_row(res))) {
+        Client *c = malloc(sizeof(Client));
+        c->id = atoi(row[0]);
+        c->info_user = NULL;
+        c->request_by = NULL;
+        strcpy(c->username, row[1]);
+        clientListAdd(l, c);
+    }
+    return l;
 }
