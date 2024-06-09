@@ -1,4 +1,5 @@
 #include "types/clientlist.h"
+#include "utils/config.h"
 #include <mysql.h>
 #include <network/tls-com.h>
 #include <pthread.h>
@@ -16,13 +17,6 @@
 #include <unistd.h>
 #include <utils/logger.h>
 
-#define SERVER_CERT_PATH "./config/server/server-be-auto-cert.crt"
-#define SERVER_KEY_PATH "./config/server/server-be.key"
-
-#define BLUE "\033[38;5;45m"
-#define GREEN "\033[38;5;82m"
-#define RED "\033[38;5;196m"
-#define RESET "\033[0m"
 
 #define FILE_NAME "Main"
 
@@ -31,7 +25,6 @@ ClientList *user;
 List *thread;
 pthread_t nb_main;
 bool end = false;
-int SERVER_PORT;
 
 void signal_handler(int sig) {
     (void)sig;
@@ -46,12 +39,8 @@ int main(int argc, char *argv[]) {
 
     init_logger("logs.log", "server");
 
-    /* get args */
-    if (argc != 2) {
-        exitl(FILE_NAME, FUN_NAME, -1, "usage : %s <server port>", argv[0]);
-    } else {
-        SERVER_PORT = atoi(argv[1]);
-    }
+
+    Config_infos *config = loadConfig(SERVER);
 
     user = initClientList(10);
     thread = initList(10);
@@ -61,11 +50,6 @@ int main(int argc, char *argv[]) {
     char sql_password[32] = "password";
     char database[32] = "testdb";
 
-    char *path_cert;
-    char *path_key;
-
-    char *ip_server;
-    int port_server;
 
     // TODO modifier pour que se soit dans u scripte appart
     /* Initialisation de la connexion à la base de données */
@@ -93,7 +77,7 @@ int main(int argc, char *argv[]) {
     okServer("main");
 
     tryServer("main init tls");
-    TLS_infos *tls = initTLSInfos(NULL, SERVER_PORT, TLS_MAIN_SERVER, SERVER_CERT_PATH, SERVER_KEY_PATH);
+    TLS_infos *tls = initTLSInfos(NULL, config->server.port, TLS_MAIN_SERVER, config->config_ssl.certificate, config->config_ssl.key);
 
     if (!tls) {
         warnl("main.c", "main", "fail init TLS info");
@@ -125,10 +109,10 @@ int main(int argc, char *argv[]) {
     action.sa_handler = signal_handler;
     sigaction(SIGUSR1, &action, NULL);
 
-    okServer("maks");
+    okServer("mask");
 
 
-    while (!end) {
+    while (true) {
         pause();
     }
 

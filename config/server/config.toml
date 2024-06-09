@@ -1,0 +1,7 @@
+[server]
+ip = "127.0.0.1"
+port = 5555
+
+[ssl]
+certificate = "./config/server/server-be-auto-cert.crt"
+key = "./config/server/server-be.key"

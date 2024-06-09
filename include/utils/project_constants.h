@@ -39,5 +39,7 @@
 /* paths */
 #define PATH_LOG "./logs.log"
 #define PATH_CONFIG_CLIENT "./config/client/config.toml"
+#define PATH_CONFIG_SERVER "./config/server/config.toml"
+
 
 #endif

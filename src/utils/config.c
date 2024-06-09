@@ -36,17 +36,29 @@ bool getConfigFilePath(char config_file[CONFIG_DIRECTORY_MAX_SIZE]) {
     return true;
 }
 
-Config_infos *loadConfig(void) {
+Config_infos *loadConfig(Config_type type) {
     char FUN_NAME[32] = "initConfig";
     char header[CONFIG_BUFFER_SIZE];
     char token[CONFIG_BUFFER_SIZE];
     FILE *config;
 
-    /* open config file */
-    config = fopen(PATH_CONFIG_CLIENT, "r");
-    if (config == NULL) {
-        warnl(FILE_CONFIG, FUN_NAME, "failed to open config file at <%s>", PATH_CONFIG_CLIENT);
-        return NULL;
+    switch (type) {
+    case CLIENT:
+        /* open config file */
+        config = fopen(PATH_CONFIG_CLIENT, "r");
+        if (config == NULL) {
+            warnl(FILE_CONFIG, FUN_NAME, "failed to open config file at <%s>", PATH_CONFIG_CLIENT);
+            return NULL;
+        }
+        break;
+    case SERVER:
+        /* open config file */
+        config = fopen(PATH_CONFIG_SERVER, "r");
+        if (config == NULL) {
+            warnl(FILE_CONFIG, FUN_NAME, "failed to open config file at <%s>", PATH_CONFIG_SERVER);
+            return NULL;
+        }
+        break;
     }
 
     /* malloc struct t_config */

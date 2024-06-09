@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
     }
 
     /* get server infos */
-    config = loadConfig();
+    config = loadConfig(CLIENT);
     if (config == NULL) {
         warnl(FILE_MAIN, FUN_NAME, "failed to load config");
         closeApp();

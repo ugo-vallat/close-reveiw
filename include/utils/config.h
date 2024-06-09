@@ -8,6 +8,11 @@
 #define CONFIG_DIRECTORY_MAX_SIZE 128
 #define CONFIG_BUFFER_SIZE 512
 
+typedef enum {
+    CLIENT,
+    SERVER
+}Config_type;
+
 typedef struct {
     bool is_defined;
     char ip[CONFIG_CHAR_IP_SIZE];
@@ -54,7 +59,7 @@ bool getConfigFilePath(char config_file[CONFIG_DIRECTORY_MAX_SIZE]);
  *
  * @return t_config*, NULL if error
  */
-Config_infos *loadConfig(void);
+Config_infos *loadConfig(Config_type type);
 
 /**
  * @brief delete the t_config structure and free memory
