@@ -2,7 +2,10 @@
 #include <mysql.h>
 #include <network/tls-com.h>
 #include <pthread.h>
+#include <server/cli.h>
 #include <server/database-manager.h>
+#include <server/request-handler.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,8 +15,6 @@
 #include <types/packet.h>
 #include <unistd.h>
 #include <utils/logger.h>
-#include <server/cli.h>
-#include <server/request-handler.h>
 
 #define SERVER_CERT_PATH "./config/server/server-be-auto-cert.crt"
 #define SERVER_KEY_PATH "./config/server/server-be.key"
@@ -28,14 +29,15 @@
 MYSQL *conn;
 ClientList *user;
 List *thread;
+pthread_t nb_main;
 bool end = false;
 int SERVER_PORT;
 
-
-
-
-
-
+void signal_handler(int sig) {
+    (void)sig;
+    pthread_join(listPop(thread), NULL);
+    printf("RIP Threads\n");
+}
 
 int main(int argc, char *argv[]) {
     char *FUN_NAME = "MAIN";
@@ -98,6 +100,8 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    nb_main = pthread_self();
+
     printf("end initialisation\n");
     okServer("main");
     pthread_t num_t, temp;
@@ -113,19 +117,22 @@ int main(int argc, char *argv[]) {
     pthread_create(&temp, NULL, cli, NULL);
     okServer("main");
 
+    tryServer("mise en place du mask");
+
+    struct sigaction action;
+
+    action.sa_flags = SA_SIGINFO;     
+    action.sa_handler = signal_handler;
+    sigaction(SIGUSR1, &action, NULL);
+
+    okServer("maks");
+
+
     while (!end) {
-        while (!listIsEmpty(thread)) {
-            pthread_join(listPop(thread), NULL);
-            printf("RIP Threads\n");
-        }
-        sleep(1);
+        pause();
     }
 
     tlsCloseCom(tls, NULL);
-    deinitTLSInfos(&tls);
-    pthread_join(num_t, NULL);
     tryServer("main je me suicide...");
     return 0;
 }
-
-

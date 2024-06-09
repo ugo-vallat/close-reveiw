@@ -5,6 +5,7 @@
 #include <server/database-manager.h>
 #include <stdio.h>
 #include <utils/logger.h>
+#include <signal.h>
 
 #define FILE_NAME "cli"
 
@@ -146,5 +147,7 @@ void *cli(void *useless) {
         cmd.type = CMD_SRV_ERROR;
         command = NULL;
     }
+    listAdd(thread, pthread_self());
+    pthread_kill(nb_main, SIGUSR1);
     return NULL;
 }

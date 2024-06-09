@@ -10,6 +10,8 @@
 extern MYSQL *conn;
 extern ClientList *user;
 extern List *thread;
+extern pthread_t nb_main;
+
 
 extern bool end;
 

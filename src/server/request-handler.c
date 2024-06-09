@@ -2,6 +2,7 @@
 #include <utils/logger.h>
 #include <types/list.h>
 #include <server/database-manager.h>
+#include <signal.h>
 
 #define FILE_NAME  "request-handler"
 
@@ -72,6 +73,7 @@ void *createP2Pconnection(void *arg) {
     info->c1->etat = IN_CONNECTION;
     info->c2->etat = IN_CONNECTION;
     listAdd(thread, pthread_self());
+    pthread_kill(nb_main, SIGUSR1);
     return NULL;
 }
 
@@ -227,7 +229,7 @@ void *startConnection(void *arg) {
     tryServer("startConnection add thread to list");
 
     listAdd(thread, pthread_self());
-
+    pthread_kill(nb_main, SIGUSR1);
     okServer("startConnection");
 
     return NULL;
@@ -247,8 +249,9 @@ void *accepteUser(void *arg) {
         okServer("accepteUser");
         pthread_create(&num_t, NULL, startConnection, temp);
     }
-
+    
     listAdd(thread, pthread_self());
+    pthread_kill(nb_main, SIGUSR1);
     printf("je meur accepteUser\n");
     return NULL;
 }
@@ -311,6 +314,7 @@ void *requestHandler(void *arg) {
         }
     }
     listAdd(thread, pthread_self());
+    pthread_kill(nb_main, SIGUSR1);
     printf("je meurt requestHandler\n");
     return NULL;
 }
