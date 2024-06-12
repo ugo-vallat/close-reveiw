@@ -1,8 +1,4 @@
 # Zig Build System
-<<<<<<< Updated upstream
-zig-cache/
-=======
->>>>>>> Stashed changes
 .zig-cache/
 zig-out/
 
