@@ -41,7 +41,7 @@ TUI_error stdinGetUserInput(char **buffer) {
     return TUI_SUCCESS;
 }
 
-TUI_error stdinGetUserInput2(char **buffer, WINDOW *input_win) {
+TUI_error stdinGetUserInputGraphical(char **buffer, WINDOW *input_win) {
     char FUN_NAME[32] = "stdinGetUserInput2";
     *buffer = calloc(SIZE_INPUT, sizeof(char));
     if (buffer == NULL) {
@@ -83,7 +83,7 @@ void *stdinHandler(void *arg) {
 
     managerSetState(manager, MANAGER_MOD_INPUT, MANAGER_STATE_OPEN);
     while (!exited) {
-        switch (tui_error = stdinGetUserInput2(&buffer, input_win)) {
+        switch (tui_error = stdinGetUserInputGraphical(&buffer, input_win)) {
         case TUI_SUCCESS:
             if (*buffer == '/') {
                 command = initCommand(buffer);
@@ -185,7 +185,7 @@ TUI_error stdoutDisplayPacket(Packet *packet) {
     return TUI_SUCCESS;
 }
 
-TUI_error stdoutDisplayPacket2(Packet *packet, WINDOW *output_win, Manager *manager) {
+TUI_error stdoutDisplayPacketGraphical(Packet *packet, WINDOW *output_win, Manager *manager) {
     char FUN_NAME[32] = "stdoutDisplayPacket2";
     char *output, *peer_id;
 
@@ -269,7 +269,7 @@ void *stdoutHandler(void *arg) {
             if (packet->type == PACKET_P2P_MSG && packet->p2p.type == P2P_CLOSE) {
                 printf("Application closed\n");
                 exited = true;
-            } else if (stdoutDisplayPacket2(packet, output_win, manager) == TUI_OUTPUT_FORMATTING_ERROR) {
+            } else if (stdoutDisplayPacketGraphical(packet, output_win, manager) == TUI_OUTPUT_FORMATTING_ERROR) {
                 buffer = packetTypeToString(packet->type);
                 printf("Couldn't display the recieved packet of type : %s\n", buffer);
                 free(buffer);
@@ -293,5 +293,7 @@ void *stdoutHandler(void *arg) {
     delwin(output_win);
     delwin(border_win);
     managerMainSendPthreadToJoin(manager, pthread_self());
+    sleep(500);
+    endwin();
     return NULL;
 }

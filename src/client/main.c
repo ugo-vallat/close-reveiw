@@ -174,6 +174,5 @@ void closeApp() {
         deinitConfig(&config);
     }
     printl("%s === Application closed === %s", BLUE, RESET);
-    endwin();
     exit(0);
 }

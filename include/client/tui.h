@@ -18,13 +18,13 @@ typedef enum e_tui_error {
 
 TUI_error stdinGetUserInput(char **buffer);
 
-TUI_error stdinGetUserInput2(char **buffer, WINDOW *input_win);
+TUI_error stdinGetUserInputGraphical(char **buffer, WINDOW *input_win);
 
 void *stdinHandler(void *arg);
 
 TUI_error stdoutDisplayPacket(Packet *packet);
 
-TUI_error stdoutDisplayPacket2(Packet *packet, WINDOW *output_win, Manager *manager);
+TUI_error stdoutDisplayPacketGraphical(Packet *packet, WINDOW *output_win, Manager *manager);
 
 void *stdoutHandler(void *arg);
 
