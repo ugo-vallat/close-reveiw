@@ -3,8 +3,8 @@
 #include <types/message.h>
 #include <types/p2p-msg.h>
 #include <types/packet.h>
-#include <utils/const-define.h>
 #include <utils/logger.h>
+#include <utils/project_constants.h>
 
 #define FILE_PACKET "packet.c"
 
@@ -33,6 +33,7 @@ Packet *initPacketP2PMsg(P2P_msg *msg) {
     assertl(msg, FILE_PACKET, FUN_NAME, -1, "msg NULL");
 
     Packet *p = malloc(sizeof(Packet));
+    memset(p, 0, sizeof(Packet));
     p->type = PACKET_P2P_MSG;
     p2pMsgCopy(&(p->p2p), msg);
     return p;
@@ -61,4 +62,20 @@ Packet *packetCopy(Packet *p) {
     Packet *new = malloc(sizeof(Packet));
     memcpy(new, p, sizeof(Packet));
     return new;
+}
+
+char *packetTypeToString(Packet_type type) {
+    char *string = malloc(16);
+    switch (type) {
+    case PACKET_MSG:
+        strncpy(string, "PACKET_MSG", 16);
+        break;
+    case PACKET_P2P_MSG:
+        strncpy(string, "PACKET_P2P_MSG", 16);
+        break;
+    case PACKET_TXT:
+        strncpy(string, "PACKET_TXT", 16);
+        break;
+    }
+    return string;
 }

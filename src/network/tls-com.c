@@ -1,32 +1,59 @@
-#include "types/genericlist.h"
-#include "types/message.h"
-#include "types/p2p-msg.h"
 #include <arpa/inet.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <netinet/in.h>
+#include <network/manager.h>
 #include <network/tls-com.h>
 #include <openssl/err.h>
 #include <openssl/ssl.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <sys/time.h>
+#include <types/genericlist.h>
+#include <types/message.h>
+#include <types/p2p-msg.h>
 #include <types/packet.h>
 #include <unistd.h>
-#include <utils/const-define.h>
 #include <utils/logger.h>
+#include <utils/project_constants.h>
 
 #define ERROR_BUFF_SIZE 512
 
 #define FILE_TLS_COM "tls-com.c"
 
-TLS_infos *initTLSInfos(const char *ip, const int port, TLS_mode tls_mode, char *path_cert,
-                        char *path_key) {
+const char *SSL_error_to_string(int ssl_error) {
+    switch (ssl_error) {
+    case SSL_ERROR_NONE:
+        return "SSL_ERROR_NONE";
+    case SSL_ERROR_SSL:
+        return "SSL_ERROR_SSL";
+    case SSL_ERROR_WANT_READ:
+        return "SSL_ERROR_WANT_READ";
+    case SSL_ERROR_WANT_WRITE:
+        return "SSL_ERROR_WANT_WRITE";
+    case SSL_ERROR_WANT_X509_LOOKUP:
+        return "SSL_ERROR_WANT_X509_LOOKUP";
+    case SSL_ERROR_SYSCALL:
+        return "SSL_ERROR_SYSCALL";
+    case SSL_ERROR_ZERO_RETURN:
+        return "SSL_ERROR_ZERO_RETURN";
+    case SSL_ERROR_WANT_CONNECT:
+        return "SSL_ERROR_WANT_CONNECT";
+    case SSL_ERROR_WANT_ACCEPT:
+        return "SSL_ERROR_WANT_ACCEPT";
+    default:
+        return "SSL_ERROR_UNKNOWN";
+    }
+}
+
+TLS_infos *initTLSInfos(const char *ip, const int port, TLS_mode tls_mode, char *path_cert, char *path_key) {
     char FUN_NAME[32] = "initTLSInfos";
-    assertl(ip, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "ip NULL");
-    assertl(port > 0 & port < 65535, FILE_TLS_COM, FUN_NAME, TLS_ERROR, "invalid num port <%d>",
-            port);
-    assertl(tls_mode == TLS_CLIENT || tls_mode == TLS_SERVER || tls_mode == TLS_MAIN_SERVER,
-            FILE_TLS_COM, FUN_NAME, TLS_ERROR, "invalid tls mode <%d>", tls_mode);
+    if (tls_mode == TLS_CLIENT)
+        assertl(ip, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "ip NULL");
+    assertl(port > 0 & port < 65535, FILE_TLS_COM, FUN_NAME, TLS_ERROR, "invalid num port <%d>", port);
+    assertl(tls_mode == TLS_CLIENT || tls_mode == TLS_SERVER || tls_mode == TLS_MAIN_SERVER, FILE_TLS_COM, FUN_NAME,
+            TLS_ERROR, "invalid tls mode <%d>", tls_mode);
     if (tls_mode == TLS_SERVER || tls_mode == TLS_MAIN_SERVER) {
         assertl(path_cert, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "path_cert NULL");
         assertl(path_key, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "path_key NULL");
@@ -39,7 +66,8 @@ TLS_infos *initTLSInfos(const char *ip, const int port, TLS_mode tls_mode, char 
 
     memset(tls, 0, sizeof(TLS_infos));
     tls->port = port;
-    strncpy(tls->ip, ip, SIZE_IP_CHAR);
+    if (tls_mode == TLS_CLIENT)
+        strncpy(tls->ip, ip, SIZE_IP_CHAR);
     tls->mode = tls_mode;
     tls->open = false;
 
@@ -66,6 +94,7 @@ void deinitTLSInfos(TLS_infos **infos) {
     }
 
     free(tls);
+
     *infos = NULL;
 }
 
@@ -74,6 +103,7 @@ TLS_error tlsOpenCom(TLS_infos *infos, struct timeval *timeout) {
     assertl(infos, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "infos NULL");
     assertl(infos->mode != TLS_MAIN_SERVER, FILE_TLS_COM, FUN_NAME, TLS_ERROR,
             "cant call tlsOpenCom in TLS_MAIN_SERVER mode");
+    ERR_clear_error();
 
     /* close old connexion */
     if (tlsCloseCom(infos, NULL) != TLS_SUCCESS) {
@@ -81,6 +111,7 @@ TLS_error tlsOpenCom(TLS_infos *infos, struct timeval *timeout) {
     }
 
     int ret;
+    int result;
     struct sockaddr_in serv_addr, cli_addr;
 
     /* Open socket */
@@ -149,8 +180,7 @@ TLS_error tlsOpenCom(TLS_infos *infos, struct timeval *timeout) {
             return TLS_ERROR;
         }
         if (timeout) {
-            if (setsockopt(infos->sockfd, SOL_SOCKET, SO_RCVTIMEO, (void *)timeout,
-                           sizeof(struct timeval)) < 0) {
+            if (setsockopt(infos->sockfd, SOL_SOCKET, SO_RCVTIMEO, (void *)timeout, sizeof(struct timeval)) < 0) {
                 warnl(FILE_TLS_COM, FUN_NAME, "error set timeout");
                 tlsCloseCom(infos, NULL);
                 return TLS_ERROR;
@@ -163,6 +193,10 @@ TLS_error tlsOpenCom(TLS_infos *infos, struct timeval *timeout) {
         socklen_t cli_len = sizeof(cli_addr);
         int client_sockfd = accept(infos->sockfd, (struct sockaddr *)&cli_addr, &cli_len);
         if (client_sockfd == -1) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                warnl(FILE_TLS_COM, FUN_NAME, "accept() stoped by timeout");
+                return TLS_RETRY;
+            }
             warnl(FILE_TLS_COM, FUN_NAME, "error accept client");
             tlsCloseCom(infos, NULL);
             return TLS_ERROR;
@@ -171,10 +205,53 @@ TLS_error tlsOpenCom(TLS_infos *infos, struct timeval *timeout) {
             infos->sockfd = client_sockfd;
         }
     } else {
-        if (connect(infos->sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-            warnl(FILE_TLS_COM, FUN_NAME, "error connect to server");
-            tlsCloseCom(infos, NULL);
-            return TLS_ERROR;
+        if (timeout) {
+            struct timeval start_time, current_time;
+            int connected = 0;
+            long elapsed_seconds, elapsed_microseconds;
+            gettimeofday(&start_time, NULL);
+
+            while (!connected) {
+                int result = connect(infos->sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+                if (result == 0) {
+                    /* connection success */
+                    connected = 1;
+                } else {
+                    /* connectio failed */
+                    switch (errno) {
+                    case EINPROGRESS:
+                    case EALREADY:
+                    case EISCONN:
+                    case ECONNREFUSED:
+                        break;
+                    default:
+                        warnl(FILE_TLS_COM, FUN_NAME, "error connect to server");
+                        tlsCloseCom(infos, NULL);
+                        return TLS_ERROR;
+                    }
+
+                    gettimeofday(&current_time, NULL);
+                    elapsed_seconds = current_time.tv_sec - start_time.tv_sec;
+                    elapsed_microseconds = current_time.tv_usec - start_time.tv_usec;
+                    if (elapsed_seconds >= timeout->tv_sec ||
+                        (elapsed_seconds == timeout->tv_sec && elapsed_microseconds > timeout->tv_usec)) {
+                        warnl(FILE_TLS_COM, FUN_NAME, "connect() stoped by timeout");
+                        tlsCloseCom(infos, NULL);
+                        return TLS_ERROR;
+                    }
+                    usleep(500000); // wait 0.5s
+                }
+            }
+        } else {
+            if (connect(infos->sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+                if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                    warnl(FILE_TLS_COM, FUN_NAME, "connect() stoped by timeout");
+                    return TLS_RETRY;
+                }
+                warnl(FILE_TLS_COM, FUN_NAME, "error connect to server");
+                tlsCloseCom(infos, NULL);
+                return TLS_ERROR;
+            }
         }
     }
 
@@ -229,6 +306,7 @@ TLS_infos *tlsAcceptCom(TLS_infos *infos) {
     assertl(infos, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "infos NULL");
     assertl(infos->mode == TLS_MAIN_SERVER, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER,
             "call tlsAcceptCom only in TLS_MAIN_SERVER mode");
+    ERR_clear_error();
 
     int ret;
     struct sockaddr_in serv_addr, cli_addr;
@@ -296,8 +374,7 @@ TLS_infos *tlsAcceptCom(TLS_infos *infos) {
         tlsCloseCom(infos, NULL);
         return NULL;
     } else {
-        client =
-            initTLSInfos(infos->ip, infos->port, TLS_SERVER, infos->path_cert, infos->path_key);
+        client = initTLSInfos(infos->ip, infos->port, TLS_SERVER, infos->path_cert, infos->path_key);
         client->sockfd = client_sockfd;
     }
 
@@ -338,6 +415,7 @@ TLS_infos *tlsAcceptCom(TLS_infos *infos) {
 TLS_error tlsCloseCom(TLS_infos *infos, GenList *last_received) {
     char FUN_NAME[32] = "tlsCloseCom";
     assertl(infos, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "infos NULL");
+    ERR_clear_error();
 
     TLS_error error = TLS_SUCCESS;
 
@@ -379,16 +457,13 @@ TLS_error tlsCloseCom(TLS_infos *infos, GenList *last_received) {
     return TLS_SUCCESS;
 }
 
-TLS_error tlsStartListenning(TLS_infos *infos, Manager *manager, Manager_module module,
-                             funTLSGetNextPacket next_packet,
-                             funTLSPacketReceivedManager MSG_manager,
-                             funTLSPacketReceivedManager P2P_manager) {
+TLS_error tlsStartListenning(TLS_infos *infos, Manager *manager, Manager_module module, funTLSGetNextPacket next_packet,
+                             funTLSPacketReceivedManager packet_manager_received) {
     char FUN_NAME[32] = "tlsStartListenning";
     assertl(infos, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "infos NULL");
     assertl(manager, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "manager NULL");
     assertl(next_packet, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "next_packet NULL");
-    assertl(MSG_manager, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "MSG_manager NULL");
-    assertl(P2P_manager, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "P2P_manager NULL");
+    assertl(packet_manager_received, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "packet_manager_received NULL");
 
     TLS_error tls_error;
     Packet *p;
@@ -412,6 +487,7 @@ TLS_error tlsStartListenning(TLS_infos *infos, Manager *manager, Manager_module 
             break;
         case TLS_CLOSE:
             /* end of communication */
+            // warnl(FILE_TLS_COM, FUN_NAME, "close 1");
             tlsCloseCom(infos, NULL);
             return TLS_CLOSE;
         case TLS_ERROR:
@@ -427,15 +503,22 @@ TLS_error tlsStartListenning(TLS_infos *infos, Manager *manager, Manager_module 
         case TLS_SUCCESS:
             switch (p->type) {
             case PACKET_MSG:
-                MSG_manager(manager, module, p);
-                break;
             case PACKET_P2P_MSG:
-                P2P_manager(manager, module, p);
+            case PACKET_TXT:
+                tls_error = packet_manager_received(manager, module, p);
+                switch (tls_error) {
+                case TLS_SUCCESS:
+                    break;
+                case TLS_CLOSE:
+                    // warnl(FILE_TLS_COM, FUN_NAME, "close 2");
+                    return TLS_CLOSE;
+                default:
+                    warnl(FILE_TLS_COM, FUN_NAME, "%s - packet_manager_receive failed", tlsErrorToString(tls_error));
+                    break;
+                }
                 break;
             default:
                 warnl(FILE_TLS_COM, FUN_NAME, "unexpected type <%d>", p->type);
-                tlsCloseCom(infos, NULL);
-                return TLS_ERROR;
             }
             deinitPacket(&p);
             break;
@@ -446,10 +529,128 @@ TLS_error tlsStartListenning(TLS_infos *infos, Manager *manager, Manager_module 
             return TLS_CLOSE;
         case TLS_ERROR:
         case TLS_NULL_POINTER:
-            warnl(FILE_TLS_COM, FUN_NAME, "fail tlsReceiveNonBlocking");
+            warnl(FILE_TLS_COM, FUN_NAME, "fail tlsReceiveNonBlocking - %s", tlsErrorToString(tls_error));
             tlsCloseCom(infos, NULL);
             return TLS_ERROR;
         }
+    }
+}
+
+TLS_error tlsManagerPacketReceived(Manager *manager, Manager_module module, Packet *packet) {
+    char *FUN_NAME = "tlsP2PManagerPacketReceived";
+    assertl(manager, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "manager NULL");
+    assertl(packet, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "packet NULL");
+
+    Manager_error manager_error;
+
+    if (module == MANAGER_MOD_PEER) {
+        switch (packet->type) {
+        case PACKET_P2P_MSG:
+            switch (p2pMsgGetType(&(packet->p2p))) {
+            case P2P_REJECT:
+            case P2P_CLOSE:
+                managerSend(manager, MANAGER_MOD_OUTPUT, packet);
+                return TLS_CLOSE;
+                break;
+            /* unexpected */
+            case P2P_REQUEST_IN:
+            case P2P_AVAILABLE:
+            case P2P_GET_INFOS:
+            case P2P_TRY_CLIENT_MODE:
+            case P2P_TRY_SERVER_MODE:
+            case P2P_ACCEPT:
+            case P2P_CONNECTION_OK:
+            case P2P_CONNECTION_KO:
+            case P2P_CONNECTION_SERVER:
+            case P2P_REQUEST_OUT:
+            case P2P_GET_AVAILABLE:
+            case P2P_CON_FAILURE:
+            case P2P_CON_SUCCESS:
+            case P2P_INFOS:
+                warnl(FILE_TLS_COM, FUN_NAME, "packet %s unsupported",
+                      p2pMsgTypeToString(p2pMsgGetType(&(packet->p2p))));
+            }
+            return TLS_ERROR;
+            break;
+        case PACKET_MSG:
+        case PACKET_TXT:
+            manager_error = managerSend(manager, MANAGER_MOD_OUTPUT, packet);
+            return TLS_SUCCESS;
+            break;
+        }
+    } else if (module == MANAGER_MOD_SERVER) {
+        switch (packet->type) {
+        case PACKET_P2P_MSG:
+            switch (p2pMsgGetType(&(packet->p2p))) {
+            case P2P_AVAILABLE:
+            case P2P_REQUEST_IN:
+                manager_error = managerSend(manager, MANAGER_MOD_OUTPUT, packet);
+                return TLS_SUCCESS;
+                break;
+            case P2P_REJECT:
+            case P2P_CLOSE:
+            case P2P_GET_INFOS:
+            case P2P_TRY_CLIENT_MODE:
+            case P2P_TRY_SERVER_MODE:
+            case P2P_ACCEPT:
+                managerSend(manager, MANAGER_MOD_PEER, packet);
+                return TLS_SUCCESS;
+                break;
+            case P2P_CONNECTION_OK:
+            case P2P_CONNECTION_KO:
+                managerSend(manager, MANAGER_MOD_INPUT, packet);
+                managerSend(manager, MANAGER_MOD_OUTPUT, packet);
+                return TLS_SUCCESS;
+                break;
+            /* unexpected */
+            case P2P_CONNECTION_SERVER:
+            case P2P_REQUEST_OUT:
+            case P2P_GET_AVAILABLE:
+            case P2P_CON_FAILURE:
+            case P2P_CON_SUCCESS:
+            case P2P_INFOS:
+                warnl(FILE_TLS_COM, FUN_NAME, "packet %s unsupported",
+                      p2pMsgTypeToString(p2pMsgGetType(&(packet->p2p))));
+            }
+            return TLS_ERROR;
+            break;
+        case PACKET_MSG:
+        case PACKET_TXT:
+            manager_error = managerSend(manager, MANAGER_MOD_OUTPUT, packet);
+            return TLS_SUCCESS;
+            break;
+        }
+    } else {
+        warnl(FILE_TLS_COM, FUN_NAME, "unexpected Manager module");
+        return TLS_ERROR;
+    }
+}
+
+TLS_error tlsManagerPacketGetNext(Manager *manager, Manager_module module, Packet **packet) {
+    char *FUN_NAME = "tlsManagerPacketGetNext";
+    assertl(manager, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "manager NULL");
+    assertl(packet, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "packet NULL");
+
+    Manager_error manager_error;
+    manager_error = managerReceiveNonBlocking(manager, module, packet);
+    switch (manager_error) {
+    case MANAGER_ERR_SUCCESS:
+        /* packet is close request */
+        if ((*packet)->type == PACKET_P2P_MSG && (*packet)->p2p.type == P2P_CLOSE)
+            return TLS_CLOSE;
+        return TLS_SUCCESS;
+        break;
+    case MANAGER_ERR_RETRY:
+        return TLS_RETRY;
+        break;
+    case MANAGER_ERR_CLOSED:
+        warnl(FILE_TLS_COM, FUN_NAME, "%s - manager closed", managerErrorToString(manager_error));
+        return TLS_ERROR;
+        break;
+    case MANAGER_ERR_ERROR:
+        warnl(FILE_TLS_COM, FUN_NAME, "%s - manager failed", managerErrorToString(manager_error));
+        return TLS_ERROR;
+        break;
     }
 }
 
@@ -464,11 +665,13 @@ TLS_error tlsSend(TLS_infos *infos, Packet *packet) {
 
     /* case com closed */
     if (!infos->open) {
+        warnl(FILE_TLS_COM, FUN_NAME, "communication closed");
         return TLS_ERROR;
     }
 
     do {
         /* try send packet */
+        ERR_clear_error();
         ret = SSL_write(infos->ssl, packet, sizeof(Packet));
         if (ret > 0) {
             return TLS_SUCCESS;
@@ -487,7 +690,7 @@ TLS_error tlsSend(TLS_infos *infos, Packet *packet) {
             break;
         default:
             ERR_error_string_n(error, buff, sizeof(buff));
-            warnl(FILE_TLS_COM, FUN_NAME, "SSL_write : %s", buff);
+            warnl(FILE_TLS_COM, FUN_NAME, "SSL_write (%s) : %s", error, buff);
             infos->open = false;
             return TLS_CLOSE;
         }
@@ -511,6 +714,7 @@ TLS_error tlsReceiveNonBlocking(TLS_infos *infos, Packet **packet) {
     Packet p;
 
     /* read packet */
+    ERR_clear_error();
     ret = SSL_read(infos->ssl, &p, sizeof(Packet));
 
     /* return packet if success */
@@ -533,11 +737,19 @@ TLS_error tlsReceiveNonBlocking(TLS_infos *infos, Packet **packet) {
     case SSL_ERROR_WANT_WRITE:
         return TLS_RETRY;
         break;
+    case SSL_ERROR_SYSCALL:
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            errno = 0;
+            return TLS_RETRY;
+            break;
+        }
     default:
         ERR_error_string_n(error, buff, sizeof(buff));
-        warnl(FILE_TLS_COM, FUN_NAME, "SSL_read : %s", buff);
+        warnl(FILE_TLS_COM, FUN_NAME, "SSL_read (%d - %s) on socket %d : %s", error, SSL_error_to_string(error),
+              infos->sockfd, buff);
         return TLS_ERROR;
     }
+    return TLS_ERROR;
 }
 
 TLS_error tlsReceiveBlocking(TLS_infos *infos, Packet **packet) {
@@ -571,6 +783,7 @@ TLS_error tlsReceiveBlocking(TLS_infos *infos, Packet **packet) {
     }
 
     /* read packet */
+    ERR_clear_error();
     ret = SSL_read(infos->ssl, &p, sizeof(Packet));
 
     /* return packet if success */
@@ -594,9 +807,16 @@ TLS_error tlsReceiveBlocking(TLS_infos *infos, Packet **packet) {
         infos->open = false;
         tls_error = TLS_CLOSE;
         break;
+    case SSL_ERROR_SYSCALL:
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            errno = 0;
+            return TLS_RETRY;
+            break;
+        }
     default:
         ERR_error_string_n(error, buff, sizeof(buff));
-        warnl(FILE_TLS_COM, FUN_NAME, "SSL_read : %s", buff);
+        warnl(FILE_TLS_COM, FUN_NAME, "SSL_read (%d - %s) on socket %d : %s", error, SSL_error_to_string(error),
+              infos->sockfd, buff);
         tls_error = TLS_ERROR;
     }
 
@@ -609,4 +829,21 @@ TLS_error tlsReceiveBlocking(TLS_infos *infos, Packet **packet) {
         tls_error = TLS_ERROR;
     }
     return tls_error;
+}
+
+char *tlsErrorToString(TLS_error error) {
+    switch (error) {
+    case TLS_ERROR:
+        return "TLS_ERROR";
+    case TLS_SUCCESS:
+        return "TLS_SUCCESS";
+    case TLS_NULL_POINTER:
+        return "TLS_NULL_POINTER";
+    case TLS_RETRY:
+        return "TLS_RETRY";
+    case TLS_CLOSE:
+        return "TLS_CLOSE";
+    default:
+        return "Unknown";
+    }
 }

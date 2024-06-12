@@ -4,6 +4,8 @@
 #include <mysql.h>
 #include <stdbool.h>
 #include <types/genericlist.h>
+#include <types/p2p-msg.h>
+#include <types/clientlist.h>
 
 /**
  * @brief Set up the database, creating necessary tables.
@@ -19,6 +21,15 @@ void setup(MYSQL *conn);
  */
 void createUser(MYSQL *conn, char *username, char *password);
 
+
+/**
+ * @brief Create a new user in the database.
+ * @param[in] conn The MySQL connection handle.
+ * @param[in] username The username of the new user.
+ * @param[in] password The password of the new user.
+ */
+void deleteUser(MYSQL *conn, int id);
+
 /**
  * @brief Attempt to log in with a given username and password.
  * @param[in] conn The MySQL connection handle.
@@ -26,7 +37,8 @@ void createUser(MYSQL *conn, char *username, char *password);
  * @param[in] password The password to log in with.
  * @return true if login was successful, false otherwise.
  */
-bool login(MYSQL *conn, char *username, char *password); //TODO
+bool login(MYSQL *conn, char *username, char *password);
+
 
 /**
  * @brief Check if a username exists in the database.
@@ -46,10 +58,8 @@ bool usernameExists(MYSQL *conn, char *username);
  */
 void logginDatabase(MYSQL *conn, char *server, char *sql_user, char *sql_password, char *database);
 
-GenList listUser(MYSQL *conn);
+int getId(MYSQL *conn, char *username);
 
-GenList listUserConnected(MYSQL *conn);
-
-GenList listUserAvalaible(MYSQL *conn);
+ClientList *getUserList(MYSQL *conn);
 
 #endif // TEST_MYSQL_H

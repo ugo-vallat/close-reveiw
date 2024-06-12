@@ -1,17 +1,16 @@
+#include <ctype.h>
 #include <openssl/evp.h>
-#include <omp.h>
-#include <unistd.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
-#include <ctype.h>
+#include <unistd.h>
 
 #define MAX_PASSWORD_LENGTH 30
 #define MIN_PASSWORD_LENGTH 8
 #define MD5_WORDLIST_PATH "custom_hash"
 
-int get_num_password(char *passlist){
+int get_num_password(char *passlist) {
     FILE *passlist_file = fopen(passlist, "r");
     if (passlist_file == NULL) {
         fprintf(stderr, "Error: could not open file %s\n", passlist);
@@ -30,10 +29,10 @@ int get_num_password(char *passlist){
     }
     return num_passwords;
 }
-void password_to_md5_hash(char *password, char *hash){
+void password_to_md5_hash(char *password, char *hash) {
     unsigned char digest[EVP_MAX_MD_SIZE];
     unsigned int digest_len;
-    char string[EVP_MAX_MD_SIZE*2+1];
+    char string[EVP_MAX_MD_SIZE * 2 + 1];
     int i;
 
     EVP_MD_CTX *ctx = EVP_MD_CTX_new();
@@ -42,22 +41,21 @@ void password_to_md5_hash(char *password, char *hash){
     EVP_DigestFinal_ex(ctx, digest, &digest_len);
     EVP_MD_CTX_free(ctx);
 
-    for(i = 0; i < digest_len; i++)
-        sprintf(&string[i*2], "%02x", (unsigned int)digest[i]);
+    for (i = 0; i < digest_len; i++)
+        sprintf(&string[i * 2], "%02x", (unsigned int)digest[i]);
     strcpy(hash, string);
 }
 
-bool wordlist_check(char *password){
-    FILE * hashlist_file = fopen(MD5_WORDLIST_PATH,"r");
+bool wordlist_check(char *password) {
+    FILE *hashlist_file = fopen(MD5_WORDLIST_PATH, "r");
     unsigned char **hashes = malloc(get_num_password(MD5_WORDLIST_PATH) * sizeof(unsigned char *));
     if (hashlist_file == NULL) {
         fprintf(stderr, "Error: could not open file %s\n", MD5_WORDLIST_PATH);
         exit(1);
     }
 
-    char *hash = malloc(EVP_MAX_MD_SIZE*2+1);
+    char *hash = malloc(EVP_MAX_MD_SIZE * 2 + 1);
     password_to_md5_hash(password, hash);
-    
 
     char *line = NULL;
     size_t len = 0;
@@ -71,40 +69,38 @@ bool wordlist_check(char *password){
     }
     fclose(hashlist_file);
 
-    for (int j = 0; j < i; j++){
-        if (strcmp(hashes[j], hash) == 0){
+    for (int j = 0; j < i; j++) {
+        if (strcmp(hashes[j], hash) == 0) {
             return true;
         }
     }
     return false;
 }
 
-
-
-bool check_chars(char* password){
+bool check_chars(char *password) {
     bool contains_digit = false;
     bool contains_upper = false;
     bool contains_special = false;
     int length = strlen(password);
-    for (int i = 0; i < length; i++){
-        if (isdigit(password[i])){
+    for (int i = 0; i < length; i++) {
+        if (isdigit(password[i])) {
             contains_digit = true;
         }
-        if (isupper(password[i])){
+        if (isupper(password[i])) {
             contains_upper = true;
         }
-        if (!isalnum(password[i])){
+        if (!isalnum(password[i])) {
             contains_special = true;
         }
-        if (contains_digit && contains_upper && contains_special){
+        if (contains_digit && contains_upper && contains_special) {
             break;
         }
     }
     return contains_digit && contains_upper && contains_special;
 }
 
-bool check_password(char *password){
-    char * hash = malloc(EVP_MAX_MD_SIZE*2+1);
+bool check_password(char *password) {
+    char *hash = malloc(EVP_MAX_MD_SIZE * 2 + 1);
     password_to_md5_hash(password, hash);
     if (strlen(password) < MIN_PASSWORD_LENGTH) {
         fprintf(stderr, "Error: password must be at least %d characters long\n", MIN_PASSWORD_LENGTH);
@@ -116,13 +112,14 @@ bool check_password(char *password){
         return false;
     }
 
-    if (!check_chars(password)){
-        fprintf(stderr, "Error: password must contain at least one digit, one uppercase letter and one special character\n");
+    if (!check_chars(password)) {
+        fprintf(stderr, "Error: password must contain at least one digit, one uppercase letter and "
+                        "one special character\n");
         return false;
     }
 
-    if (wordlist_check(password)){
-        //fprintf(stderr, "Error: password is too weak\n");
+    if (wordlist_check(password)) {
+        // fprintf(stderr, "Error: password is too weak\n");
         return false;
     }
     return true;

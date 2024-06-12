@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+#include <unistd.h>
 #include <utils/logger.h>
 
 #define YELLOW "\033[38;5;184m"
@@ -13,18 +15,22 @@
 #define RSTC "\033[0m"
 
 FILE *output = NULL;
+char *logger_id;
 bool console;
 char *c_yellow;
 char *c_orange;
 char *c_rstc;
 
 /**
- * @date 04/11/2023
  * @author LAFORGE Mateo
  */
-void init_logger(const char *file_path) {
+void init_logger(const char *file_path, char *id) {
     if (file_path) {
         output = fopen(file_path, "a");
+        if (!output) {
+            fprintf(stderr, "[logger] failed to open log file\n");
+        }
+        freopen(file_path, "a", stderr);
         console = false;
         c_yellow = "";
         c_orange = "";
@@ -36,10 +42,32 @@ void init_logger(const char *file_path) {
         c_orange = ORANGE;
         c_rstc = RSTC;
     }
+    if (id) {
+        logger_id = strdup(id);
+    } else {
+        logger_id = malloc(16);
+        snprintf(logger_id, 16, "%d", getpid());
+    }
+}
+
+char *timeToString() {
+    time_t current_time;
+    struct tm *local_time;
+    char *string_time;
+    char string_date[30];
+    char string_hour[30];
+
+    string_time = malloc(64);
+    current_time = time(NULL);
+    local_time = localtime(&current_time);
+    strftime(string_date, 30, "%d-%m-%Y", local_time);
+    strftime(string_hour, 30, "%H:%M:%S", local_time);
+    snprintf(string_time, 64, "%s - %s", string_date, string_hour);
+
+    return string_time;
 }
 
 /**
- * @date 04/11/2023
  * @author LAFORGE Mateo
  */
 void printl(const char *format, ...) {
@@ -49,6 +77,10 @@ void printl(const char *format, ...) {
         return;
     }
 #endif
+    char *string_time = timeToString();
+    fprintf(output, "[%s][%s] ", logger_id, string_time);
+    free(string_time);
+
     va_list args;
     va_start(args, format);
     vfprintf(output, format, args);
@@ -58,7 +90,6 @@ void printl(const char *format, ...) {
 }
 
 /**
- * @date 04/11/2023
  * @author LAFORGE Mateo
  */
 void warnl(const char *file_name, const char *fun_name, const char *format, ...) {
@@ -73,9 +104,14 @@ void warnl(const char *file_name, const char *fun_name, const char *format, ...)
 #endif
 
     va_list args;
+    char *string_time = timeToString();
     va_start(args, format);
-    if (errno)
-        perror("Warnl with errno : ");
+    if (errno) {
+        fprintf(output, "[%s][%s] ", logger_id, string_time);
+        perror("Warnl with errno ");
+        errno = 0;
+    }
+    fprintf(output, "[%s][%s] ", logger_id, string_time);
     // format de sortie dépendant
     if (console) {
         fprintf(output, YELLOW);
@@ -89,11 +125,11 @@ void warnl(const char *file_name, const char *fun_name, const char *format, ...)
         fprintf(output, "\n");
     }
     fflush(output); // intégrité des logs
+    free(string_time);
     va_end(args);
 }
 
 /**
- * @date 04/11/2023
  * @author LAFORGE Mateo
  * @brief Affiche la pile d'appel de fonction
  * @pre Drapeau de compilation -rdynamic
@@ -109,10 +145,9 @@ void printStackTrace() {
 }
 
 /**
- * @date 04/11/2023
  * @author LAFORGE Mateo
  */
-void exitl(const char *file_name, const char *fun_name, int exit_value, char *format, ...) {
+void exitl(const char *file_name, const char *fun_name, int exit_value, const char *format, ...) {
 #ifdef DEBUG
     printStackTrace();
     if (output == NULL) {
@@ -120,10 +155,15 @@ void exitl(const char *file_name, const char *fun_name, int exit_value, char *fo
         exit(EXIT_FAILURE);
     }
 #endif
+    char *string_time = timeToString();
     va_list args;
     va_start(args, format);
-    if (errno)
-        perror("Exit with errno : ");
+    if (errno) {
+        fprintf(output, "[%s][%s] ", logger_id, string_time);
+        perror("Exit with errno ");
+        errno = 0;
+    }
+    fprintf(output, "[%s][%s] ", logger_id, string_time);
     // format de sortie dépendant
     if (console) {
         fprintf(output, RED);
@@ -138,20 +178,25 @@ void exitl(const char *file_name, const char *fun_name, int exit_value, char *fo
     }
     va_end(args);
     close_logger();
+    free(string_time);
     exit(exit_value);
 }
 
-void assertl(bool assert, const char *file_name, const char *fun_name, int exit_value, char *format,
-             ...) {
+void assertl(bool assert, const char *file_name, const char *fun_name, int exit_value, const char *format, ...) {
     va_list args;
     /* If assertion is true, nothing to do */
     if (assert)
         return;
 
     /* else */
+    char *string_time = timeToString();
     va_start(args, format);
-    if (errno)
-        perror("Exit with errno ");
+    if (errno) {
+        fprintf(output, "[%s][%s] ", logger_id, string_time);
+        perror("Assert with errno ");
+        errno = 0;
+    }
+    fprintf(output, "[%s][%s] ", logger_id, string_time);
     // format de sortie dépendant
     if (console) {
         fprintf(output, RED);
@@ -166,11 +211,11 @@ void assertl(bool assert, const char *file_name, const char *fun_name, int exit_
     }
     va_end(args);
     close_logger();
+    free(string_time);
     exit(exit_value);
 }
 
 /**
- * @date 04/11/2023
  * @author LAFORGE Mateo
  */
 void close_logger(void) {

@@ -1,5 +1,5 @@
-#ifndef __CONST_DEFINE_H__
-#define __CONST_DEFINE_H__
+#ifndef __PROJECT_CONSTANTS_H__
+#define __PROJECT_CONSTANTS_H__
 
 /* Type Msg */
 #define SIZE_DATE 20
@@ -25,7 +25,21 @@
 /* SQL */
 #define SIZE_QUERY 512
 
+/* Command */
+#define SIZE_CMD_RES 1024
+#define SIZE_MAX_CMD 32
+#define NB_COMMANDS 9
+
+/* TUI */
+#define INPUT_HEIGHT 3
+
 #define SIZE_DIRECTORY 256
 #define SIZE_ERROR_CHAR 256
+
+/* paths */
+#define PATH_LOG "./logs.log"
+#define PATH_CONFIG_CLIENT "./config/client/config.toml"
+#define PATH_CONFIG_SERVER "./config/server/config.toml"
+
 
 #endif

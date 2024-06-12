@@ -1,10 +1,14 @@
 # Zig Build System
+<<<<<<< Updated upstream
 zig-cache/
+=======
+>>>>>>> Stashed changes
+.zig-cache/
 zig-out/
 
 # Clangd
 .cache/
 compile_commands.json
 
-# Config File
-config.toml
+# logs
+logs.log

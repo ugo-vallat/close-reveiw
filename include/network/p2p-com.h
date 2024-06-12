@@ -40,6 +40,15 @@ void p2pRespondToRequest(Manager *manager, char *peer_id, bool response);
 void p2pStartDirectConnection(Manager *manager, TLS_mode mode, char *ip, int port);
 
 /**
+ * @brief Try to connect user to the sender (send user_id and password hash)
+ *
+ * @param manager Manager
+ * @param user_id User id
+ * @param password User password
+ */
+void p2pConnectToServer(Manager *manager, char *user_id, char *password);
+
+/**
  * @brief Close the peer connection with the user peer_id
  *
  * @param manager Manager

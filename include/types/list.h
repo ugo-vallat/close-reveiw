@@ -1,36 +1,37 @@
 /**
- * @file genericlist.h
+ * @file list.h
+ * @author VALLAT Ugo, translation from french to english by MARTIN Benoit
  *
- * @brief This library implements a pseudo static generic list of integers
+ * @brief This library implements a pseudo static list of integers
  *
  * Implements the list in the form of a static array and allocates
  * dynamic memory when it is full
  *
- * The generic list is thread-safe (except delete)
- *
- * The list only contains generic pointers to the data (void*)
- *
  * @note high performance in reading (O(1)) but low in writing (O(n))
  *
- * @remark In case of error, all generic list functions exit the program with an
+ * @remark In case of error, all list functions exit the program with an
  * error message
  */
 
-#ifndef __GENLIST_H__
-#define __GENLIST_H__
+#ifndef __LIST_H__
+#define __LIST_H__
 
+#include <errno.h>
+#include <pthread.h>
 #include <stdbool.h>
 
+#define LIST_TYPE pthread_t
+
 /*------------------------------------------------------------------*/
-/*                     GENERIC LIST STRUCTURE                       */
+/*                        LIST STRUCTURE                            */
 /*------------------------------------------------------------------*/
 
 /* Opaque definition of the list structure */
-typedef struct s_gen_list GenList;
-typedef GenList *ptrGenList;
-typedef void (*freefun)(void *);
+typedef struct s_list List;
+typedef List *ptrList;
 
 /**
+ * @date  5/11/2023
  * @brief Creates an empty list
  *
  * @param[in] memory_size Initial memory space (in number of elements)
@@ -38,36 +39,30 @@ typedef void (*freefun)(void *);
  * @return pointer to the list
  * @note Allocates memory but is not initialized (list size = 0)
  */
-GenList *initGenList(unsigned memory_size);
+List *initList(unsigned memory_size);
 
 /**
- * @brief Deletes the list but does not delete the pointed data
- * @pre l != NULL
- * @pre *l != NULL
+ * @date  5/11/2023
+ * @brief Deletes the list and frees the memory
  *
  * @param[in] l list to delete
+ * @pre l != NULL
+ * @pre *l != NULL
  */
-void deinitGenList(ptrGenList *l, freefun fun);
+void deinitList(ptrList *l);
 
 /**
- * @brief Remove all elements from the list and free memory
- *
- * @param l List to clear
- * @param fun Function to free data
- */
-void genListClear(GenList *l, freefun fun);
-
-/**
+ * @date  5/11/2023
  * @brief Adds the element to the end of the list
  *
  * @param[in] l Pointer to the list
  * @param[in] v Value to add
  * @pre l != NULL
  */
-void genListAdd(GenList *l, void *v);
-
+void listAdd(List *l, LIST_TYPE v);
 
 /**
+ * @date  5/11/2023
  * @brief Inserts a value at position i
  *
  * @param[in] l Pointer to the list
@@ -77,20 +72,22 @@ void genListAdd(GenList *l, void *v);
  *
  * @pre i <= listSize
  */
-void genListInsert(GenList *l, void *v, unsigned i);
+void listInsert(List *l, LIST_TYPE v, unsigned i);
 
 /**
+ * @date 5/11/2023
  * @brief Removes the last element of the list
  *
  * @param[in] l list
  * @pre l != NULL
  *
  * @pre list size > 0
- * @return Value before deletion
+ * @return value before deletion
  **/
-void *genListPop(GenList *l);
+LIST_TYPE listPop(List *l);
 
 /**
+ * @date  5/11/2023
  * @brief Removes the element at position i
  *
  * @param[in] l Pointer to the list
@@ -98,34 +95,27 @@ void *genListPop(GenList *l);
  * @pre l != NULL
  *
  * @pre i < listSize
- * @return Value before deletion
+ * @return value before deletion
  */
-void *genListRemove(GenList *l, unsigned i);
+LIST_TYPE listRemove(List *l, unsigned i);
 
 /**
- * @brief Remove all pointers equals to p from the list
- *
- * @param[in] l Pointer to the list
- * @param[in] p Pointer to remove in the list
- * @return Number of poiters removed
- */
-unsigned genListRemovePointer(GenList *l, void *p);
-
-/**
+ * @date 5/11/2023
  * @brief Reads the value at position i
  *
  * @param[in] l Pointer to the list
  * @param[in] i Position of the element
- *
  * @pre l != NULL
+ *
  * @pre i < list size
  *
  * @return Read value
  **/
-void *genListGet(GenList *l, unsigned i);
+LIST_TYPE listGet(List *l, unsigned i);
 
 /**
  * @author VALLAT Ugo
+ * @date 31/10/2023
  * @brief Changes the value at position i to a new value
  *
  * @param[in] l Pointer to the list
@@ -133,43 +123,32 @@ void *genListGet(GenList *l, unsigned i);
  * @param[in] i Position
  * @pre l != NULL
  */
-void genListSet(GenList *l, void *v, unsigned i);
+void listSet(List *l, LIST_TYPE v, unsigned i);
 
 /**
+ * @date 5/11/2023
  *
  * @brief Returns if the list is empty
  *
  * @param[in] l Pointer to the list
  * @pre l != NULL
- *
  * @return true if empty, false otherwise
  */
-bool genListIsEmpty(GenList *l);
+bool listIsEmpty(List *l);
 
 /**
- * @author LAFORGE Mateo
- * @brief Searches for an element e in a list l and returns a corresponding boolean
- *
- * @param[in] l the list in which to search
- * @param[in] e the element to search for
- *
- * @return true if e is in l, false otherwise
- */
-bool genListContains(GenList *l, void *e);
-
-/**
+ * @date  5/11/2023
  * @brief Returns the size of the list (position + 1 of the last element)
  *
  * @param[in] l Pointer to the list
- * @pre l != NULL
- *
  * @return size of the list
  *
  */
 
-unsigned genListSize(GenList *l);
+unsigned listSize(List *l);
 
 /**
+ * @date 30/10/2023
  * @brief Copies the input list
  *
  * @param[in] l Pointer of the list to copy
@@ -178,20 +157,15 @@ unsigned genListSize(GenList *l);
  * @return  Pointer to the copy
  *
  */
-GenList *genListCopy(GenList *l);
+
+List *listCopy(List *l);
 
 /**
- * @brief Return a description of the element (toString)
+ * @brief Resets the list to 0
  *
+ * @param l List to empty
  */
-typedef char *(*printGen)(void *);
-
-/**
- * @brief Display elements of genList in the logger
- *
- * @param l List to display
- * @param fun Function to display elements
- */
-void genListPrintl(GenList *l, printGen fun);
+void listClear(List *l);
 
 #endif
+

@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <types/genericlist.h>
 #include <types/packet.h>
+#include <utils/project_constants.h>
 
 typedef enum e_manager_module {
     MANAGER_MOD_INPUT,  /* manager of the input thread (user input) */
@@ -31,7 +32,6 @@ typedef struct s_buffer_input {
     pthread_mutex_t *mutex_wait_read;
     pthread_mutex_t *mutex_access_buffer;
     GenList *buff;
-    pthread_t num_t;
 } Buffer_module;
 
 typedef struct s_manager {
@@ -40,6 +40,7 @@ typedef struct s_manager {
     Buffer_module server;
     Buffer_module peer;
     Buffer_module main;
+    char user_id[SIZE_NAME];
 } Manager;
 
 /**
@@ -47,7 +48,7 @@ typedef struct s_manager {
  *
  * @return Manager*
  */
-Manager *initManager();
+Manager *initManager(void);
 
 /**
  * @brief Delete the manager structure and free the memory
@@ -69,11 +70,28 @@ void managerSetState(Manager *manager, Manager_module module, Manager_state stat
 /**
  * @brief Return the state of the module
  *
- * @param manager Manager
- * @param module Module
+ * @param[in] manager Manager
+ * @param[in] module Module
  * @return Manager_state
  */
 Manager_state managerGetState(Manager *manager, Manager_module module);
+
+/**
+ * @brief Set the local user id
+ *
+ * @param[in] manager Manager
+ * @param[in] user_id user id
+ * @return char*
+ */
+void managerSetUser(Manager *manager, char *user_id);
+
+/**
+ * @brief Returns the local user id
+ *
+ * @param[in] manager Manager
+ * @return char*
+ */
+char *managerGetUser(Manager *manager);
 
 /**
  * @brief Try to send the packet to the module
@@ -118,5 +136,38 @@ Manager_error managerReceiveNonBlocking(Manager *manager, Manager_module module,
  * @remark It's recommended to have only one thread read a module at a time
  */
 Manager_error managerMainReceive(Manager *manager, pthread_t *num_t);
+
+/**
+ * @brief Send the id of the thread to join to the main
+ *
+ * @param manager Manager
+ * @param num_t Id of the thread
+ * @return Manager_error
+ */
+Manager_error managerMainSendPthreadToJoin(Manager *manager, pthread_t num_t);
+
+/**
+ * @brief Check if a module state is set to MANAGER_STATE_OPEN or MANAGER_STATE_IN_PROGRESS
+ *
+ * @param manager Manager
+ * @return true if a module is open, false otherwise
+ */
+bool isManagerModuleOpen(Manager *manager);
+
+/**
+ * @brief Return the string associated to the Manager_error
+ *
+ * @param error Manager_error
+ * @return const char*
+ */
+char *managerErrorToString(Manager_error error);
+
+/**
+ * @brief Return the string associated to the module
+ *
+ * @param module Module of manager
+ * @return char* (don't free)
+ */
+char *managerModuleToString(Manager_module module);
 
 #endif

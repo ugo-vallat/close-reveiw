@@ -1,17 +1,17 @@
-#include "types/genericlist.h"
-#include "utils/logger.h"
 #include <network/manager.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/errno.h>
+#include <types/genericlist.h>
 #include <types/packet.h>
+#include <utils/logger.h>
+#include <utils/project_constants.h>
 
 #define FILE_MANAGER "manager.c"
 
 void initManagerBuffer(Buffer_module *buffer) {
     memset(buffer, 0, sizeof(Buffer_module));
-    buffer->num_t = 0;
     buffer->state = MANAGER_STATE_CLOSED;
     buffer->mutex_wait_read = malloc(sizeof(pthread_mutex_t));
     buffer->mutex_access_buffer = malloc(sizeof(pthread_mutex_t));
@@ -37,17 +37,6 @@ Buffer_module *getModuleBuffer(Manager *manager, Manager_module module) {
     }
 }
 
-Manager_error managerSendMain(Manager *manager, pthread_t num_t) {
-    pthread_t *t = malloc(sizeof(pthread_t));
-    t = malloc(sizeof(pthread_t));
-    *t = num_t;
-    pthread_mutex_lock(manager->main.mutex_access_buffer);
-    genListAdd(manager->main.buff, t);
-    pthread_mutex_unlock(manager->main.mutex_access_buffer);
-    pthread_mutex_unlock(manager->main.mutex_wait_read);
-    return MANAGER_ERR_SUCCESS;
-}
-
 Manager *initManager() {
     Manager *manager = malloc(sizeof(Manager));
     initManagerBuffer(&(manager->input));
@@ -55,6 +44,7 @@ Manager *initManager() {
     initManagerBuffer(&(manager->server));
     initManagerBuffer(&(manager->peer));
     initManagerBuffer(&(manager->main));
+    strncpy(manager->user_id, "<undefined>", SIZE_NAME);
     return manager;
 }
 
@@ -63,6 +53,7 @@ void deinitManagerBuffer(Buffer_module *buffer) {
     pthread_mutex_destroy(buffer->mutex_access_buffer);
     free(buffer->mutex_wait_read);
     free(buffer->mutex_access_buffer);
+    deinitGenList(&(buffer->buff), deinitPacketGen);
 }
 
 void deinitManager(Manager **manager) {
@@ -88,8 +79,6 @@ void setStateClose(Manager *manager, Buffer_module *buffer) {
     case MANAGER_STATE_IN_PROGRESS:
         genListClear(buffer->buff, deinitPacketGen);
         buffer->state = MANAGER_STATE_CLOSED;
-        managerSendMain(manager, buffer->num_t);
-        buffer->num_t = 0;
         pthread_mutex_unlock(buffer->mutex_wait_read);
         break;
     case MANAGER_STATE_CLOSED:
@@ -103,7 +92,6 @@ void setStateOpen(Buffer_module *buffer) {
         break;
     case MANAGER_STATE_IN_PROGRESS:
     case MANAGER_STATE_CLOSED:
-        buffer->num_t = pthread_self();
         buffer->state = MANAGER_STATE_OPEN;
         (void)pthread_mutex_trylock(buffer->mutex_wait_read);
         break;
@@ -118,7 +106,6 @@ void setStateInProgress(Buffer_module *buffer) {
     case MANAGER_STATE_IN_PROGRESS:
         break;
     case MANAGER_STATE_CLOSED:
-        buffer->num_t = pthread_self();
         buffer->state = MANAGER_STATE_IN_PROGRESS;
         (void)pthread_mutex_trylock(buffer->mutex_wait_read);
         break;
@@ -144,6 +131,27 @@ void managerSetState(Manager *manager, Manager_module module, Manager_state stat
     }
 
     pthread_mutex_unlock(buffer->mutex_access_buffer);
+}
+
+void managerSetUser(Manager *manager, char *user_id) {
+    char FUN_NAME[32] = "managerSetUser";
+    assertl(manager, FILE_MANAGER, FUN_NAME, -1, "manager NULL");
+    assertl(user_id, FILE_MANAGER, FUN_NAME, -1, "user_id NULL");
+
+    strncpy(manager->user_id, user_id, SIZE_NAME);
+}
+
+char *managerGetUser(Manager *manager) {
+    char FUN_NAME[32] = "managerGetUser";
+    assertl(manager, FILE_MANAGER, FUN_NAME, -1, "manager NULL");
+
+    char *name = malloc(SIZE_NAME);
+    if (manager->user_id[0] == 0) {
+        strncpy(name, "Unknown", SIZE_NAME);
+    } else {
+        strncpy(name, manager->user_id, SIZE_NAME);
+    }
+    return name;
 }
 
 Manager_state managerGetState(Manager *manager, Manager_module module) {
@@ -173,7 +181,8 @@ Manager_error managerSend(Manager *manager, Manager_module module, Packet *packe
     buffer = getModuleBuffer(manager, module);
     pthread_mutex_lock(buffer->mutex_access_buffer);
     if (buffer->state == MANAGER_STATE_CLOSED) {
-        warnl(FILE_MANAGER, FUN_NAME, "manager close, failed to send packet");
+        warnl(FILE_MANAGER, FUN_NAME, "manager %s in STATE_CLOSED, failed to send packet",
+              managerModuleToString(module));
         error = MANAGER_ERR_CLOSED;
         deinitPacket(&p_send);
     } else {
@@ -215,7 +224,8 @@ Manager_error managerReceiveNonBlocking(Manager *manager, Manager_module module,
     pthread_mutex_lock(buffer->mutex_access_buffer);
 
     if (buffer->state == MANAGER_STATE_CLOSED) {
-        warnl(FILE_MANAGER, FUN_NAME, "manager close, failed to read packet");
+        warnl(FILE_MANAGER, FUN_NAME, "manager %s in STATE_CLOSED, failed to read packet",
+              managerModuleToString(module));
         *packet = NULL;
         pthread_mutex_unlock(buffer->mutex_wait_read);
         error = MANAGER_ERR_CLOSED;
@@ -268,4 +278,63 @@ Manager_error managerMainReceive(Manager *manager, pthread_t *num_t) {
     }
     pthread_mutex_unlock(manager->main.mutex_access_buffer);
     return error;
+}
+
+Manager_error managerMainSendPthreadToJoin(Manager *manager, pthread_t num_t) {
+    char FUN_NAME[32] = "managerMainSendPthreadToJoin";
+    assertl(manager, FILE_MANAGER, FUN_NAME, -1, "manager NULL");
+
+    pthread_t *t = malloc(sizeof(pthread_t));
+    t = malloc(sizeof(pthread_t));
+    *t = num_t;
+    pthread_mutex_lock(manager->main.mutex_access_buffer);
+    genListAdd(manager->main.buff, t);
+    pthread_mutex_unlock(manager->main.mutex_access_buffer);
+    pthread_mutex_unlock(manager->main.mutex_wait_read);
+    return MANAGER_ERR_SUCCESS;
+}
+
+bool isManagerModuleOpen(Manager *manager) {
+    char FUN_NAME[32] = "isManagerModuleOpen";
+    assertl(manager, FILE_MANAGER, FUN_NAME, -1, "manager NULL");
+
+    if (manager->input.state != MANAGER_STATE_CLOSED)
+        return true;
+    if (manager->output.state != MANAGER_STATE_CLOSED)
+        return true;
+    if (manager->server.state != MANAGER_STATE_CLOSED)
+        return true;
+    if (manager->peer.state != MANAGER_STATE_CLOSED)
+        return true;
+    return false;
+}
+
+char *managerErrorToString(Manager_error error) {
+    switch (error) {
+    case MANAGER_ERR_SUCCESS:
+        return "MANAGER_ERR_SUCCESS";
+    case MANAGER_ERR_ERROR:
+        return "MANAGER_ERR_ERROR";
+    case MANAGER_ERR_CLOSED:
+        return "MANAGER_ERR_CLOSED";
+    case MANAGER_ERR_RETRY:
+        return "MANAGER_ERR_RETRY";
+    default:
+        return "Unknown";
+    }
+}
+
+char *managerModuleToString(Manager_module module) {
+    switch (module) {
+    case MANAGER_MOD_INPUT:
+        return "MANAGER_MOD_INPUT";
+    case MANAGER_MOD_OUTPUT:
+        return "MANAGER_MOD_OUTPUT";
+    case MANAGER_MOD_SERVER:
+        return "MANAGER_MOD_SERVER";
+    case MANAGER_MOD_PEER:
+        return "MANAGER_MOD_PEER";
+    case MANAGER_MOD_MAIN:
+        return "MANAGER_MOD_MAIN";
+    }
 }

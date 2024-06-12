@@ -1,22 +1,21 @@
 #ifndef __TLS_COM_H__
 #define __TLS_COM_H__
 
-#include "types/genericlist.h"
-#include "utils/const-define.h"
 #include <network/manager.h>
 #include <openssl/ssl.h>
+#include <types/genericlist.h>
+#include <utils/project_constants.h>
 
 typedef enum e_tls_error {
     TLS_SUCCESS,      /* success */
     TLS_ERROR,        /* undifined error, check logs for more informations */
     TLS_NULL_POINTER, /* a parameter was NULL */
     TLS_RETRY,        /* nothing done, retry later */
-    TLS_CLOSE /* communication has been closed by the peer, call tlsCloseCom() to close properly */
+    TLS_CLOSE         /* communication has been closed by the peer, call tlsCloseCom() to close properly */
 } TLS_error;
 
 /* function to manage the packets received */
-typedef void (*funTLSPacketReceivedManager)(Manager *manager, Manager_module module,
-                                            Packet *packet);
+typedef TLS_error (*funTLSPacketReceivedManager)(Manager *manager, Manager_module module, Packet *packet);
 
 /* function get the next packet to send */
 typedef TLS_error (*funTLSGetNextPacket)(Manager *manager, Manager_module module, Packet **packet);
@@ -36,12 +35,6 @@ typedef struct s_tls_infos {
     SSL_CTX *ctx;
     SSL *ssl;
     int sockfd;
-
-    /* packetManager */
-    funTLSGetNextPacket next_packet;
-    funTLSPacketReceivedManager P2P_manager;
-    funTLSPacketReceivedManager MSG_manager;
-
 } TLS_infos;
 
 /**
@@ -54,8 +47,7 @@ typedef struct s_tls_infos {
  * @return TLS_infos*
  * @note Use deleteTLSInfos() to delete this structure
  */
-TLS_infos *initTLSInfos(const char *ip, const int port, TLS_mode tls_mode, char *path_cert,
-                        char *path_key);
+TLS_infos *initTLSInfos(const char *ip, const int port, TLS_mode tls_mode, char *path_cert, char *path_key);
 
 /**
  * @brief Delete structure TLS_infos and free memory
@@ -67,7 +59,7 @@ void deinitTLSInfos(TLS_infos **infos);
 /**
  * @brief Establishes a secure communication channel with the remote host
  * @param[in] infos Information about the remote device
- * @param[in] timeout Set timeout in server mode
+ * @param[in] timeout Set timeout (NULL if None)
  * @return TLS_error
  * @note infos in TLS_MAIN_SERVER mode, call tlsAcceptCom
  */
@@ -103,23 +95,27 @@ TLS_error tlsCloseCom(TLS_infos *infos, GenList *last_received);
  * @param[in] P2P_manager Manager of P2P_msg Packets (NULL if TLS_MAIN_SERVER mode)
  * @return TLS_error
  */
-TLS_error tlsStartListenning(TLS_infos *infos, Manager *manager, Manager_module module,
-                             funTLSGetNextPacket next_packet,
-                             funTLSPacketReceivedManager MSG_manager,
-                             funTLSPacketReceivedManager P2P_manager);
+TLS_error tlsStartListenning(TLS_infos *infos, Manager *manager, Manager_module module, funTLSGetNextPacket next_packet,
+                             funTLSPacketReceivedManager packet_manager_received);
 
-void funTLSPacketReceivedManagerMSG(Packet *p, Manager_module module);
+TLS_error tlsManagerPacketReceived(Manager *manager, Manager_module module, Packet *packet);
 
-void funTLSPacketReceivedManagerP2P(Packet *p, Manager_module module);
-
-TLS_error funTLSGetNextPacketClient(Packet **packet, Manager_module module);
+/**
+ * @brief Function for tlsStartListenning, read the manager and send the received packet to tls
+ *
+ * @param[in] manager Manager
+ * @param[in] module Module to read
+ * @param[out] packet Buffer packet
+ * @return TLS_error
+ */
+TLS_error tlsManagerPacketGetNext(Manager *manager, Manager_module module, Packet **packet);
 
 /**
  * @brief Send packet on tls communication
  *
  * @param[in] infos TLS_infos
  * @param[in] packet Packet to send
- * @return TLS_error
+ * @return TLS_error {TLS_CLOSE, TLS_ERROR}
  */
 TLS_error tlsSend(TLS_infos *infos, Packet *packet);
 
@@ -140,5 +136,13 @@ TLS_error tlsReceiveNonBlocking(TLS_infos *infos, Packet **packet);
  * @return TLS_error
  */
 TLS_error tlsReceiveBlocking(TLS_infos *infos, Packet **packet);
+
+/**
+ * @brief Return the string associated to the TLS_error
+ *
+ * @param error TLS_error
+ * @return const char*
+ */
+char *tlsErrorToString(TLS_error error);
 
 #endif

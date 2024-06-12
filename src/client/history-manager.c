@@ -1,12 +1,12 @@
-#include <client/history_manager.h>
+#include <client/history-manager.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <types/message.h>
 #include <utils/logger.h>
-#include <utils/message.h>
 
 #define MAX_SIZE_PATH 128
 
@@ -34,6 +34,7 @@ HistoryInfo *initHistory(char *path_dossier_historique, char *name_conversation)
         warnl("history_manager", "initHistory", "Invalide path");
         return NULL;
     }
+
 
     char *dir = malloc(MAX_SIZE_PATH + SIZE_NAME);
     snprintf(dir, MAX_SIZE_PATH + SIZE_NAME, "%s/%s", path_dossier_historique, name_conversation);

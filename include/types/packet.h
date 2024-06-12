@@ -3,7 +3,7 @@
 
 #include <types/message.h>
 #include <types/p2p-msg.h>
-#include <utils/const-define.h>
+#include <utils/project_constants.h>
 #include <utils/token.h>
 
 typedef enum e_packet_type { PACKET_TXT, PACKET_MSG, PACKET_P2P_MSG } Packet_type;
@@ -49,5 +49,7 @@ void deinitPacketGen(void *p);
  * @return Copy of the packet, NULL if error
  */
 Packet *packetCopy(Packet *p);
+
+char *packetTypeToString(Packet_type type);
 
 #endif

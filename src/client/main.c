@@ -1,13 +1,17 @@
-
-#include "types/message.h"
-#include "utils/const-define.h"
+#include <client/tui.h>
 #include <network/manager.h>
 #include <network/tls-com.h>
 #include <pthread.h>
+#include <server/weak_password.h>
 #include <stdio.h>
+#include <string.h>
+#include <types/message.h>
+#include <types/p2p-msg.h>
 #include <types/packet.h>
 #include <unistd.h>
+#include <utils/config.h>
 #include <utils/logger.h>
+#include <utils/project_constants.h>
 
 #define BLUE "\033[38;5;45m"
 #define GREEN "\033[38;5;82m"
@@ -16,197 +20,159 @@
 
 #define FILE_MAIN "main.c"
 
-int port_server;
-char ip_server[SIZE_IP_CHAR];
-char user_id[SIZE_NAME];
-TLS_infos *tls;
 Manager *manager;
+TLS_infos *tls;
+Config_infos *config;
 
-void getArgs(int argc, char *argv[]);
-void *funInput(void *arg);
-void *funOutput(void *arg);
-void *funPeer(void *arg);
+void *threadServer(void *arg);
 
-void tryClient();
-void okClient(void);
-void koClient(void);
+void closeApp();
 
 int main(int argc, char *argv[]) {
-
-    init_logger(NULL);
-    tryClient("getArgs");
-    getArgs(argc, argv);
-    okClient();
-
-    tryClient("initTLSInfos");
-    tls = initTLSInfos(ip_server, port_server, TLS_CLIENT, NULL, NULL);
-    okClient();
-
-    tryClient("tlsOpenCom");
-    tlsOpenCom(tls, NULL);
-    okClient();
-
-    tryClient("start messagerie");
-    manager = initManager();
-    managerSetState(manager, MANAGER_MOD_PEER, MANAGER_STATE_OPEN);
-    managerSetState(manager, MANAGER_MOD_OUTPUT, MANAGER_STATE_OPEN);
-    managerSetState(manager, MANAGER_MOD_MAIN, MANAGER_STATE_OPEN);
-
+    char *FUN_NAME = "main";
     pthread_t num_t;
-    pthread_create(&num_t, NULL, funOutput, NULL);
-    pthread_create(&num_t, NULL, funInput, NULL);
-    pthread_create(&num_t, NULL, funPeer, NULL);
+    bool close = false;
+    int error;
 
-    for (int i = 0; i < 3; i++) {
+    initscr();
+    cbreak();
+    noecho();
+    keypad(stdscr, TRUE);
+    scrollok(stdscr, FALSE);
+    refresh();
+
+    /* init logger */
+    if (argc > 2)
+        exitl(FILE_MAIN, FUN_NAME, -1, "usage : %s [logger_id]", argv[0]);
+    if (argc == 2) {
+        init_logger(PATH_LOG, argv[1]);
+    } else {
+        init_logger(PATH_LOG, NULL);
+    }
+
+    /* get server infos */
+    config = loadConfig(CLIENT);
+    if (config == NULL) {
+        warnl(FILE_MAIN, FUN_NAME, "failed to load config");
+        closeApp();
+    }
+    if (config->server.is_defined == false) {
+        warnl(FILE_MAIN, FUN_NAME, "server address/port undefined");
+        closeApp();
+    }
+
+    /* create manager */
+    manager = initManager();
+    if (!manager) {
+        exitl(FILE_MAIN, FUN_NAME, -1, "failed init manager");
+    }
+
+    /* set manager in progress */
+    managerSetState(manager, MANAGER_MOD_SERVER, MANAGER_STATE_IN_PROGRESS);
+    managerSetState(manager, MANAGER_MOD_INPUT, MANAGER_STATE_IN_PROGRESS);
+    managerSetState(manager, MANAGER_MOD_OUTPUT, MANAGER_STATE_IN_PROGRESS);
+
+    /* creation threads */
+    Manager_state state;
+    if (pthread_create(&num_t, NULL, threadServer, NULL) != 0) {
+        warnl(FILE_MAIN, FUN_NAME, "fialed create thread server");
+        closeApp();
+    } else {
+
+        while ((state = managerGetState(manager, MANAGER_MOD_SERVER)) == MANAGER_STATE_IN_PROGRESS)
+            ;
+        if (state == MANAGER_STATE_CLOSED) {
+            pthread_join(num_t, NULL);
+            closeApp();
+        }
+    }
+    if (pthread_create(&num_t, NULL, stdinHandler, manager) != 0) {
+        warnl(FILE_MAIN, FUN_NAME, "fialed create thread input");
+        closeApp();
+    }
+    if (pthread_create(&num_t, NULL, stdoutHandler, manager) != 0) {
+        warnl(FILE_MAIN, FUN_NAME, "fialed create thread output");
+        closeApp();
+    }
+
+    printl("%s === App Started === %s", BLUE, RESET);
+
+    /* wait threads */
+    managerSetState(manager, MANAGER_MOD_MAIN, MANAGER_STATE_OPEN);
+    while (!close) {
         managerMainReceive(manager, &num_t);
-        pthread_join(num_t, NULL);
+        error = pthread_join(num_t, NULL);
+        if (error) {
+            warnl(FILE_MAIN, FUN_NAME, "failed to join thread %lu : error %d ", num_t, error);
+        }
+        close = !isManagerModuleOpen(manager);
     }
 
-    tryClient("close");
-    tlsCloseCom(tls, NULL);
-    okClient();
-
+    /* close app */
     close_logger();
-    return 0;
+    closeApp();
+    return 1;
 }
 
-void *funInput(void *arg) {
-    (void)arg;
-    char FUN_NAME[32] = "funInput";
-    Packet *p;
-    Msg *msg;
-    size_t size = SIZE_MSG_DATA;
-    char *buff = malloc(size);
-    while (1) {
-        sleep(1);
-        /* read next message */
-        printf("\n > ");
-        getline(&buff, &size, stdin);
-        printf("\033[2K\r");
+/**
+ * @brief Launch thread server
+ *
+ * @param arg Ignored
+ * @return NULL
+ * @note set Manager state to OPEN if ready, CLOSED otherwise
+ */
+void *threadServer(void *arg) {
+    char *FUN_NAME = "threadServer";
+    assertl(manager, FILE_MAIN, FUN_NAME, -2, "manager closed");
+    TLS_error tls_error;
+    pthread_t num_t;
 
-        /* send message */
-        msg = initMsg(user_id, buff);
-        p = initPacketMsg(msg);
-        deinitMsg(&msg);
-        if (managerSend(manager, MANAGER_MOD_PEER, p) != MANAGER_ERR_SUCCESS) {
-            warnl(FILE_MAIN, FUN_NAME, "fail to send message <%s>", p->msg.buffer);
-            continue;
-        }
-
-        /* display in output */
-        if (managerSend(manager, MANAGER_MOD_OUTPUT, p) != MANAGER_ERR_SUCCESS) {
-            warnl(FILE_MAIN, FUN_NAME, "fail to display message in output <%s>", p->msg.buffer);
-            continue;
-        }
-        deinitPacket(&p);
+    /* open connection server */
+    tls = initTLSInfos(config->server.ip, config->server.port, TLS_CLIENT, NULL, NULL);
+    if (!tls) {
+        warnl(FILE_MAIN, FUN_NAME, "failed to init tls infos");
+        managerSetState(manager, MANAGER_MOD_SERVER, MANAGER_STATE_CLOSED);
+        return NULL;
     }
-}
-
-void *funOutput(void *arg) {
-    (void)arg;
-    char FUN_NAME[32] = "funOutput";
-    Packet *p;
-    Manager_error error;
-    char *buff;
-    while (1) {
-        error = managerReceiveBlocking(manager, MANAGER_MOD_OUTPUT, &p);
-        if (error != MANAGER_ERR_SUCCESS) {
-            warnl(FILE_MAIN, FUN_NAME, "failed to read packet from manager");
-            managerSetState(manager, MANAGER_MOD_OUTPUT, MANAGER_STATE_CLOSED);
-            exit(-1);
-        }
-        if (p->type != PACKET_MSG) {
-            warnl(FILE_MAIN, FUN_NAME, "unexpected type");
-            deinitPacket(&p);
-            continue;
-        }
-        buff = msgToTXT(&(p->msg));
-        printf("\n <+>------------------------ \n\n %s", buff);
-        free(buff);
-        deinitPacket(&p);
+    tls_error = tlsOpenCom(tls, NULL);
+    if (tls_error != TLS_SUCCESS) {
+        warnl(FILE_MAIN, FUN_NAME, "failed to open com with server");
+        managerSetState(manager, MANAGER_MOD_SERVER, MANAGER_STATE_CLOSED);
+        return NULL;
     }
-}
+    managerSetState(manager, MANAGER_MOD_SERVER, MANAGER_STATE_OPEN);
 
-TLS_error nextPacket(Manager *manager, Manager_module module, Packet **p) {
-    char FUN_NAME[32] = "nextPacket";
-    Manager_error error;
-    error = managerReceiveNonBlocking(manager, module, p);
-    switch (error) {
-    case MANAGER_ERR_SUCCESS:
-        return TLS_SUCCESS;
+    /* start listenning */
+    tls_error = tlsStartListenning(tls, manager, MANAGER_MOD_SERVER, tlsManagerPacketGetNext, tlsManagerPacketReceived);
+    switch (tls_error) {
+    case TLS_SUCCESS:
+    case TLS_CLOSE:
+        printl("threadServer > com server closed");
         break;
-    case MANAGER_ERR_RETRY:
-        *p = NULL;
-        return TLS_RETRY;
-        break;
-    case MANAGER_ERR_CLOSED:
-        warnl(FILE_MAIN, FUN_NAME, "manager closed");
-        *p = NULL;
-        return TLS_CLOSE;
-        break;
-    case MANAGER_ERR_ERROR:
-        warnl(FILE_MAIN, FUN_NAME, "failed to read packet from manager");
-        *p = NULL;
-        return TLS_ERROR;
+    default:
+        warnl(FILE_MAIN, FUN_NAME, "tlsStartListenning failed with %s", tlsErrorToString(tls_error));
         break;
     }
-}
-
-void MSGmanager(Manager *manager, Manager_module module, Packet *p) {
-    char FUN_NAME[32] = "MSGmanager";
-    Manager_error error;
-    (void)module;
-    error = managerSend(manager, MANAGER_MOD_OUTPUT, p);
-    if (error != MANAGER_ERR_SUCCESS) {
-        warnl(FILE_MAIN, FUN_NAME, "error sending packet");
-    }
-}
-
-void P2Pmanager(Manager *manager, Manager_module module, Packet *p) {
-    char FUN_NAME[32] = "P2Pmanager";
-    warnl(FILE_MAIN, FUN_NAME, "packet P2P received ????");
-    (void)p;
-    (void)manager;
-    (void)module;
-}
-
-void *funPeer(void *arg) {
-    (void)arg;
-    tlsStartListenning(tls, manager, MANAGER_MOD_PEER, nextPacket, MSGmanager, P2Pmanager);
-    deinitTLSInfos(&tls);
-    managerSetState(manager, MANAGER_MOD_PEER, MANAGER_STATE_CLOSED);
+    managerSetState(manager, MANAGER_MOD_SERVER, MANAGER_STATE_CLOSED);
+    num_t = pthread_self();
+    managerMainSendPthreadToJoin(manager, num_t);
     return NULL;
 }
 
-void tryClient(char *act) {
-    printf("\n %s[CLIENT] > %s %s\n", BLUE, act, RESET);
-    fflush(stdout);
-}
-
-void okClient(void) {
-    printf("\t\t %s <+>---------- OK %s\n", GREEN, RESET);
-    fflush(stdout);
-}
-
-void koClient(void) {
-    printf("\t\t %s <+>---------- KO %s\n", RED, RESET);
-    fflush(stdout);
-}
-
-void displayUsage(char *bin) {
-    printf("usage : %s <ip_server> <port_server> <id>\n", bin);
-}
-
-void getArgs(int argc, char *argv[]) {
-    if (argc != 4) {
-        displayUsage(argv[0]);
-        exit(1);
+/**
+ * @brief deinit all structures off the main
+ *
+ */
+void closeApp() {
+    if (tls) {
+        deinitTLSInfos(&tls);
     }
-    strncpy(ip_server, argv[1], SIZE_IP_CHAR);
-    port_server = atoi(argv[2]);
-    if (port_server < 1024) {
-        displayUsage(argv[0]);
-        exit(1);
+    if (manager) {
+        deinitManager(&manager);
     }
-    strncpy(user_id, argv[3], SIZE_NAME);
+    if (config) {
+        deinitConfig(&config);
+    }
+    printl("%s === Application closed === %s", BLUE, RESET);
+    exit(0);
 }
