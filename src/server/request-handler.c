@@ -1,4 +1,6 @@
 #include <server/request-handler.h>
+#include <stdbool.h>
+#include <unistd.h>
 #include <utils/logger.h>
 #include <types/list.h>
 #include <server/database-manager.h>
@@ -256,18 +258,45 @@ void *accepteUser(void *arg) {
     return NULL;
 }
 
+static void clearTls(void* infos) {
+    (void)infos;
+}
+
 void *requestHandler(void *arg) {
+    char *FUN_NAME = "requestHandler";
     (void)arg;
     TLS_error error;
     Packet *packet;
     TLS_infos *temp;
     Client *c;
+    GenList *tls;
     unsigned int i;
 
+    tls = initGenList(clientListSize(user));
     while (!end) {
+        genListClear(tls, clearTls);
+        for(i = 0; i < clientListSize(user); i++) {
+            c = clientListGet(user, i);
+            genListAdd(tls, c->info_user);
+        }
+        switch(tlsWaitOnMultiple(tls, 10)) {
+            case TLS_RETRY:
+                continue;
+                break;
+            case TLS_ERROR:
+            case TLS_CLOSE:
+            case TLS_NULL_POINTER:
+                warnl(FILE_NAME, FUN_NAME, "tlsWaitOnMultiple failed");
+                end = true;
+                continue;
+                break;
+            case TLS_SUCCESS:
+                break;
+        }
         for (i = 0; i < clientListSize(user); i++) {
             error = TLS_RETRY;
             c = clientListGet(user, i);
+            
             temp = c->info_user;
             packet = NULL;
             if(c->etat != TRY_CONNECTION){
