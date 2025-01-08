@@ -2,9 +2,8 @@
 #define WEAK_PASSWORD_H
 
 #include <stdbool.h>
+#include <utils/project_constants.h>
 
-#define MAX_PASSWORD_LENGTH 30
-#define MIN_PASSWORD_LENGTH 8
 #define MD5_WORDLIST_PATH "hash_test"
 
 /**
@@ -37,7 +36,7 @@ void password_to_md5_hash(char *password, char *hash);
  * @return true if the password meets the requirements, false otherwise.
  * @note
  */
-bool check_chars(char* password);
+bool check_chars(char *password);
 
 /**
  * @brief Check if the password meets certain requirements.

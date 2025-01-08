@@ -1,0 +1,65 @@
+key mdp : 1234
+
+❯ openssl req -new -key server-be.key -out server-be.csr
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [XX]:fr
+State or Province Name (full name) []:tlse
+Locality Name (eg, city) [Default City]:tlse
+Organization Name (eg, company) [Default Company Ltd]:none
+Organizational Unit Name (eg, section) []:none
+Common Name (eg, your name or your server's hostname) []:server-be
+Email Address []:server@server.fr
+
+Please enter the following 'extra' attributes
+to be sent with your certificate request
+A challenge password []:1234
+An optional company name []:
+
+
+
+Certificat Autorité :
+
+# Création certificat
+$ openssl genrsa -des3 -out ca.key 2048
+$ openssl req -x509 -new -nodes -key ca.key -sha256 -days 10000 -out ca-cert.pem
+$ openssl x509 -in ca-cert.pem -inform PEM -out ca-cert.crt
+
+# Ajout certificat système fedora
+$ cp ca-cert.crt /usr/share/pki/ca-trust-source/anchors/ca-cert.crt
+# or
+$ cp ca-cert.crt /etc/pki/ca-trust/source/anchors/
+
+$ update-ca-trust
+
+Certificat Serveur :
+
+$ openssl genrsa -out server.key 2048
+$ openssl req -new -key serverkey -out server.csr # Demande de certificat
+
+# Cas auto-signé :
+$ openssl x509 -req -days 10000 -in server.csr -signkey server.key -out server.crt
+
+# Cas signé par CA :
+$ echo "authorityKeyIdentifier=keyid,issuer
+basicConstraints=CA:FALSE
+keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
+subjectAltName = @alt_names
+[alt_names]
+DNS.1 = esx1.linuxtricks.lan" > server-config.ext
+
+$ openssl x509 -req -in server.csr -CA ca.pem -CAkey ca.key -CAcreateserial -out server.crt -days 10000 -sha256 -extfile server-config.ext
+
+Version auto-signé auto :
+```bash
+domaine=server
+openssl genrsa -aes128 2048 > $domaine.key
+openssl rsa -in $domaine.key -out $domaine.key
+openssl req -utf8 -new -key $domaine.key -out $domaine.csr
+openssl x509 -in $domaine.csr -out $domaine.crt -req -signkey $domaine.key -days 3650
+```

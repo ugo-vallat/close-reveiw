@@ -5,36 +5,68 @@ const std = @import("std");
 // runner.
 pub fn build(b: *std.Build) void {
     const c_include_list = &.{
-        "placeholder.c",
+        "network/chat.c",
+        "network/p2p-com.c",
+        "network/manager.c",
+        "network/tls-com.c",
+        "types/command.c",
+        "types/list.c",
+        "types/genericlist.c",
+        "types/message.c",
+        "types/p2p-msg.c",
+        "types/packet.c",
+        "utils/config.c",
+        "utils/logger.c",
+        "server/weak_password.c",
+        "types/clientlist.c",
+        // "utils/token.c",
     };
     const c_include_list_server = &.{
-        "placeholder.c",
+        "database-manager.c",
+        // "passlist_to_hashlist.c",
+        "request-handler.c",
+        "cli.c",
     };
     const c_include_list_client = &.{
-        "placeholder.c",
+        "tui.c",
+        // "history-manager.c",
     };
-    const flags = &.{};
+    const flags = &.{
+        "-g",
+        "-pedantic",
+        "-rdynamic",
+        "-Wextra",
+        "-Wall",
+        "-pthread",
+        // "-std=c99",
+        "-D__USE_UNIX98",
+        "-D__USE_XOPEN2K",
+        "-DDEBUG",
+    };
 
     const server = b.addExecutable(.{
         .name = "close-review-server",
         .link_libc = true,
         .target = b.graph.host,
     });
-    server.addCSourceFile(.{ .file = .{ .path = "src/server/main.c" }, .flags = flags });
-    server.addIncludePath(.{ .path = "include/" });
-    server.addCSourceFiles(.{ .root = .{ .path = "src/" }, .files = c_include_list, .flags = flags });
-    server.addCSourceFiles(.{ .root = .{ .path = "src/server/" }, .files = c_include_list_server, .flags = flags });
+    server.addCSourceFile(.{ .file = .{ .src_path = .{ .owner = b, .sub_path = "src/server/main.c" } }, .flags = flags });
+    server.addIncludePath(.{ .src_path = .{ .owner = b, .sub_path = "include/" } });
+    server.linkSystemLibrary2("openssl", .{ .use_pkg_config = .force });
+    server.linkSystemLibrary2("mariadb", .{ .use_pkg_config = .force });
+    server.addCSourceFiles(.{ .root = .{ .src_path = .{ .owner = b, .sub_path = "src/" } }, .files = c_include_list, .flags = flags });
+    server.addCSourceFiles(.{ .root = .{ .src_path = .{ .owner = b, .sub_path = "src/server/" } }, .files = c_include_list_server, .flags = flags });
 
     const client = b.addExecutable(.{
         .name = "close-review-client",
         .link_libc = true,
         .target = b.graph.host,
     });
-    client.addCSourceFile(.{ .file = .{ .path = "src/client/main.c" }, .flags = flags });
-    client.addIncludePath(.{ .path = "include/" });
-    client.addCSourceFiles(.{ .root = .{ .path = "src/" }, .files = c_include_list, .flags = flags });
-    client.addCSourceFiles(.{ .root = .{ .path = "src/client/" }, .files = c_include_list_client, .flags = flags });
-
+    client.addCSourceFile(.{ .file = .{ .src_path = .{ .owner = b, .sub_path = "src/client/main.c" } }, .flags = flags });
+    client.addIncludePath(.{ .src_path = .{ .owner = b, .sub_path = "include/" } });
+    client.linkSystemLibrary2("openssl", .{ .use_pkg_config = .force });
+    client.linkSystemLibrary2("ncurses", .{ .use_pkg_config = .force });
+    client.addCSourceFiles(.{ .root = .{ .src_path = .{ .owner = b, .sub_path = "src/" } }, .files = c_include_list, .flags = flags });
+    client.addCSourceFiles(.{ .root = .{ .src_path = .{ .owner = b, .sub_path = "src/client/" } }, .files = c_include_list_client, .flags = flags });
     b.installArtifact(server);
     b.installArtifact(client);
 

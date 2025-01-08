@@ -3,6 +3,15 @@
 
 #include <mysql.h>
 #include <stdbool.h>
+#include <types/genericlist.h>
+#include <types/p2p-msg.h>
+#include <types/clientlist.h>
+
+/**
+ * @brief Set up the database, creating necessary tables.
+ * @param[in] conn The MySQL connection handle.
+ */
+void setup(MYSQL *conn);
 
 /**
  * @brief Create a new user in the database.
@@ -10,13 +19,16 @@
  * @param[in] username The username of the new user.
  * @param[in] password The password of the new user.
  */
-void create_user(MYSQL *conn, char *username, char *password);
+void createUser(MYSQL *conn, char *username, char *password);
+
 
 /**
- * @brief Set up the database, creating necessary tables.
+ * @brief Create a new user in the database.
  * @param[in] conn The MySQL connection handle.
+ * @param[in] username The username of the new user.
+ * @param[in] password The password of the new user.
  */
-void setup(MYSQL *conn);
+void deleteUser(MYSQL *conn, int id);
 
 /**
  * @brief Attempt to log in with a given username and password.
@@ -27,13 +39,14 @@ void setup(MYSQL *conn);
  */
 bool login(MYSQL *conn, char *username, char *password);
 
+
 /**
  * @brief Check if a username exists in the database.
  * @param[in] conn The MySQL connection handle.
  * @param[in] username The username to check.
  * @return true if the username exists, false otherwise.
  */
-bool username_exists(MYSQL *conn, char *username);
+bool usernameExists(MYSQL *conn, char *username);
 
 /**
  * @brief Connect to the MySQL database.
@@ -43,6 +56,10 @@ bool username_exists(MYSQL *conn, char *username);
  * @param[in] sql_password The password to connect with.
  * @param[in] database The database to connect to.
  */
-void se_connecter_a_la_base_de_donnees(MYSQL *conn, char *server, char *sql_user, char *sql_password, char *database);
+void logginDatabase(MYSQL *conn, char *server, char *sql_user, char *sql_password, char *database);
+
+int getId(MYSQL *conn, char *username);
+
+ClientList *getUserList(MYSQL *conn);
 
 #endif // TEST_MYSQL_H
