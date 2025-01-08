@@ -4,3 +4,6 @@ gcc src/server/secu_part/test_mysql.c -o outputfile src/server/secu_part/weak_pa
 
 s`
 gcc passlist_to_hashlist.c -o outputfile -lcrypto
+
+
+gcc -o testoken token.c -lssl -lcrypto
