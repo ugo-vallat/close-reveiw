@@ -32,6 +32,7 @@ typedef struct s_buffer_input {
     pthread_mutex_t *mutex_wait_read;
     pthread_mutex_t *mutex_access_buffer;
     GenList *buff;
+    int fd_alert[2];
 } Buffer_module;
 
 typedef struct s_manager {
@@ -169,5 +170,10 @@ char *managerErrorToString(Manager_error error);
  * @return char* (don't free)
  */
 char *managerModuleToString(Manager_module module);
+
+/**
+ * @brief Return alert file descriptor associated to the module
+ */
+int managerGetFDAlert(Manager *manager, Manager_module module);
 
 #endif

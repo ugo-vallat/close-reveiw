@@ -136,7 +136,7 @@ void *threadServer(void *arg) {
     }
     tls_error = tlsOpenCom(tls, NULL);
     if (tls_error != TLS_SUCCESS) {
-        warnl(FILE_MAIN, FUN_NAME, "failed to open com with server");
+        warnl(FILE_MAIN, FUN_NAME, "failed to open com with server %s:%d", config->server.ip, config->server.port);
         managerSetState(manager, MANAGER_MOD_SERVER, MANAGER_STATE_CLOSED);
         return NULL;
     }

@@ -7,8 +7,11 @@
 #include <types/packet.h>
 #include <utils/logger.h>
 #include <utils/project_constants.h>
+#include <unistd.h>
 
 #define FILE_MANAGER "manager.c"
+
+char new_message = 'a';
 
 void initManagerBuffer(Buffer_module *buffer) {
     memset(buffer, 0, sizeof(Buffer_module));
@@ -20,6 +23,7 @@ void initManagerBuffer(Buffer_module *buffer) {
     pthread_mutex_unlock(buffer->mutex_wait_read);
     pthread_mutex_unlock(buffer->mutex_access_buffer);
     buffer->buff = initGenList(16);
+    pipe(buffer->fd_alert);
 }
 
 Buffer_module *getModuleBuffer(Manager *manager, Manager_module module) {
@@ -187,6 +191,7 @@ Manager_error managerSend(Manager *manager, Manager_module module, Packet *packe
         deinitPacket(&p_send);
     } else {
         genListAdd(buffer->buff, (void *)p_send);
+        write(buffer->fd_alert[1], &new_message, sizeof(new_message));
         error = MANAGER_ERR_SUCCESS;
     }
     pthread_mutex_unlock(buffer->mutex_wait_read);
@@ -233,7 +238,9 @@ Manager_error managerReceiveNonBlocking(Manager *manager, Manager_module module,
         *packet = NULL;
         error = MANAGER_ERR_RETRY;
     } else {
+        char buff;
         *packet = genListPop(buffer->buff);
+        read(buffer->fd_alert[0], &buff, sizeof(buff));
         error = MANAGER_ERR_SUCCESS;
 
         if (genListSize(buffer->buff) > 0) {
@@ -337,4 +344,16 @@ char *managerModuleToString(Manager_module module) {
     case MANAGER_MOD_MAIN:
         return "MANAGER_MOD_MAIN";
     }
+}
+
+int managerGetFDAlert(Manager *manager, Manager_module module) {
+    char FUN_NAME[32] = "managerGetFDAlert";
+    assertl(manager, FILE_MANAGER, FUN_NAME, -1, "manager NULL");
+    assertl(manager, FILE_MANAGER, FUN_NAME, -1, "fd NULL");
+
+    Buffer_module *buffer;
+    Manager_error error = MANAGER_ERR_SUCCESS;
+
+    buffer = getModuleBuffer(manager, module);
+    return buffer->fd_alert[0];
 }

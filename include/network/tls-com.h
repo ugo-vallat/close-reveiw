@@ -138,6 +138,15 @@ TLS_error tlsReceiveNonBlocking(TLS_infos *infos, Packet **packet);
 TLS_error tlsReceiveBlocking(TLS_infos *infos, Packet **packet);
 
 /**
+ * @brief Wait a packet on multiple tls socket
+ *
+ * @param[in] infos List of TLS_infos
+ * @param[in] timeout  Timeout in milliseconds or -1
+ * @return TLS_SUCCESS if any packet received, TLS_error otherwise
+ */
+TLS_error tlsWaitOnMultiple(GenList *infos, int timeout_ms);
+
+/**
  * @brief Return the string associated to the TLS_error
  *
  * @param error TLS_error

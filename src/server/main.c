@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
     char server[32] = "localhost"; // TODO les faire passer en argument
     char sql_user[32] = "newuser";
     char sql_password[32] = "password";
-    char database[32] = "testdb";
+    char database[32] = "close_review"; //testdb
 
 
     // TODO modifier pour que se soit dans u scripte appart

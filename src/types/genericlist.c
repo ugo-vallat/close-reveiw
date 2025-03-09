@@ -92,16 +92,6 @@ void deinitGenList(ptrGenList *l, freefun fun) {
     *l = NULL;
 }
 
-void genListClear(GenList *l, freefun fun) {
-    testArgNull(l, "genericlist.c", "clearGenList", "l");
-    pthread_mutex_lock(&(l->mutex));
-
-    while (!genListIsEmpty(l)) {
-        fun(genListPop(l));
-    }
-    pthread_mutex_unlock(&(l->mutex));
-}
-
 /**
  * @author Ugo VALLAT
  * @brief Modifie l'espace mémoire aloué au tableau
@@ -110,7 +100,7 @@ void genListClear(GenList *l, freefun fun) {
  * @param new_size Nouvelle taille du tableau
  * @pre l != NULL
  */
-void adjustMemorySizeGenList(GenList *l, unsigned new_size) {
+static void adjustMemorySizeGenList(GenList *l, unsigned new_size) {
     testArgNull(l, "genericlist.c", "adjustMemorySizeGenList", "l");
 
     /* nouvelle taille de la liste */
@@ -120,6 +110,17 @@ void adjustMemorySizeGenList(GenList *l, unsigned new_size) {
     l->tab = realloc(l->tab, new_size * sizeof(void *));
     if (new_size != 0 && l->tab == NULL)
         exitl("genericlist.c", "adjustMemorySizeGenList", EXIT_FAILURE, "echec realloc tab");
+}
+
+void genListClear(GenList *l, freefun fun) {
+    testArgNull(l, "genericlist.c", "clearGenList", "l");
+    pthread_mutex_lock(&(l->mutex));
+
+    while (!genListIsEmpty(l)) {
+        fun(l->tab[l->size - 1]);
+        l->size--;
+    }
+    pthread_mutex_unlock(&(l->mutex));
 }
 
 /**

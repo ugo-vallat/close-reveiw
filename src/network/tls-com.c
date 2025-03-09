@@ -8,6 +8,7 @@
 #include <openssl/ssl.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/poll.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <types/genericlist.h>
@@ -17,6 +18,7 @@
 #include <unistd.h>
 #include <utils/logger.h>
 #include <utils/project_constants.h>
+#include <poll.h>
 
 #define ERROR_BUFF_SIZE 512
 
@@ -467,6 +469,8 @@ TLS_error tlsStartListenning(TLS_infos *infos, Manager *manager, Manager_module 
 
     TLS_error tls_error;
     Packet *p;
+    struct pollfd fds[2];
+    int poll_return;
 
     if (!infos->open) {
         tls_error = tlsOpenCom(infos, NULL);
@@ -476,62 +480,83 @@ TLS_error tlsStartListenning(TLS_infos *infos, Manager *manager, Manager_module 
         }
     }
 
+    fds[0].fd = SSL_get_fd(infos->ssl);
+    fds[0].events = POLLIN;
+    fds[0].revents = 0;
+    fds[1].fd = managerGetFDAlert(manager, module);
+    fds[1].events = POLLIN;
+    fds[1].revents = 0;
+
     while (1) {
-        /* send next packet */
-        tls_error = next_packet(manager, module, &p);
-        switch (tls_error) {
-        case TLS_SUCCESS:
-            tlsSend(infos, p);
-            break;
-        case TLS_RETRY:
-            break;
-        case TLS_CLOSE:
-            /* end of communication */
-            // warnl(FILE_TLS_COM, FUN_NAME, "close 1");
-            tlsCloseCom(infos, NULL);
-            return TLS_CLOSE;
-        case TLS_ERROR:
-        case TLS_NULL_POINTER:
-            warnl(FILE_TLS_COM, FUN_NAME, "fail next_packet");
+        /* attendre une alterte */
+        poll_return = poll(fds, 2, -1);
+        if(poll_return == -1) {
+            warnl(FILE_TLS_COM, FUN_NAME, "fail poll");
             tlsCloseCom(infos, NULL);
             return TLS_ERROR;
         }
+        /* send next packet */
+        if(fds[1].revents & POLLIN) {
+            // fds[1].revents = 0;
+            tls_error = next_packet(manager, module, &p);
+            switch (tls_error) {
+            case TLS_SUCCESS:
+                tlsSend(infos, p);
+                break;
+            case TLS_RETRY:
+                break;
+            case TLS_CLOSE:
+                /* end of communication */
+                // warnl(FILE_TLS_COM, FUN_NAME, "close 1");
+                tlsCloseCom(infos, NULL);
+                return TLS_CLOSE;
+                break;
+            case TLS_ERROR:
+            case TLS_NULL_POINTER:
+                warnl(FILE_TLS_COM, FUN_NAME, "fail next_packet");
+                tlsCloseCom(infos, NULL);
+                return TLS_ERROR;
+            }
+        }
 
         /* receive packet */
-        tls_error = tlsReceiveNonBlocking(infos, &p);
-        switch (tls_error) {
-        case TLS_SUCCESS:
-            switch (p->type) {
-            case PACKET_MSG:
-            case PACKET_P2P_MSG:
-            case PACKET_TXT:
-                tls_error = packet_manager_received(manager, module, p);
-                switch (tls_error) {
-                case TLS_SUCCESS:
+        if(fds[0].revents & POLLIN) {
+            tls_error = tlsReceiveNonBlocking(infos, &p);
+            switch (tls_error) {
+            case TLS_SUCCESS:
+                switch (p->type) {
+                case PACKET_MSG:
+                case PACKET_P2P_MSG:
+                case PACKET_TXT:
+                    tls_error = packet_manager_received(manager, module, p);
+                    switch (tls_error) {
+                    case TLS_SUCCESS:
+                        break;
+                    case TLS_CLOSE:
+                        // warnl(FILE_TLS_COM, FUN_NAME, "close 2");
+                        return TLS_CLOSE;
+                    default:
+                        warnl(FILE_TLS_COM, FUN_NAME, "%s - packet_manager_receive failed", tlsErrorToString(tls_error));
+                        break;
+                    }
                     break;
-                case TLS_CLOSE:
-                    // warnl(FILE_TLS_COM, FUN_NAME, "close 2");
-                    return TLS_CLOSE;
                 default:
-                    warnl(FILE_TLS_COM, FUN_NAME, "%s - packet_manager_receive failed", tlsErrorToString(tls_error));
-                    break;
+                    warnl(FILE_TLS_COM, FUN_NAME, "unexpected type <%d>", p->type);
                 }
+                deinitPacket(&p);
                 break;
-            default:
-                warnl(FILE_TLS_COM, FUN_NAME, "unexpected type <%d>", p->type);
+            case TLS_RETRY:
+                break;
+            case TLS_CLOSE:
+                warnl(FILE_TLS_COM, FUN_NAME, "peer disconnected");
+                return TLS_CLOSE;
+                break;
+            case TLS_ERROR:
+            case TLS_NULL_POINTER:
+                warnl(FILE_TLS_COM, FUN_NAME, "fail tlsReceiveNonBlocking - %s", tlsErrorToString(tls_error));
+                tlsCloseCom(infos, NULL);
+                return TLS_ERROR;
             }
-            deinitPacket(&p);
-            break;
-        case TLS_RETRY:
-            break;
-        case TLS_CLOSE:
-            warnl(FILE_TLS_COM, FUN_NAME, "peer disconnected");
-            return TLS_CLOSE;
-        case TLS_ERROR:
-        case TLS_NULL_POINTER:
-            warnl(FILE_TLS_COM, FUN_NAME, "fail tlsReceiveNonBlocking - %s", tlsErrorToString(tls_error));
-            tlsCloseCom(infos, NULL);
-            return TLS_ERROR;
         }
     }
 }
@@ -829,6 +854,39 @@ TLS_error tlsReceiveBlocking(TLS_infos *infos, Packet **packet) {
         tls_error = TLS_ERROR;
     }
     return tls_error;
+}
+
+TLS_error tlsWaitOnMultiple(GenList *infos, int timeout_ms) {
+    char FUN_NAME[32] = "tlsWaitOnMultiple";
+    assertl(infos, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "infos NULL");
+    
+    int nb_fd = genListSize(infos);
+    TLS_infos *tls;
+    if(nb_fd == 0) {
+        if(timeout_ms > 0)
+            usleep(timeout_ms*1000);
+        return TLS_RETRY;
+    }
+
+    struct pollfd* fds = calloc(nb_fd, sizeof(struct pollfd));
+    for(int i = 0; i < nb_fd; i++) {
+        tls = (TLS_infos*) genListGet(infos, (unsigned)i);
+        fds[i].fd = SSL_get_fd(tls->ssl);
+        fds[i].events = POLLIN;
+    }
+    int res = poll(fds, nb_fd, timeout_ms); 
+    if(res == -1) {
+        warnl(FILE_TLS_COM, FUN_NAME, "error poll");
+        free(fds);
+        return TLS_ERROR;
+    } else if (res == 0) {
+        return TLS_RETRY;
+    } else if(res & POLLIN) {
+        return TLS_SUCCESS;
+    } else {
+        return TLS_RETRY;
+    }
+    
 }
 
 char *tlsErrorToString(TLS_error error) {
