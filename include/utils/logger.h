@@ -8,10 +8,34 @@
  *
  * @remark La sortie par défaut du logger est stdout
  */
+
+/* __________________________________ WRAPPERS __________________________________ */
+
 #ifndef __LOGGER__H__
 #define __LOGGER__H__
 
+/* __________________________________ INCLUDES __________________________________ */
+
 #include <stdbool.h>
+
+/* ___________________________________ DEFINES __________________________________ */
+
+/**
+ * @brief Macro appelant warnl avec file_name et fun_name fournis
+ */
+#define WARNL(...) warnl(__FILE__, __func__, ##__VA_ARGS__);
+
+/**
+ * @brief Macro appelant exitl avec file_name et fun_name fournis
+ */
+#define EXITL(exit_value, ...) exitl(__FILE__, __func__, exit_value, ##__VA_ARGS__);
+
+/**
+ * @brief Macro appelant assertl avec file_name et fun_name fournis
+ */
+#define ASSERTL(assert, exit_value, ...) assertl(assert, __FILE__, __func__, exit_value, ##__VA_ARGS__);
+
+/* _________________________________ PROTOTYPES _________________________________ */
 
 /**
  * @brief Initialise le logger en définissant sa sortie sur un chemin
@@ -72,4 +96,4 @@ void assertl(bool assert, const char *file_name, const char *fun_name, int exit_
  */
 void close_logger(void);
 
-#endif
+#endif // __LOGGER__H__

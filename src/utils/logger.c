@@ -1,3 +1,5 @@
+/* __________________________________ INCLUDES __________________________________ */
+
 #include <errno.h>
 #include <execinfo.h>
 #include <stdarg.h>
@@ -9,17 +11,24 @@
 #include <unistd.h>
 #include <utils/logger.h>
 
+/* ___________________________________ DEFINES __________________________________ */
+
 #define YELLOW "\033[38;5;184m"
 #define ORANGE "\033[38;5;208m"
 #define RED "\033[38;5;160m"
 #define RSTC "\033[0m"
 
+/* _________________________________ PROTOTYPES _________________________________ */
+
+/* _______________________________ IMPLEMENTATION _______________________________ */
+
 FILE *output = NULL;
-char *logger_id;
-bool console;
-char *c_yellow;
-char *c_orange;
-char *c_rstc;
+char *logger_id = "uninitialized";
+bool console = true;
+char *c_yellow = YELLOW;
+char *c_orange = ORANGE;
+char *c_red = RED;
+char *c_rstc = RSTC;
 
 /**
  * @author LAFORGE Mateo
@@ -34,12 +43,14 @@ void init_logger(const char *file_path, char *id) {
         console = false;
         c_yellow = "";
         c_orange = "";
+        c_red = "";
         c_rstc = "";
     } else {
         output = stdout;
         console = true;
         c_yellow = YELLOW;
         c_orange = ORANGE;
+        c_red = RED;
         c_rstc = RSTC;
     }
     if (id) {
@@ -112,18 +123,10 @@ void warnl(const char *file_name, const char *fun_name, const char *format, ...)
         errno = 0;
     }
     fprintf(output, "[%s][%s] ", logger_id, string_time);
-    // format de sortie dépendant
-    if (console) {
-        fprintf(output, YELLOW);
-        fprintf(output, "[warnl] %s > %s : ", file_name, fun_name);
-        vfprintf(output, format, args);
-        fprintf(output, RSTC);
-        fprintf(output, "\n");
-    } else {
-        fprintf(output, "[warnl] %s > %s : ", file_name, fun_name);
-        vfprintf(output, format, args);
-        fprintf(output, "\n");
-    }
+    fprintf(output, "%s[warnl] %s > %s : ",c_yellow, file_name, fun_name);
+    vfprintf(output, format, args);
+    fprintf(output, "%s\n", c_rstc);
+    
     fflush(output); // intégrité des logs
     free(string_time);
     va_end(args);
@@ -164,18 +167,10 @@ void exitl(const char *file_name, const char *fun_name, int exit_value, const ch
         errno = 0;
     }
     fprintf(output, "[%s][%s] ", logger_id, string_time);
-    // format de sortie dépendant
-    if (console) {
-        fprintf(output, RED);
-        fprintf(output, "[exitl] %s > %s : ", file_name, fun_name);
-        vfprintf(output, format, args);
-        fprintf(output, RSTC);
-        fprintf(output, "\n");
-    } else {
-        fprintf(output, "[exitl] %s > %s : ", file_name, fun_name);
-        vfprintf(output, format, args);
-        fprintf(output, "\n");
-    }
+    fprintf(output, "%s[exitl] %s > %s : ",c_red, file_name, fun_name);
+    vfprintf(output, format, args);
+    fprintf(output, "%s\n",c_rstc);
+    
     va_end(args);
     close_logger();
     free(string_time);
@@ -197,18 +192,9 @@ void assertl(bool assert, const char *file_name, const char *fun_name, int exit_
         errno = 0;
     }
     fprintf(output, "[%s][%s] ", logger_id, string_time);
-    // format de sortie dépendant
-    if (console) {
-        fprintf(output, RED);
-        fprintf(output, "[assert] %s > %s : ", file_name, fun_name);
-        vfprintf(output, format, args);
-        fprintf(output, RSTC);
-        fprintf(output, "\n");
-    } else {
-        fprintf(output, "[assert] %s > %s : ", file_name, fun_name);
-        vfprintf(output, format, args);
-        fprintf(output, "\n");
-    }
+    fprintf(output, "%s[assertl] %s > %s : ",c_red, file_name, fun_name);
+    vfprintf(output, format, args);
+    fprintf(output, "%s\n",c_rstc);
     va_end(args);
     close_logger();
     free(string_time);
