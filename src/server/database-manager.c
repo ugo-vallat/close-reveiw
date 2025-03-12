@@ -1,4 +1,3 @@
-#include "types/clientlist.h"
 #include <mysql.h>
 #include <openssl/evp.h>
 #include <server/database-manager.h>
@@ -7,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <types/clientlist.h>
 #include <types/genericlist.h>
 #include <utils/logger.h>
 
@@ -60,7 +60,6 @@ void createUser(MYSQL *conn, char *username, char *password) {
 void deleteUser(MYSQL *conn, int id) {
     char fun_name[16] = "deleteUser";
     char query[SIZE_QUERY];
-
 
     /* Ajout de l'utilisateur à la table user */
     sprintf(query, "DELETE FROM user WHERE id =%d", id);
@@ -133,7 +132,6 @@ bool login(MYSQL *conn, char *username, char *password) {
     return strcmp(row[0], password) == 0;
 }
 
-
 bool usernameExists(MYSQL *conn, char *username) {
     char query[256];
     char fun_name[16] = "usernameExits";
@@ -166,7 +164,7 @@ void logginDatabase(MYSQL *conn, char *server, char *sql_user, char *sql_passwor
             mysql_error(conn));
 }
 
-int getId(MYSQL *conn, char *username){
+int getId(MYSQL *conn, char *username) {
     char query[SIZE_QUERY];
     char *fun_name = "getId";
     /* Recherche de l'utilisateur dans la table user */
@@ -189,8 +187,7 @@ int getId(MYSQL *conn, char *username){
     return user_id;
 }
 
-
-ClientList *getUserList(MYSQL *conn){
+ClientList *getUserList(MYSQL *conn) {
     char fun_name[32] = "getUserList";
     char query[SIZE_QUERY];
     sprintf(query, "SELECT id, username FROM user");

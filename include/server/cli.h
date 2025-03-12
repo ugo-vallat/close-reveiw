@@ -1,9 +1,9 @@
 #ifndef __CLI_H__
 #define __CLI_H__
 
-#include "types/clientlist.h"
-#include "types/list.h"
-#include <mariadb/mysql.h>
+#include <mysql.h>
+#include <types/clientlist.h>
+#include <types/list.h>
 
 #define SERVER_HELP_TXT                                                                                                \
     "Available Commands:\n"                                                                                            \
@@ -11,7 +11,7 @@
     "list:\t\tDisplays a list of all users.\n"                                                                         \
     "delete <username>:\tDelete the user\n"                                                                            \
     "create <username> <password>:\t\tCreate the user\n"                                                               \
-    "quit:\t\tExits the application (WIP)"                                                                                              \
+    "quit:\t\tExits the application (WIP)"                                                                             \
     "application.\n"                                                                                                   \
     "help:\t\tShows this help "                                                                                        \
     "message."

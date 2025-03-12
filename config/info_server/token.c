@@ -1,5 +1,5 @@
-#include <stdio.h>
 #include <openssl/rand.h>
+#include <stdio.h>
 
 #define TOKEN_SIZE 16 // 16 bytes = 32 hex characters
 
@@ -11,13 +11,14 @@ void generate_token(char *buffer) {
     }
 
     for (int i = 0; i < TOKEN_SIZE; i++) {
-        sprintf(&buffer[i*2], "%02x", token[i]);
+        sprintf(&buffer[i * 2], "%02x", token[i]);
     }
 }
 
 int main() {
-    char token_hex[TOKEN_SIZE*2 + 1];
+    char token_hex[TOKEN_SIZE * 2 + 1];
     generate_token(token_hex);
     printf("Generated token: %s\n", token_hex);
     return 0;
 }
+

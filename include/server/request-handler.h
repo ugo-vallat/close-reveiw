@@ -1,17 +1,15 @@
 #ifndef REQUEST_HANDLER_H
 #define REQUEST_HANDLER_H
 
-#include "types/list.h"
-#include <mariadb/mysql.h>
-#include <types/packet.h>
-#include <types/packet.h>
+#include <mysql.h>
 #include <types/clientlist.h>
+#include <types/list.h>
+#include <types/packet.h>
 
 extern MYSQL *conn;
 extern ClientList *user;
 extern List *thread;
 extern pthread_t nb_main;
-
 
 extern bool end;
 
@@ -38,3 +36,4 @@ void okServer(char *arg);
 void koServer(char *arg);
 
 #endif
+

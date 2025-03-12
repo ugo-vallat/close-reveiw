@@ -73,3 +73,4 @@ int exportHistory(char *path_history_dir, char *dest_file);
  */
 int importHistory(char *path_history_dir, char *path_archive);
 #endif
+

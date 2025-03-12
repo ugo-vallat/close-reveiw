@@ -6,6 +6,7 @@
 #include <network/tls-com.h>
 #include <openssl/err.h>
 #include <openssl/ssl.h>
+#include <poll.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/poll.h>
@@ -18,7 +19,6 @@
 #include <unistd.h>
 #include <utils/logger.h>
 #include <utils/project_constants.h>
-#include <poll.h>
 
 #define ERROR_BUFF_SIZE 512
 
@@ -490,13 +490,13 @@ TLS_error tlsStartListenning(TLS_infos *infos, Manager *manager, Manager_module 
     while (1) {
         /* attendre une alterte */
         poll_return = poll(fds, 2, -1);
-        if(poll_return == -1) {
+        if (poll_return == -1) {
             warnl(FILE_TLS_COM, FUN_NAME, "fail poll");
             tlsCloseCom(infos, NULL);
             return TLS_ERROR;
         }
         /* send next packet */
-        if(fds[1].revents & POLLIN) {
+        if (fds[1].revents & POLLIN) {
             // fds[1].revents = 0;
             tls_error = next_packet(manager, module, &p);
             switch (tls_error) {
@@ -520,7 +520,7 @@ TLS_error tlsStartListenning(TLS_infos *infos, Manager *manager, Manager_module 
         }
 
         /* receive packet */
-        if(fds[0].revents & POLLIN) {
+        if (fds[0].revents & POLLIN) {
             tls_error = tlsReceiveNonBlocking(infos, &p);
             switch (tls_error) {
             case TLS_SUCCESS:
@@ -536,7 +536,8 @@ TLS_error tlsStartListenning(TLS_infos *infos, Manager *manager, Manager_module 
                         // warnl(FILE_TLS_COM, FUN_NAME, "close 2");
                         return TLS_CLOSE;
                     default:
-                        warnl(FILE_TLS_COM, FUN_NAME, "%s - packet_manager_receive failed", tlsErrorToString(tls_error));
+                        warnl(FILE_TLS_COM, FUN_NAME, "%s - packet_manager_receive failed",
+                              tlsErrorToString(tls_error));
                         break;
                     }
                     break;
@@ -859,34 +860,33 @@ TLS_error tlsReceiveBlocking(TLS_infos *infos, Packet **packet) {
 TLS_error tlsWaitOnMultiple(GenList *infos, int timeout_ms) {
     char FUN_NAME[32] = "tlsWaitOnMultiple";
     assertl(infos, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "infos NULL");
-    
+
     int nb_fd = genListSize(infos);
     TLS_infos *tls;
-    if(nb_fd == 0) {
-        if(timeout_ms > 0)
-            usleep(timeout_ms*1000);
+    if (nb_fd == 0) {
+        if (timeout_ms > 0)
+            usleep(timeout_ms * 1000);
         return TLS_RETRY;
     }
 
-    struct pollfd* fds = calloc(nb_fd, sizeof(struct pollfd));
-    for(int i = 0; i < nb_fd; i++) {
-        tls = (TLS_infos*) genListGet(infos, (unsigned)i);
+    struct pollfd *fds = calloc(nb_fd, sizeof(struct pollfd));
+    for (int i = 0; i < nb_fd; i++) {
+        tls = (TLS_infos *)genListGet(infos, (unsigned)i);
         fds[i].fd = SSL_get_fd(tls->ssl);
         fds[i].events = POLLIN;
     }
-    int res = poll(fds, nb_fd, timeout_ms); 
-    if(res == -1) {
+    int res = poll(fds, nb_fd, timeout_ms);
+    if (res == -1) {
         warnl(FILE_TLS_COM, FUN_NAME, "error poll");
         free(fds);
         return TLS_ERROR;
     } else if (res == 0) {
         return TLS_RETRY;
-    } else if(res & POLLIN) {
+    } else if (res & POLLIN) {
         return TLS_SUCCESS;
     } else {
         return TLS_RETRY;
     }
-    
 }
 
 char *tlsErrorToString(TLS_error error) {

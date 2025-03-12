@@ -8,10 +8,7 @@
 #define CONFIG_DIRECTORY_MAX_SIZE 128
 #define CONFIG_BUFFER_SIZE 512
 
-typedef enum {
-    CLIENT,
-    SERVER
-}Config_type;
+typedef enum { CLIENT, SERVER } Config_type;
 
 typedef struct {
     bool is_defined;

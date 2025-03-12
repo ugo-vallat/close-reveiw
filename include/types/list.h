@@ -168,4 +168,3 @@ List *listCopy(List *l);
 void listClear(List *l);
 
 #endif
-

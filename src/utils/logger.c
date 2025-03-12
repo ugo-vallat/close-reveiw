@@ -123,10 +123,10 @@ void warnl(const char *file_name, const char *fun_name, const char *format, ...)
         errno = 0;
     }
     fprintf(output, "[%s][%s] ", logger_id, string_time);
-    fprintf(output, "%s[warnl] %s > %s : ",c_yellow, file_name, fun_name);
+    fprintf(output, "%s[warnl] %s > %s : ", c_yellow, file_name, fun_name);
     vfprintf(output, format, args);
     fprintf(output, "%s\n", c_rstc);
-    
+
     fflush(output); // intégrité des logs
     free(string_time);
     va_end(args);
@@ -167,10 +167,10 @@ void exitl(const char *file_name, const char *fun_name, int exit_value, const ch
         errno = 0;
     }
     fprintf(output, "[%s][%s] ", logger_id, string_time);
-    fprintf(output, "%s[exitl] %s > %s : ",c_red, file_name, fun_name);
+    fprintf(output, "%s[exitl] %s > %s : ", c_red, file_name, fun_name);
     vfprintf(output, format, args);
-    fprintf(output, "%s\n",c_rstc);
-    
+    fprintf(output, "%s\n", c_rstc);
+
     va_end(args);
     close_logger();
     free(string_time);
@@ -192,9 +192,9 @@ void assertl(bool assert, const char *file_name, const char *fun_name, int exit_
         errno = 0;
     }
     fprintf(output, "[%s][%s] ", logger_id, string_time);
-    fprintf(output, "%s[assertl] %s > %s : ",c_red, file_name, fun_name);
+    fprintf(output, "%s[assertl] %s > %s : ", c_red, file_name, fun_name);
     vfprintf(output, format, args);
-    fprintf(output, "%s\n",c_rstc);
+    fprintf(output, "%s\n", c_rstc);
     va_end(args);
     close_logger();
     free(string_time);

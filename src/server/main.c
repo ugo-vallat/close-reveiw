@@ -17,7 +17,6 @@
 #include <unistd.h>
 #include <utils/logger.h>
 
-
 #define FILE_NAME "Main"
 
 MYSQL *conn;
@@ -39,7 +38,6 @@ int main(int argc, char *argv[]) {
 
     init_logger("logs.log", "server");
 
-
     Config_infos *config = loadConfig(SERVER);
 
     user = initClientList(10);
@@ -48,8 +46,7 @@ int main(int argc, char *argv[]) {
     char server[32] = "localhost"; // TODO les faire passer en argument
     char sql_user[32] = "newuser";
     char sql_password[32] = "password";
-    char database[32] = "close_review"; //testdb
-
+    char database[32] = "close_review"; // testdb
 
     // TODO modifier pour que se soit dans u scripte appart
     /* Initialisation de la connexion à la base de données */
@@ -77,7 +74,8 @@ int main(int argc, char *argv[]) {
     okServer("main");
 
     tryServer("main init tls");
-    TLS_infos *tls = initTLSInfos(NULL, config->server.port, TLS_MAIN_SERVER, config->config_ssl.certificate, config->config_ssl.key);
+    TLS_infos *tls = initTLSInfos(NULL, config->server.port, TLS_MAIN_SERVER, config->config_ssl.certificate,
+                                  config->config_ssl.key);
 
     if (!tls) {
         warnl("main.c", "main", "fail init TLS info");
@@ -105,12 +103,11 @@ int main(int argc, char *argv[]) {
 
     struct sigaction action;
 
-    action.sa_flags = SA_SIGINFO;     
+    action.sa_flags = SA_SIGINFO;
     action.sa_handler = signal_handler;
     sigaction(SIGUSR1, &action, NULL);
 
     okServer("mask");
-
 
     while (true) {
         pause();

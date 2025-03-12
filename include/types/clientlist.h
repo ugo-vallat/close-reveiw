@@ -6,10 +6,10 @@
 #include <types/genericlist.h>
 
 typedef enum e_etat_client {
-    AVAILABLE, // client connect to the server and not in a p2p communication
-    IN_CONNECTION, //client in a p2p connection
-    TRY_CONNECTION //client trying to establish a p2p connection
-    } Etat_client;
+    AVAILABLE,     // client connect to the server and not in a p2p communication
+    IN_CONNECTION, // client in a p2p connection
+    TRY_CONNECTION // client trying to establish a p2p connection
+} Etat_client;
 
 typedef struct s_client {
     int id;
@@ -40,7 +40,6 @@ ClientList *initClientList(unsigned memory_size);
  */
 void deinitClientList(ClientList **l);
 
-
 /**
  * @brief Adds the element to the list which is sorted
  *
@@ -49,7 +48,6 @@ void deinitClientList(ClientList **l);
  * @pre l != NULL
  */
 void clientListAdd(ClientList *l, Client *c);
-
 
 /**
  * @brief Removes the element at position i
@@ -62,7 +60,6 @@ void clientListAdd(ClientList *l, Client *c);
  * @return Value before deletion
  */
 Client *clientListRemove(ClientList *l, unsigned i);
-
 
 /**
  * @brief free the element at position i
@@ -91,7 +88,6 @@ Client *clientListGet(ClientList *l, unsigned i);
 
 Client *clientListGetId(ClientList *l, int id);
 
-
 /**
  *
  * @brief Returns if the list is empty
@@ -104,7 +100,6 @@ Client *clientListGetId(ClientList *l, int id);
 bool clientListIsEmpty(ClientList *l);
 
 Client *clientListPop(ClientList *l);
-
 
 /**
  * @brief Returns the size of the list (position + 1 of the last element)
@@ -119,3 +114,4 @@ Client *clientListPop(ClientList *l);
 unsigned clientListSize(ClientList *l);
 
 #endif
+

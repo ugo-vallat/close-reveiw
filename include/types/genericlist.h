@@ -66,7 +66,6 @@ void genListClear(GenList *l, freefun fun);
  */
 void genListAdd(GenList *l, void *v);
 
-
 /**
  * @brief Inserts a value at position i
  *

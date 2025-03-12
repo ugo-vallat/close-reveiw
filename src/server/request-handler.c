@@ -1,19 +1,17 @@
+#include <server/database-manager.h>
 #include <server/request-handler.h>
+#include <signal.h>
 #include <stdbool.h>
+#include <types/list.h>
 #include <unistd.h>
 #include <utils/logger.h>
-#include <types/list.h>
-#include <server/database-manager.h>
-#include <signal.h>
 
-#define FILE_NAME  "request-handler"
+#define FILE_NAME "request-handler"
 
 #define BLUE "\033[38;5;45m"
 #define GREEN "\033[38;5;82m"
 #define RED "\033[38;5;196m"
 #define RESET "\033[0m"
-
-
 
 typedef struct s_tuple_client {
     Client *c1;
@@ -251,14 +249,14 @@ void *accepteUser(void *arg) {
         okServer("accepteUser");
         pthread_create(&num_t, NULL, startConnection, temp);
     }
-    
+
     listAdd(thread, pthread_self());
     pthread_kill(nb_main, SIGUSR1);
     printf("je meur accepteUser\n");
     return NULL;
 }
 
-static void clearTls(void* infos) {
+static void clearTls(void *infos) {
     (void)infos;
 }
 
@@ -275,31 +273,31 @@ void *requestHandler(void *arg) {
     tls = initGenList(clientListSize(user));
     while (!end) {
         genListClear(tls, clearTls);
-        for(i = 0; i < clientListSize(user); i++) {
+        for (i = 0; i < clientListSize(user); i++) {
             c = clientListGet(user, i);
             genListAdd(tls, c->info_user);
         }
-        switch(tlsWaitOnMultiple(tls, 10)) {
-            case TLS_RETRY:
-                continue;
-                break;
-            case TLS_ERROR:
-            case TLS_CLOSE:
-            case TLS_NULL_POINTER:
-                warnl(FILE_NAME, FUN_NAME, "tlsWaitOnMultiple failed");
-                end = true;
-                continue;
-                break;
-            case TLS_SUCCESS:
-                break;
+        switch (tlsWaitOnMultiple(tls, 10)) {
+        case TLS_RETRY:
+            continue;
+            break;
+        case TLS_ERROR:
+        case TLS_CLOSE:
+        case TLS_NULL_POINTER:
+            warnl(FILE_NAME, FUN_NAME, "tlsWaitOnMultiple failed");
+            end = true;
+            continue;
+            break;
+        case TLS_SUCCESS:
+            break;
         }
         for (i = 0; i < clientListSize(user); i++) {
             error = TLS_RETRY;
             c = clientListGet(user, i);
-            
+
             temp = c->info_user;
             packet = NULL;
-            if(c->etat != TRY_CONNECTION){
+            if (c->etat != TRY_CONNECTION) {
                 error = tlsReceiveNonBlocking(temp, &packet);
             }
             switch (error) {
@@ -350,7 +348,7 @@ void *requestHandler(void *arg) {
 
 bool genListContainsString(GenList *l, char *name) {
     char *temp;
-    for (unsigned int i = 0; i < genListSize(l); i++){
+    for (unsigned int i = 0; i < genListSize(l); i++) {
         temp = genListGet(l, i);
         if (strcmp(temp, name) == 0) {
             return true;

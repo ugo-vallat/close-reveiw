@@ -1,14 +1,13 @@
-#include "types/clientlist.h"
-#include "types/genericlist.h"
-#include <mariadb/mysql.h>
+#include <mysql.h>
 #include <server/cli.h>
 #include <server/database-manager.h>
-#include <stdio.h>
-#include <utils/logger.h>
 #include <signal.h>
+#include <stdio.h>
+#include <types/clientlist.h>
+#include <types/genericlist.h>
+#include <utils/logger.h>
 
 #define FILE_NAME "cli"
-
 
 typedef enum e_type_cmd_server {
     CMD_SRV_LIST = 0,
@@ -74,14 +73,14 @@ void printListUser() {
     deinitClientList(&l);
 }
 
-void help(){
+void help() {
     printf(SERVER_HELP_TXT);
 }
 
 void createUserCli(Command_server c) {
-    if(genListSize(c.args) != 2){
+    if (genListSize(c.args) != 2) {
         printf("wrong number of argument, use help for more information\n");
-        return ;
+        return;
     }
     char *name = genListGet(c.args, 0);
     printf(" nom utilisateur: %s\n", name);
@@ -89,9 +88,9 @@ void createUserCli(Command_server c) {
 }
 
 void deleteUserCli(Command_server c) {
-    if(genListSize(c.args) != 1){
+    if (genListSize(c.args) != 1) {
         printf("wrong number of argument, use help for more information\n");
-        return ;
+        return;
     }
     char *name = genListGet(c.args, 0);
     printf("utilisateur %s supprimer", name);

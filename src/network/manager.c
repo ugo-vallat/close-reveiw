@@ -5,9 +5,9 @@
 #include <sys/errno.h>
 #include <types/genericlist.h>
 #include <types/packet.h>
+#include <unistd.h>
 #include <utils/logger.h>
 #include <utils/project_constants.h>
-#include <unistd.h>
 
 #define FILE_MANAGER "manager.c"
 
@@ -357,3 +357,4 @@ int managerGetFDAlert(Manager *manager, Manager_module module) {
     buffer = getModuleBuffer(manager, module);
     return buffer->fd_alert[0];
 }
+
