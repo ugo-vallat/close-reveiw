@@ -29,7 +29,6 @@
 #include <types/genericlist.h>
 #include <utils/logger.h>
 
-#define FILE_NAME "clientlist.c"
 
 /*-----------------------------------------------------------------*/
 /*                       UTILS                                     */
@@ -56,16 +55,16 @@ struct s_client_list {
 ClientList *initClientList(unsigned memory_size) {
     ClientList *l = malloc(sizeof(ClientList));
     if (l == NULL)
-        exitl("genericlist.c", "createClientList", EXIT_FAILURE, "erreur malloc list");
+        EXITL(EXIT_FAILURE, "erreur malloc list")
 
     l->tab = malloc(sizeof(void *) * memory_size);
     if (l->tab == NULL)
-        exitl("genericlist.c", "createClientList", EXIT_FAILURE, "erreur malloc tab");
+        EXITL(EXIT_FAILURE, "erreur malloc tab")
 
     l->memory_size = memory_size;
     l->size = 0;
     if (pthread_mutex_init(&(l->mutex), NULL) != 0) {
-        exitl("genericlist.c", "createClientList", EXIT_FAILURE, "erreur init mutex");
+        EXITL(EXIT_FAILURE, "erreur init mutex")
     }
     return l;
 }
@@ -111,7 +110,7 @@ void adjustMemorySizeClientList(ClientList *l, unsigned new_size) {
     /* modification taille du tableau */
     l->tab = realloc(l->tab, new_size * sizeof(void *));
     if (new_size != 0 && l->tab == NULL)
-        exitl("genericlist.c", "adjustMemorySizeClientList", EXIT_FAILURE, "echec realloc tab");
+        EXITL(EXIT_FAILURE, "echec realloc tab")
 }
 
 /**
@@ -128,7 +127,7 @@ void clientListAdd(ClientList *l, Client *c) {
     int i = 0;
     while (i < l->size && l->tab[i]->id < c->id) {
         if (l->tab[i]->id == c->id) {
-            warnl(FILE_NAME, "cleintListAdd", "collision: ajoue d'un id deja present");
+            WARNL("collision: ajoue d'un id deja present")
         }
         i++;
     }
@@ -145,7 +144,7 @@ Client *clientListPop(ClientList *l) {
     // // testArgNull(l, "genericlist.c", "listPop", "l");
     pthread_mutex_lock(&(l->mutex));
     if (l->size <= 0)
-        exitl("list.c", "listPop", EXIT_FAILURE, "liste déjà vide");
+        EXITL(EXIT_FAILURE, "liste déjà vide")
 
     /* suppression de l'élément */
     void *elem = l->tab[l->size - 1];
@@ -163,7 +162,7 @@ Client *clientListRemove(ClientList *l, unsigned i) {
     // // testArgNull(l, "genericlist.c", "clientListRemove", "l");
     pthread_mutex_lock(&(l->mutex));
     if (i >= l->size)
-        exitl("genericlist.c", "clientListRemove", EXIT_FAILURE, "position (%d) invalide", i);
+        EXITL(EXIT_FAILURE, "position (%d) invalide", i)
 
     void *elem = l->tab[i];
     /* suppression de l'élément */
@@ -180,7 +179,7 @@ void clientListDelete(ClientList *l, unsigned i) {
     // // testArgNull(l, "genericlist.c", "clientListRemove", "l");
     pthread_mutex_lock(&(l->mutex));
     if (i >= l->size)
-        exitl("genericlist.c", "clientListRemove", EXIT_FAILURE, "position (%d) invalide", i);
+        EXITL(EXIT_FAILURE, "position (%d) invalide", i)
 
     Client *elem = l->tab[i];
     /* suppression de l'élément */
@@ -221,7 +220,7 @@ Client *clientListGet(ClientList *l, unsigned i) {
     // testArgNull(l, "genericlist.c", "clientListGet", "l");
     pthread_mutex_lock(&(l->mutex));
     if (i >= l->size)
-        exitl("genericlist.c", "clientListGet", EXIT_FAILURE, "position (%d) invalide", i);
+        EXITL(EXIT_FAILURE, "position (%d) invalide", i)
     Client *ret = l->tab[i];
     pthread_mutex_unlock(&(l->mutex));
     return ret;
@@ -261,7 +260,7 @@ void clientListSet(ClientList *l, Client *c, unsigned i) {
     // testArgNull(l, "genericlist.c", "clientListSet", "l");
     pthread_mutex_lock(&(l->mutex));
     if (i >= l->size)
-        exitl("genericlist.c", "clientListSet", EXIT_FAILURE, "position (%d) invalide", i);
+        EXITL(EXIT_FAILURE, "position (%d) invalide", i)
 
     l->tab[i] = c;
     pthread_mutex_unlock(&(l->mutex));

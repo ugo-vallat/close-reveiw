@@ -6,11 +6,9 @@
 #include <utils/logger.h>
 #include <utils/project_constants.h>
 
-#define FILE_PACKET "packet.c"
 
 Packet *initPacketTXT(char *txt) {
-    char FUN_NAME[32] = "initPacketTXT";
-    assertl(txt, FILE_PACKET, FUN_NAME, -1, "packet NULL");
+        ASSERTL(txt,-1, "packet NULL")
 
     Packet *p = malloc(sizeof(Packet));
     p->type = PACKET_TXT;
@@ -19,8 +17,7 @@ Packet *initPacketTXT(char *txt) {
 }
 
 Packet *initPacketMsg(Msg *msg) {
-    char FUN_NAME[32] = "initPacketMsg";
-    assertl(msg, FILE_PACKET, FUN_NAME, -1, "msg NULL");
+        ASSERTL(msg,-1, "msg NULL")
 
     Packet *p = malloc(sizeof(Packet));
     p->type = PACKET_MSG;
@@ -29,8 +26,7 @@ Packet *initPacketMsg(Msg *msg) {
 }
 
 Packet *initPacketP2PMsg(P2P_msg *msg) {
-    char FUN_NAME[32] = "initPacketP2PMsg";
-    assertl(msg, FILE_PACKET, FUN_NAME, -1, "msg NULL");
+        ASSERTL(msg,-1, "msg NULL")
 
     Packet *p = malloc(sizeof(Packet));
     memset(p, 0, sizeof(Packet));
@@ -40,24 +36,21 @@ Packet *initPacketP2PMsg(P2P_msg *msg) {
 }
 
 void deinitPacket(Packet **p) {
-    char FUN_NAME[32] = "deinitPacket";
-    assertl(p, FILE_PACKET, FUN_NAME, -1, "p NULL");
-    assertl(*p, FILE_PACKET, FUN_NAME, -1, "*p NULL");
+        ASSERTL(p,-1, "p NULL")
+    ASSERTL(*p,-1, "*p NULL")
 
     free(*p);
     *p = NULL;
 }
 
 void deinitPacketGen(void *p) {
-    char FUN_NAME[32] = "deinitPacketGen";
-    assertl(p, FILE_PACKET, FUN_NAME, -1, "p NULL");
+        ASSERTL(p,-1, "p NULL")
 
     free(p);
 }
 
 Packet *packetCopy(Packet *p) {
-    char FUN_NAME[32] = "packetCopy";
-    assertl(p, FILE_PACKET, FUN_NAME, -1, "p NULL");
+        ASSERTL(p,-1, "p NULL")
 
     Packet *new = malloc(sizeof(Packet));
     memcpy(new, p, sizeof(Packet));

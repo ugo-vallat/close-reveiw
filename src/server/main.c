@@ -17,7 +17,6 @@
 #include <unistd.h>
 #include <utils/logger.h>
 
-#define FILE_NAME "Main"
 
 MYSQL *conn;
 ClientList *user;
@@ -32,8 +31,7 @@ void signal_handler(int sig) {
 }
 
 int main(int argc, char *argv[]) {
-    char *FUN_NAME = "MAIN";
-
+    
     // printf("main thread : %d\n", getpid());
 
     init_logger("logs.log", "server");
@@ -53,11 +51,11 @@ int main(int argc, char *argv[]) {
     tryServer("main init SQL");
     conn = mysql_init(NULL);
     if (conn == NULL) {
-        exitl(FILE_NAME, FUN_NAME, -1, "%s\n", mysql_error(conn));
+        EXITL(-1, "%s\n", mysql_error(conn))
     }
     /* Connexion à la base de données */
     if (mysql_real_connect(conn, server, sql_user, sql_password, database, 0, NULL, 0) == NULL) {
-        exitl(FILE_NAME, FUN_NAME, -1, "%s\n", mysql_error(conn));
+        EXITL(-1, "%s\n", mysql_error(conn))
     }
     okServer("main");
 
@@ -78,7 +76,7 @@ int main(int argc, char *argv[]) {
                                   config->config_ssl.key);
 
     if (!tls) {
-        warnl("main.c", "main", "fail init TLS info");
+        WARNL("fail init TLS info")
         return 1;
     }
 

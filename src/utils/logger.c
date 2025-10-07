@@ -46,7 +46,7 @@ void init_logger(const char *file_path, char *id) {
         c_red = "";
         c_rstc = "";
     } else {
-        output = stdout;
+        output = stderr;
         console = true;
         c_yellow = YELLOW;
         c_orange = ORANGE;

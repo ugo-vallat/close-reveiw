@@ -9,7 +9,6 @@
 #include <utils/logger.h>
 #include <utils/project_constants.h>
 
-#define FILE_MANAGER "manager.c"
 
 char new_message = 'a';
 
@@ -61,9 +60,8 @@ void deinitManagerBuffer(Buffer_module *buffer) {
 }
 
 void deinitManager(Manager **manager) {
-    char FUN_NAME[32] = "deinitManager";
-    assertl(manager, FILE_MANAGER, FUN_NAME, -1, "manager NULL");
-    assertl(*manager, FILE_MANAGER, FUN_NAME, -1, "*manager NULL");
+        ASSERTL(manager,-1, "manager NULL")
+    ASSERTL(*manager,-1, "*manager NULL")
     deinitManagerBuffer(&((*manager)->input));
     deinitManagerBuffer(&((*manager)->output));
     deinitManagerBuffer(&((*manager)->server));
@@ -97,7 +95,8 @@ void setStateOpen(Buffer_module *buffer) {
     case MANAGER_STATE_IN_PROGRESS:
     case MANAGER_STATE_CLOSED:
         buffer->state = MANAGER_STATE_OPEN;
-        (void)pthread_mutex_trylock(buffer->mutex_wait_read);
+        int ret_error = pthread_mutex_trylock(buffer->mutex_wait_read);
+        (void)ret_error;
         break;
     }
 }
@@ -111,14 +110,14 @@ void setStateInProgress(Buffer_module *buffer) {
         break;
     case MANAGER_STATE_CLOSED:
         buffer->state = MANAGER_STATE_IN_PROGRESS;
-        (void)pthread_mutex_trylock(buffer->mutex_wait_read);
+        int ret_error = pthread_mutex_trylock(buffer->mutex_wait_read);
+        (void)ret_error;
         break;
     }
 }
 
 void managerSetState(Manager *manager, Manager_module module, Manager_state state) {
-    char FUN_NAME[32] = "managerSetState";
-    assertl(manager, FILE_MANAGER, FUN_NAME, -1, "manager NULL");
+        ASSERTL(manager,-1, "manager NULL")
 
     Buffer_module *buffer = getModuleBuffer(manager, module);
     pthread_mutex_lock(buffer->mutex_access_buffer);
@@ -138,16 +137,14 @@ void managerSetState(Manager *manager, Manager_module module, Manager_state stat
 }
 
 void managerSetUser(Manager *manager, char *user_id) {
-    char FUN_NAME[32] = "managerSetUser";
-    assertl(manager, FILE_MANAGER, FUN_NAME, -1, "manager NULL");
-    assertl(user_id, FILE_MANAGER, FUN_NAME, -1, "user_id NULL");
+        ASSERTL(manager,-1, "manager NULL")
+    ASSERTL(user_id,-1, "user_id NULL")
 
     strncpy(manager->user_id, user_id, SIZE_NAME);
 }
 
 char *managerGetUser(Manager *manager) {
-    char FUN_NAME[32] = "managerGetUser";
-    assertl(manager, FILE_MANAGER, FUN_NAME, -1, "manager NULL");
+        ASSERTL(manager,-1, "manager NULL")
 
     char *name = malloc(SIZE_NAME);
     if (manager->user_id[0] == 0) {
@@ -159,8 +156,7 @@ char *managerGetUser(Manager *manager) {
 }
 
 Manager_state managerGetState(Manager *manager, Manager_module module) {
-    char FUN_NAME[32] = "managerGetState";
-    assertl(manager, FILE_MANAGER, FUN_NAME, -1, "manager NULL");
+        ASSERTL(manager,-1, "manager NULL")
 
     Manager_state state;
     Buffer_module *buffer;
@@ -174,9 +170,8 @@ Manager_state managerGetState(Manager *manager, Manager_module module) {
 }
 
 Manager_error managerSend(Manager *manager, Manager_module module, Packet *packet) {
-    char FUN_NAME[32] = "managerSend";
-    assertl(manager, FILE_MANAGER, FUN_NAME, -1, "manager NULL");
-    assertl(packet, FILE_MANAGER, FUN_NAME, -1, "packet NULL");
+        ASSERTL(manager,-1, "manager NULL")
+    ASSERTL(packet,-1, "packet NULL")
 
     Buffer_module *buffer;
     Manager_error error = MANAGER_ERR_SUCCESS;
@@ -185,8 +180,8 @@ Manager_error managerSend(Manager *manager, Manager_module module, Packet *packe
     buffer = getModuleBuffer(manager, module);
     pthread_mutex_lock(buffer->mutex_access_buffer);
     if (buffer->state == MANAGER_STATE_CLOSED) {
-        warnl(FILE_MANAGER, FUN_NAME, "manager %s in STATE_CLOSED, failed to send packet",
-              managerModuleToString(module));
+        WARNL("manager %s in STATE_CLOSED, failed to send packet",
+              managerModuleToString(module))
         error = MANAGER_ERR_CLOSED;
         deinitPacket(&p_send);
     } else {
@@ -200,9 +195,8 @@ Manager_error managerSend(Manager *manager, Manager_module module, Packet *packe
 }
 
 Manager_error managerReceiveBlocking(Manager *manager, Manager_module module, Packet **packet) {
-    char FUN_NAME[32] = "managerReceiveBlocking";
-    assertl(manager, FILE_MANAGER, FUN_NAME, -1, "manager NULL");
-    assertl(packet, FILE_MANAGER, FUN_NAME, -1, "packet NULL");
+        ASSERTL(manager,-1, "manager NULL")
+    ASSERTL(packet,-1, "packet NULL")
 
     Buffer_module *buffer;
     Manager_error error = MANAGER_ERR_SUCCESS;
@@ -211,26 +205,26 @@ Manager_error managerReceiveBlocking(Manager *manager, Manager_module module, Pa
     pthread_mutex_lock(buffer->mutex_wait_read);
     error = managerReceiveNonBlocking(manager, module, packet);
     if (error == MANAGER_ERR_RETRY) {
-        warnl(FILE_MANAGER, FUN_NAME, "nothing to read");
+        WARNL("nothing to read")
     }
     return error;
 }
 
 Manager_error managerReceiveNonBlocking(Manager *manager, Manager_module module, Packet **packet) {
-    char FUN_NAME[32] = "managerReceiveNonBlocking";
-    assertl(manager, FILE_MANAGER, FUN_NAME, -1, "manager NULL");
-    assertl(packet, FILE_MANAGER, FUN_NAME, -1, "packet NULL");
+    ASSERTL(manager,-1, "manager NULL")
+    ASSERTL(packet,-1, "packet NULL")
 
     Buffer_module *buffer;
     Manager_error error = MANAGER_ERR_SUCCESS;
 
     buffer = getModuleBuffer(manager, module);
-    (void)pthread_mutex_trylock(buffer->mutex_wait_read);
+    int ret_error = pthread_mutex_trylock(buffer->mutex_wait_read);
+    (void)ret_error;
     pthread_mutex_lock(buffer->mutex_access_buffer);
 
     if (buffer->state == MANAGER_STATE_CLOSED) {
-        warnl(FILE_MANAGER, FUN_NAME, "manager %s in STATE_CLOSED, failed to read packet",
-              managerModuleToString(module));
+        WARNL("manager %s in STATE_CLOSED, failed to read packet",
+              managerModuleToString(module))
         *packet = NULL;
         pthread_mutex_unlock(buffer->mutex_wait_read);
         error = MANAGER_ERR_CLOSED;
@@ -253,9 +247,8 @@ Manager_error managerReceiveNonBlocking(Manager *manager, Manager_module module,
 }
 
 Manager_error managerMainReceive(Manager *manager, pthread_t *num_t) {
-    char FUN_NAME[32] = "managerMainReceive";
-    assertl(manager, FILE_MANAGER, FUN_NAME, -1, "manager NULL");
-    assertl(num_t, FILE_MANAGER, FUN_NAME, -1, "num_t NULL");
+        ASSERTL(manager,-1, "manager NULL")
+    ASSERTL(num_t,-1, "num_t NULL")
     pthread_t *t;
     Manager_error error;
 
@@ -265,13 +258,13 @@ Manager_error managerMainReceive(Manager *manager, pthread_t *num_t) {
 
     if (manager->main.state == MANAGER_STATE_CLOSED) {
         /* manager closed */
-        warnl(FILE_MANAGER, FUN_NAME, "manager close, failed to read packet");
+        WARNL("manager close, failed to read packet")
         *num_t = 0;
         pthread_mutex_unlock(manager->main.mutex_wait_read);
         error = MANAGER_ERR_CLOSED;
     } else if (genListIsEmpty(manager->main.buff)) {
         /* buffer empty */
-        warnl(FILE_MANAGER, FUN_NAME, "nothing to read");
+        WARNL("nothing to read")
         error = MANAGER_ERR_RETRY;
     } else {
         /* read */
@@ -288,8 +281,7 @@ Manager_error managerMainReceive(Manager *manager, pthread_t *num_t) {
 }
 
 Manager_error managerMainSendPthreadToJoin(Manager *manager, pthread_t num_t) {
-    char FUN_NAME[32] = "managerMainSendPthreadToJoin";
-    assertl(manager, FILE_MANAGER, FUN_NAME, -1, "manager NULL");
+        ASSERTL(manager,-1, "manager NULL")
 
     pthread_t *t = malloc(sizeof(pthread_t));
     t = malloc(sizeof(pthread_t));
@@ -302,8 +294,7 @@ Manager_error managerMainSendPthreadToJoin(Manager *manager, pthread_t num_t) {
 }
 
 bool isManagerModuleOpen(Manager *manager) {
-    char FUN_NAME[32] = "isManagerModuleOpen";
-    assertl(manager, FILE_MANAGER, FUN_NAME, -1, "manager NULL");
+        ASSERTL(manager,-1, "manager NULL")
 
     if (manager->input.state != MANAGER_STATE_CLOSED)
         return true;
@@ -347,9 +338,8 @@ char *managerModuleToString(Manager_module module) {
 }
 
 int managerGetFDAlert(Manager *manager, Manager_module module) {
-    char FUN_NAME[32] = "managerGetFDAlert";
-    assertl(manager, FILE_MANAGER, FUN_NAME, -1, "manager NULL");
-    assertl(manager, FILE_MANAGER, FUN_NAME, -1, "fd NULL");
+        ASSERTL(manager,-1, "manager NULL")
+    ASSERTL(manager,-1, "fd NULL")
 
     Buffer_module *buffer;
     Manager_error error = MANAGER_ERR_SUCCESS;

@@ -33,7 +33,7 @@
 
 void testArgNull(void *arg, char *file, char *fun, char *name) {
     if (arg == NULL)
-        exitl(file, "hisArgNull", EXIT_FAILURE, "[%s in %s] %s : argument NULL\n", fun, file, name);
+        EXITL(EXIT_FAILURE, "[%s in %s] %s : argument NULL\n", fun, file, name)
 }
 
 /*------------------------------------------------------------------*/
@@ -57,11 +57,11 @@ struct s_gen_list {
 GenList *initGenList(unsigned memory_size) {
     GenList *l = malloc(sizeof(GenList));
     if (l == NULL)
-        exitl("genericlist.c", "createGenList", EXIT_FAILURE, "erreur malloc list");
+        EXITL(EXIT_FAILURE, "erreur malloc list")
 
     l->tab = malloc(sizeof(void *) * memory_size);
     if (l->tab == NULL)
-        exitl("genericlist.c", "createGenList", EXIT_FAILURE, "erreur malloc tab");
+        EXITL(EXIT_FAILURE, "erreur malloc tab")
 
     l->memory_size = memory_size;
     l->size = 0;
@@ -69,7 +69,7 @@ GenList *initGenList(unsigned memory_size) {
     // pthread_mutexattr_init(&attr);
     // pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_ROBUST);
     if (pthread_mutex_init(&(l->mutex), NULL) != 0) {
-        exitl("genericlist.c", "createGenList", EXIT_FAILURE, "erreur init mutex");
+        EXITL(EXIT_FAILURE, "erreur init mutex")
     }
     return l;
 }
@@ -109,7 +109,7 @@ static void adjustMemorySizeGenList(GenList *l, unsigned new_size) {
     /* modification taille du tableau */
     l->tab = realloc(l->tab, new_size * sizeof(void *));
     if (new_size != 0 && l->tab == NULL)
-        exitl("genericlist.c", "adjustMemorySizeGenList", EXIT_FAILURE, "echec realloc tab");
+        EXITL(EXIT_FAILURE, "echec realloc tab")
 }
 
 void genListClear(GenList *l, freefun fun) {
@@ -147,7 +147,7 @@ void genListInsert(GenList *l, void *v, unsigned i) {
     testArgNull(l, "genericlist.c", "genListInsert", "l");
     pthread_mutex_lock(&(l->mutex));
     if (i > l->size)
-        exitl("genericlist.c", "genListInsert", EXIT_FAILURE, "position (%d) invalide", i);
+        EXITL(EXIT_FAILURE, "position (%d) invalide", i)
 
     /* agrandissement de la liste si pleine */
     if (l->size >= l->memory_size)
@@ -171,7 +171,7 @@ void *genListPop(GenList *l) {
     testArgNull(l, "genericlist.c", "listPop", "l");
     pthread_mutex_lock(&(l->mutex));
     if (l->size <= 0)
-        exitl("list.c", "listPop", EXIT_FAILURE, "liste déjà vide");
+        EXITL(EXIT_FAILURE, "liste déjà vide")
 
     /* suppression de l'élément */
     void *elem = l->tab[l->size - 1];
@@ -189,7 +189,7 @@ void *genListRemove(GenList *l, unsigned i) {
     testArgNull(l, "genericlist.c", "genListRemove", "l");
     pthread_mutex_lock(&(l->mutex));
     if (i >= l->size)
-        exitl("genericlist.c", "genListRemove", EXIT_FAILURE, "position (%d) invalide", i);
+        EXITL(EXIT_FAILURE, "position (%d) invalide", i)
 
     void *elem = l->tab[i];
     /* suppression de l'élément */
@@ -293,7 +293,7 @@ void *genListGet(GenList *l, unsigned i) {
     testArgNull(l, "genericlist.c", "genListGet", "l");
     pthread_mutex_lock(&(l->mutex));
     if (i >= l->size)
-        exitl("genericlist.c", "genListGet", EXIT_FAILURE, "position (%d) invalide", i);
+        EXITL(EXIT_FAILURE, "position (%d) invalide", i)
     void *ret = l->tab[i];
     pthread_mutex_unlock(&(l->mutex));
     return ret;
@@ -307,7 +307,7 @@ void genListSet(GenList *l, void *v, unsigned i) {
     testArgNull(l, "genericlist.c", "genListSet", "l");
     pthread_mutex_lock(&(l->mutex));
     if (i >= l->size)
-        exitl("genericlist.c", "genListSet", EXIT_FAILURE, "position (%d) invalide", i);
+        EXITL(EXIT_FAILURE, "position (%d) invalide", i)
 
     l->tab[i] = v;
     pthread_mutex_unlock(&(l->mutex));

@@ -6,7 +6,6 @@
 #include <unistd.h>
 #include <utils/logger.h>
 
-#define FILE_NAME "request-handler"
 
 #define BLUE "\033[38;5;45m"
 #define GREEN "\033[38;5;82m"
@@ -236,14 +235,13 @@ void *startConnection(void *arg) {
 }
 
 void *accepteUser(void *arg) {
-    char *FUN_NAME = "accepteUser";
-    TLS_infos *temp, *tsl = arg;
+        TLS_infos *temp, *tsl = arg;
     pthread_t num_t;
     while (!end) {
         tryServer("accepteUser tlsAcceptCom");
         temp = tlsAcceptCom(tsl);
         if (!temp) {
-            warnl(FILE_NAME, FUN_NAME, "failed accept com");
+            WARNL("failed accept com")
             return NULL;
         }
         okServer("accepteUser");
@@ -261,8 +259,7 @@ static void clearTls(void *infos) {
 }
 
 void *requestHandler(void *arg) {
-    char *FUN_NAME = "requestHandler";
-    (void)arg;
+        (void)arg;
     TLS_error error;
     Packet *packet;
     TLS_infos *temp;
@@ -284,7 +281,7 @@ void *requestHandler(void *arg) {
         case TLS_ERROR:
         case TLS_CLOSE:
         case TLS_NULL_POINTER:
-            warnl(FILE_NAME, FUN_NAME, "tlsWaitOnMultiple failed");
+            WARNL("tlsWaitOnMultiple failed")
             end = true;
             continue;
             break;

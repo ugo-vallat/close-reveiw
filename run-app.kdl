@@ -1,0 +1,20 @@
+layout {
+    pane split_direction="vertical" {
+            pane size=5 command="./zig-out/bin/close-review-server" {
+            }
+
+            pane start_suspended=true command="./zig-out/bin/close-review-client" {
+                args "ugo"
+            }
+            pane start_suspended=true command="./zig-out/bin/close-review-client" {
+                args "coco"
+            }
+        
+
+
+    }
+    pane start_suspended=true borderless=true size=3 command="bash" {
+        args "-c" "zellij delete-session session-zellij --force"
+         focus true
+    }
+}

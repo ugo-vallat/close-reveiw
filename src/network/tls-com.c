@@ -22,7 +22,6 @@
 
 #define ERROR_BUFF_SIZE 512
 
-#define FILE_TLS_COM "tls-com.c"
 
 const char *SSL_error_to_string(int ssl_error) {
     switch (ssl_error) {
@@ -50,19 +49,18 @@ const char *SSL_error_to_string(int ssl_error) {
 }
 
 TLS_infos *initTLSInfos(const char *ip, const int port, TLS_mode tls_mode, char *path_cert, char *path_key) {
-    char FUN_NAME[32] = "initTLSInfos";
-    if (tls_mode == TLS_CLIENT)
-        assertl(ip, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "ip NULL");
-    assertl(port > 0 & port < 65535, FILE_TLS_COM, FUN_NAME, TLS_ERROR, "invalid num port <%d>", port);
-    assertl(tls_mode == TLS_CLIENT || tls_mode == TLS_SERVER || tls_mode == TLS_MAIN_SERVER, FILE_TLS_COM, FUN_NAME,
-            TLS_ERROR, "invalid tls mode <%d>", tls_mode);
+        if (tls_mode == TLS_CLIENT)
+        ASSERTL(ip,TLS_NULL_POINTER, "ip NULL")
+    ASSERTL(port > 0 & port < 65535,TLS_ERROR, "invalid num port <%d>", port)
+    ASSERTL(tls_mode == TLS_CLIENT || tls_mode == TLS_SERVER || tls_mode == TLS_MAIN_SERVER,
+            TLS_ERROR, "invalid tls mode <%d>", tls_mode)
     if (tls_mode == TLS_SERVER || tls_mode == TLS_MAIN_SERVER) {
-        assertl(path_cert, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "path_cert NULL");
-        assertl(path_key, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "path_key NULL");
+        ASSERTL(path_cert,TLS_NULL_POINTER, "path_cert NULL")
+        ASSERTL(path_key,TLS_NULL_POINTER, "path_key NULL")
     }
     TLS_infos *tls = malloc(sizeof(TLS_infos));
     if (!tls) {
-        warnl(FILE_TLS_COM, FUN_NAME, "fail malloc INFO_tls struct");
+        WARNL("fail malloc INFO_tls struct")
         return NULL;
     }
 
@@ -85,14 +83,13 @@ TLS_infos *initTLSInfos(const char *ip, const int port, TLS_mode tls_mode, char 
 }
 
 void deinitTLSInfos(TLS_infos **infos) {
-    char FUN_NAME[32] = "deinitTLSInfos";
-    assertl(infos, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "infos NULL");
-    assertl(*infos, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "*infos NULL");
+        ASSERTL(infos,TLS_NULL_POINTER, "infos NULL")
+    ASSERTL(*infos,TLS_NULL_POINTER, "*infos NULL")
 
     TLS_infos *tls = *infos;
 
     if (tlsCloseCom(tls, NULL) != TLS_SUCCESS) {
-        warnl(FILE_TLS_COM, FUN_NAME, "error closing tls com");
+        WARNL("error closing tls com")
     }
 
     free(tls);
@@ -101,15 +98,14 @@ void deinitTLSInfos(TLS_infos **infos) {
 }
 
 TLS_error tlsOpenCom(TLS_infos *infos, struct timeval *timeout) {
-    char FUN_NAME[32] = "tlsOpenCom";
-    assertl(infos, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "infos NULL");
-    assertl(infos->mode != TLS_MAIN_SERVER, FILE_TLS_COM, FUN_NAME, TLS_ERROR,
+        ASSERTL(infos,TLS_NULL_POINTER, "infos NULL")
+    ASSERTL(infos->mode != TLS_MAIN_SERVER, TLS_ERROR,
             "cant call tlsOpenCom in TLS_MAIN_SERVER mode");
     ERR_clear_error();
 
     /* close old connexion */
     if (tlsCloseCom(infos, NULL) != TLS_SUCCESS) {
-        warnl(FILE_TLS_COM, FUN_NAME, "fail tlsCloseCom");
+        WARNL("fail tlsCloseCom")
     }
 
     int ret;
@@ -119,7 +115,7 @@ TLS_error tlsOpenCom(TLS_infos *infos, struct timeval *timeout) {
     /* Open socket */
     infos->sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (infos->sockfd == -1) {
-        warnl(FILE_TLS_COM, FUN_NAME, "error open socket");
+        WARNL("error open socket")
         tlsCloseCom(infos, NULL);
         return TLS_ERROR;
     }
@@ -132,7 +128,7 @@ TLS_error tlsOpenCom(TLS_infos *infos, struct timeval *timeout) {
         serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     } else {
         if (inet_pton(AF_INET, infos->ip, &serv_addr.sin_addr) <= 0) {
-            warnl(FILE_TLS_COM, FUN_NAME, "error ip");
+            WARNL("error ip")
             tlsCloseCom(infos, NULL);
             return TLS_ERROR;
         }
@@ -145,7 +141,7 @@ TLS_error tlsOpenCom(TLS_infos *infos, struct timeval *timeout) {
         infos->ctx = SSL_CTX_new(TLS_client_method());
     }
     if (infos->ctx == NULL) {
-        warnl(FILE_TLS_COM, FUN_NAME, "error context");
+        WARNL("error context")
         ERR_print_errors_fp(stderr);
         tlsCloseCom(infos, NULL);
         return TLS_ERROR;
@@ -155,14 +151,14 @@ TLS_error tlsOpenCom(TLS_infos *infos, struct timeval *timeout) {
     if (infos->mode == TLS_SERVER) {
         ret = SSL_CTX_use_certificate_file(infos->ctx, infos->path_cert, SSL_FILETYPE_PEM);
         if (ret != 1) {
-            warnl(FILE_TLS_COM, FUN_NAME, "error add cert file (%s)", infos->path_cert);
+            WARNL("error add cert file (%s)", infos->path_cert)
             ERR_print_errors_fp(stderr);
             tlsCloseCom(infos, NULL);
             return TLS_ERROR;
         }
         ret = SSL_CTX_use_PrivateKey_file(infos->ctx, infos->path_key, SSL_FILETYPE_PEM);
         if (ret != 1) {
-            warnl(FILE_TLS_COM, FUN_NAME, "error add key file(%s)", infos->path_key);
+            WARNL("error add key file(%s)", infos->path_key)
             ERR_print_errors_fp(stderr);
             tlsCloseCom(infos, NULL);
             return TLS_ERROR;
@@ -172,18 +168,18 @@ TLS_error tlsOpenCom(TLS_infos *infos, struct timeval *timeout) {
     /* bind socket server*/
     if (infos->mode == TLS_SERVER) {
         if (bind(infos->sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == -1) {
-            warnl(FILE_TLS_COM, FUN_NAME, "error bind server");
+            WARNL("error bind server")
             tlsCloseCom(infos, NULL);
             return TLS_ERROR;
         }
         if (listen(infos->sockfd, 5) == -1) {
-            warnl(FILE_TLS_COM, FUN_NAME, "error listen server");
+            WARNL("error listen server")
             tlsCloseCom(infos, NULL);
             return TLS_ERROR;
         }
         if (timeout) {
             if (setsockopt(infos->sockfd, SOL_SOCKET, SO_RCVTIMEO, (void *)timeout, sizeof(struct timeval)) < 0) {
-                warnl(FILE_TLS_COM, FUN_NAME, "error set timeout");
+                WARNL("error set timeout")
                 tlsCloseCom(infos, NULL);
                 return TLS_ERROR;
             }
@@ -196,10 +192,10 @@ TLS_error tlsOpenCom(TLS_infos *infos, struct timeval *timeout) {
         int client_sockfd = accept(infos->sockfd, (struct sockaddr *)&cli_addr, &cli_len);
         if (client_sockfd == -1) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                warnl(FILE_TLS_COM, FUN_NAME, "accept() stoped by timeout");
+                WARNL("accept() stoped by timeout")
                 return TLS_RETRY;
             }
-            warnl(FILE_TLS_COM, FUN_NAME, "error accept client");
+            WARNL("error accept client")
             tlsCloseCom(infos, NULL);
             return TLS_ERROR;
         } else {
@@ -227,7 +223,7 @@ TLS_error tlsOpenCom(TLS_infos *infos, struct timeval *timeout) {
                     case ECONNREFUSED:
                         break;
                     default:
-                        warnl(FILE_TLS_COM, FUN_NAME, "error connect to server");
+                        WARNL("error connect to server")
                         tlsCloseCom(infos, NULL);
                         return TLS_ERROR;
                     }
@@ -237,7 +233,7 @@ TLS_error tlsOpenCom(TLS_infos *infos, struct timeval *timeout) {
                     elapsed_microseconds = current_time.tv_usec - start_time.tv_usec;
                     if (elapsed_seconds >= timeout->tv_sec ||
                         (elapsed_seconds == timeout->tv_sec && elapsed_microseconds > timeout->tv_usec)) {
-                        warnl(FILE_TLS_COM, FUN_NAME, "connect() stoped by timeout");
+                        WARNL("connect() stoped by timeout")
                         tlsCloseCom(infos, NULL);
                         return TLS_ERROR;
                     }
@@ -247,10 +243,10 @@ TLS_error tlsOpenCom(TLS_infos *infos, struct timeval *timeout) {
         } else {
             if (connect(infos->sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
                 if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                    warnl(FILE_TLS_COM, FUN_NAME, "connect() stoped by timeout");
+                    WARNL("connect() stoped by timeout")
                     return TLS_RETRY;
                 }
-                warnl(FILE_TLS_COM, FUN_NAME, "error connect to server");
+                WARNL("error connect to server")
                 tlsCloseCom(infos, NULL);
                 return TLS_ERROR;
             }
@@ -260,13 +256,13 @@ TLS_error tlsOpenCom(TLS_infos *infos, struct timeval *timeout) {
     /* create SSL connexion */
     infos->ssl = SSL_new(infos->ctx);
     if (!infos->ssl) {
-        warnl(FILE_TLS_COM, FUN_NAME, "error SSL_new");
+        WARNL("error SSL_new")
         ERR_print_errors_fp(stderr);
         tlsCloseCom(infos, NULL);
         return TLS_ERROR;
     }
     if (SSL_set_fd(infos->ssl, infos->sockfd) != 1) {
-        warnl(FILE_TLS_COM, FUN_NAME, "error SSL_set_fd");
+        WARNL("error SSL_set_fd")
         ERR_print_errors_fp(stderr);
         tlsCloseCom(infos, NULL);
         return TLS_ERROR;
@@ -275,14 +271,14 @@ TLS_error tlsOpenCom(TLS_infos *infos, struct timeval *timeout) {
     /* establish SSL connexion */
     if (infos->mode == TLS_SERVER) {
         if (SSL_accept(infos->ssl) != 1) {
-            warnl(FILE_TLS_COM, FUN_NAME, "error SSL_accept");
+            WARNL("error SSL_accept")
             ERR_print_errors_fp(stderr);
             tlsCloseCom(infos, NULL);
             return TLS_ERROR;
         }
     } else {
         if (SSL_connect(infos->ssl) != 1) {
-            warnl(FILE_TLS_COM, FUN_NAME, "error SSL_connect");
+            WARNL("error SSL_connect")
             ERR_print_errors_fp(stderr);
             tlsCloseCom(infos, NULL);
             return TLS_ERROR;
@@ -292,7 +288,7 @@ TLS_error tlsOpenCom(TLS_infos *infos, struct timeval *timeout) {
     /* non blocking socket */
     int flags = fcntl(infos->sockfd, F_GETFL, 0);
     if (fcntl(infos->sockfd, F_SETFL, flags | O_NONBLOCK) != 0) {
-        warnl(FILE_TLS_COM, FUN_NAME, "error nonblock socket");
+        WARNL("error nonblock socket")
         close(infos->sockfd);
         infos->sockfd = -1;
         return TLS_ERROR;
@@ -304,9 +300,8 @@ TLS_error tlsOpenCom(TLS_infos *infos, struct timeval *timeout) {
 }
 
 TLS_infos *tlsAcceptCom(TLS_infos *infos) {
-    char FUN_NAME[32] = "tlsAcceptCom";
-    assertl(infos, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "infos NULL");
-    assertl(infos->mode == TLS_MAIN_SERVER, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER,
+        ASSERTL(infos,TLS_NULL_POINTER, "infos NULL")
+    ASSERTL(infos->mode == TLS_MAIN_SERVER, TLS_NULL_POINTER,
             "call tlsAcceptCom only in TLS_MAIN_SERVER mode");
     ERR_clear_error();
 
@@ -324,18 +319,18 @@ TLS_infos *tlsAcceptCom(TLS_infos *infos) {
         /* Open socket */
         infos->sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if (infos->sockfd == -1) {
-            warnl(FILE_TLS_COM, FUN_NAME, "error open socket");
+            WARNL("error open socket")
             tlsCloseCom(infos, NULL);
             return NULL;
         }
         /* bind socket server*/
         if (bind(infos->sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == -1) {
-            warnl(FILE_TLS_COM, FUN_NAME, "error bind server");
+            WARNL("error bind server")
             tlsCloseCom(infos, NULL);
             return NULL;
         }
         if (listen(infos->sockfd, 99999) == -1) {
-            warnl(FILE_TLS_COM, FUN_NAME, "error listen server");
+            WARNL("error listen server")
             tlsCloseCom(infos, NULL);
             return NULL;
         }
@@ -345,7 +340,7 @@ TLS_infos *tlsAcceptCom(TLS_infos *infos) {
     if (infos->ctx == NULL) {
         infos->ctx = SSL_CTX_new(TLS_server_method());
         if (infos->ctx == NULL) {
-            warnl(FILE_TLS_COM, FUN_NAME, "error context");
+            WARNL("error context")
             ERR_print_errors_fp(stderr);
             tlsCloseCom(infos, NULL);
             return NULL;
@@ -354,14 +349,14 @@ TLS_infos *tlsAcceptCom(TLS_infos *infos) {
         /* add certificate and key for server */
         ret = SSL_CTX_use_certificate_file(infos->ctx, infos->path_cert, SSL_FILETYPE_PEM);
         if (ret != 1) {
-            warnl(FILE_TLS_COM, FUN_NAME, "error add cert file (%s)", infos->path_cert);
+            WARNL("error add cert file (%s)", infos->path_cert)
             ERR_print_errors_fp(stderr);
             tlsCloseCom(infos, NULL);
             return NULL;
         }
         ret = SSL_CTX_use_PrivateKey_file(infos->ctx, infos->path_key, SSL_FILETYPE_PEM);
         if (ret != 1) {
-            warnl(FILE_TLS_COM, FUN_NAME, "error add key file(%s)", infos->path_key);
+            WARNL("error add key file(%s)", infos->path_key)
             ERR_print_errors_fp(stderr);
             tlsCloseCom(infos, NULL);
             return NULL;
@@ -372,7 +367,7 @@ TLS_infos *tlsAcceptCom(TLS_infos *infos) {
     socklen_t cli_len = sizeof(cli_addr);
     int client_sockfd = accept(infos->sockfd, (struct sockaddr *)&cli_addr, &cli_len);
     if (client_sockfd == -1) {
-        warnl(FILE_TLS_COM, FUN_NAME, "error accept client");
+        WARNL("error accept client")
         tlsCloseCom(infos, NULL);
         return NULL;
     } else {
@@ -383,19 +378,19 @@ TLS_infos *tlsAcceptCom(TLS_infos *infos) {
     /* create SSL connexion */
     client->ssl = SSL_new(infos->ctx);
     if (!client->ssl) {
-        warnl(FILE_TLS_COM, FUN_NAME, "error SSL_new");
+        WARNL("error SSL_new")
         ERR_print_errors_fp(stderr);
         return NULL;
     }
     if (SSL_set_fd(client->ssl, client->sockfd) != 1) {
-        warnl(FILE_TLS_COM, FUN_NAME, "error SSL_set_fd");
+        WARNL("error SSL_set_fd")
         ERR_print_errors_fp(stderr);
         return NULL;
     }
 
     /* establish SSL connexion */
     if (SSL_accept(client->ssl) != 1) {
-        warnl(FILE_TLS_COM, FUN_NAME, "error SSL_accept");
+        WARNL("error SSL_accept")
         ERR_print_errors_fp(stderr);
         return NULL;
     }
@@ -403,7 +398,7 @@ TLS_infos *tlsAcceptCom(TLS_infos *infos) {
     /* non blocking socket */
     int flags = fcntl(client->sockfd, F_GETFL, 0);
     if (fcntl(client->sockfd, F_SETFL, flags | O_NONBLOCK) != 0) {
-        warnl(FILE_TLS_COM, FUN_NAME, "error nonblock socket");
+        WARNL("error nonblock socket")
         close(client->sockfd);
         client->sockfd = -1;
         return NULL;
@@ -415,8 +410,7 @@ TLS_infos *tlsAcceptCom(TLS_infos *infos) {
 }
 
 TLS_error tlsCloseCom(TLS_infos *infos, GenList *last_received) {
-    char FUN_NAME[32] = "tlsCloseCom";
-    assertl(infos, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "infos NULL");
+        ASSERTL(infos,TLS_NULL_POINTER, "infos NULL")
     ERR_clear_error();
 
     TLS_error error = TLS_SUCCESS;
@@ -452,7 +446,7 @@ TLS_error tlsCloseCom(TLS_infos *infos, GenList *last_received) {
     /* close socket */
     if (infos->sockfd != -1) {
         if (close(infos->sockfd) != 0)
-            warnl(FILE_TLS_COM, FUN_NAME, "error close socket");
+            WARNL("error close socket")
         infos->sockfd = -1;
     }
     infos->open = false;
@@ -461,11 +455,10 @@ TLS_error tlsCloseCom(TLS_infos *infos, GenList *last_received) {
 
 TLS_error tlsStartListenning(TLS_infos *infos, Manager *manager, Manager_module module, funTLSGetNextPacket next_packet,
                              funTLSPacketReceivedManager packet_manager_received) {
-    char FUN_NAME[32] = "tlsStartListenning";
-    assertl(infos, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "infos NULL");
-    assertl(manager, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "manager NULL");
-    assertl(next_packet, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "next_packet NULL");
-    assertl(packet_manager_received, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "packet_manager_received NULL");
+        ASSERTL(infos,TLS_NULL_POINTER, "infos NULL")
+    ASSERTL(manager,TLS_NULL_POINTER, "manager NULL")
+    ASSERTL(next_packet,TLS_NULL_POINTER, "next_packet NULL")
+    ASSERTL(packet_manager_received,TLS_NULL_POINTER, "packet_manager_received NULL")
 
     TLS_error tls_error;
     Packet *p;
@@ -475,7 +468,7 @@ TLS_error tlsStartListenning(TLS_infos *infos, Manager *manager, Manager_module 
     if (!infos->open) {
         tls_error = tlsOpenCom(infos, NULL);
         if (tls_error != TLS_SUCCESS) {
-            warnl(FILE_TLS_COM, FUN_NAME, "fail to open com tls");
+            WARNL("fail to open com tls")
             return TLS_ERROR;
         }
     }
@@ -491,7 +484,7 @@ TLS_error tlsStartListenning(TLS_infos *infos, Manager *manager, Manager_module 
         /* attendre une alterte */
         poll_return = poll(fds, 2, -1);
         if (poll_return == -1) {
-            warnl(FILE_TLS_COM, FUN_NAME, "fail poll");
+            WARNL("fail poll")
             tlsCloseCom(infos, NULL);
             return TLS_ERROR;
         }
@@ -507,13 +500,13 @@ TLS_error tlsStartListenning(TLS_infos *infos, Manager *manager, Manager_module 
                 break;
             case TLS_CLOSE:
                 /* end of communication */
-                // warnl(FILE_TLS_COM, FUN_NAME, "close 1");
+                // WARNL("close 1")
                 tlsCloseCom(infos, NULL);
                 return TLS_CLOSE;
                 break;
             case TLS_ERROR:
             case TLS_NULL_POINTER:
-                warnl(FILE_TLS_COM, FUN_NAME, "fail next_packet");
+                WARNL("fail next_packet")
                 tlsCloseCom(infos, NULL);
                 return TLS_ERROR;
             }
@@ -533,28 +526,28 @@ TLS_error tlsStartListenning(TLS_infos *infos, Manager *manager, Manager_module 
                     case TLS_SUCCESS:
                         break;
                     case TLS_CLOSE:
-                        // warnl(FILE_TLS_COM, FUN_NAME, "close 2");
+                        // WARNL("close 2")
                         return TLS_CLOSE;
                     default:
-                        warnl(FILE_TLS_COM, FUN_NAME, "%s - packet_manager_receive failed",
-                              tlsErrorToString(tls_error));
+                        WARNL("%s - packet_manager_receive failed",
+                              tlsErrorToString(tls_error))
                         break;
                     }
                     break;
                 default:
-                    warnl(FILE_TLS_COM, FUN_NAME, "unexpected type <%d>", p->type);
+                    WARNL("unexpected type <%d>", p->type)
                 }
                 deinitPacket(&p);
                 break;
             case TLS_RETRY:
                 break;
             case TLS_CLOSE:
-                warnl(FILE_TLS_COM, FUN_NAME, "peer disconnected");
+                WARNL("peer disconnected")
                 return TLS_CLOSE;
                 break;
             case TLS_ERROR:
             case TLS_NULL_POINTER:
-                warnl(FILE_TLS_COM, FUN_NAME, "fail tlsReceiveNonBlocking - %s", tlsErrorToString(tls_error));
+                WARNL("fail tlsReceiveNonBlocking - %s", tlsErrorToString(tls_error))
                 tlsCloseCom(infos, NULL);
                 return TLS_ERROR;
             }
@@ -563,9 +556,8 @@ TLS_error tlsStartListenning(TLS_infos *infos, Manager *manager, Manager_module 
 }
 
 TLS_error tlsManagerPacketReceived(Manager *manager, Manager_module module, Packet *packet) {
-    char *FUN_NAME = "tlsP2PManagerPacketReceived";
-    assertl(manager, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "manager NULL");
-    assertl(packet, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "packet NULL");
+        ASSERTL(manager,TLS_NULL_POINTER, "manager NULL")
+    ASSERTL(packet,TLS_NULL_POINTER, "packet NULL")
 
     Manager_error manager_error;
 
@@ -593,8 +585,8 @@ TLS_error tlsManagerPacketReceived(Manager *manager, Manager_module module, Pack
             case P2P_CON_FAILURE:
             case P2P_CON_SUCCESS:
             case P2P_INFOS:
-                warnl(FILE_TLS_COM, FUN_NAME, "packet %s unsupported",
-                      p2pMsgTypeToString(p2pMsgGetType(&(packet->p2p))));
+                WARNL("packet %s unsupported",
+                      p2pMsgTypeToString(p2pMsgGetType(&(packet->p2p))))
             }
             return TLS_ERROR;
             break;
@@ -635,8 +627,8 @@ TLS_error tlsManagerPacketReceived(Manager *manager, Manager_module module, Pack
             case P2P_CON_FAILURE:
             case P2P_CON_SUCCESS:
             case P2P_INFOS:
-                warnl(FILE_TLS_COM, FUN_NAME, "packet %s unsupported",
-                      p2pMsgTypeToString(p2pMsgGetType(&(packet->p2p))));
+                WARNL("packet %s unsupported",
+                      p2pMsgTypeToString(p2pMsgGetType(&(packet->p2p))))
             }
             return TLS_ERROR;
             break;
@@ -647,15 +639,14 @@ TLS_error tlsManagerPacketReceived(Manager *manager, Manager_module module, Pack
             break;
         }
     } else {
-        warnl(FILE_TLS_COM, FUN_NAME, "unexpected Manager module");
+        WARNL("unexpected Manager module")
         return TLS_ERROR;
     }
 }
 
 TLS_error tlsManagerPacketGetNext(Manager *manager, Manager_module module, Packet **packet) {
-    char *FUN_NAME = "tlsManagerPacketGetNext";
-    assertl(manager, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "manager NULL");
-    assertl(packet, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "packet NULL");
+        ASSERTL(manager,TLS_NULL_POINTER, "manager NULL")
+    ASSERTL(packet,TLS_NULL_POINTER, "packet NULL")
 
     Manager_error manager_error;
     manager_error = managerReceiveNonBlocking(manager, module, packet);
@@ -670,20 +661,19 @@ TLS_error tlsManagerPacketGetNext(Manager *manager, Manager_module module, Packe
         return TLS_RETRY;
         break;
     case MANAGER_ERR_CLOSED:
-        warnl(FILE_TLS_COM, FUN_NAME, "%s - manager closed", managerErrorToString(manager_error));
+        WARNL("%s - manager closed", managerErrorToString(manager_error))
         return TLS_ERROR;
         break;
     case MANAGER_ERR_ERROR:
-        warnl(FILE_TLS_COM, FUN_NAME, "%s - manager failed", managerErrorToString(manager_error));
+        WARNL("%s - manager failed", managerErrorToString(manager_error))
         return TLS_ERROR;
         break;
     }
 }
 
 TLS_error tlsSend(TLS_infos *infos, Packet *packet) {
-    char FUN_NAME[32] = "tlsSend";
-    assertl(infos, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "infos NULL");
-    assertl(packet, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "packet NULL");
+        ASSERTL(infos,TLS_NULL_POINTER, "infos NULL")
+    ASSERTL(packet,TLS_NULL_POINTER, "packet NULL")
 
     int ret;
     int error;
@@ -691,7 +681,7 @@ TLS_error tlsSend(TLS_infos *infos, Packet *packet) {
 
     /* case com closed */
     if (!infos->open) {
-        warnl(FILE_TLS_COM, FUN_NAME, "communication closed");
+        WARNL("communication closed")
         return TLS_ERROR;
     }
 
@@ -716,7 +706,7 @@ TLS_error tlsSend(TLS_infos *infos, Packet *packet) {
             break;
         default:
             ERR_error_string_n(error, buff, sizeof(buff));
-            warnl(FILE_TLS_COM, FUN_NAME, "SSL_write (%s) : %s", error, buff);
+            WARNL("SSL_write (%s) : %s", error, buff)
             infos->open = false;
             return TLS_CLOSE;
         }
@@ -724,9 +714,8 @@ TLS_error tlsSend(TLS_infos *infos, Packet *packet) {
 }
 
 TLS_error tlsReceiveNonBlocking(TLS_infos *infos, Packet **packet) {
-    char FUN_NAME[32] = "tlsReaceiveNonBlocking";
-    assertl(infos, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "infos NULL");
-    assertl(packet, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "packet NULL");
+        ASSERTL(infos,TLS_NULL_POINTER, "infos NULL")
+    ASSERTL(packet,TLS_NULL_POINTER, "packet NULL")
 
     int ret;
     int error;
@@ -771,17 +760,16 @@ TLS_error tlsReceiveNonBlocking(TLS_infos *infos, Packet **packet) {
         }
     default:
         ERR_error_string_n(error, buff, sizeof(buff));
-        warnl(FILE_TLS_COM, FUN_NAME, "SSL_read (%d - %s) on socket %d : %s", error, SSL_error_to_string(error),
-              infos->sockfd, buff);
+        WARNL("SSL_read (%d - %s) on socket %d : %s", error, SSL_error_to_string(error),
+              infos->sockfd, buff)
         return TLS_ERROR;
     }
     return TLS_ERROR;
 }
 
 TLS_error tlsReceiveBlocking(TLS_infos *infos, Packet **packet) {
-    char FUN_NAME[32] = "tlsReceiveBlocking";
-    assertl(infos, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "infos NULL");
-    assertl(packet, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "packet NULL");
+        ASSERTL(infos,TLS_NULL_POINTER, "infos NULL")
+    ASSERTL(packet,TLS_NULL_POINTER, "packet NULL")
 
     int ret;
     int error;
@@ -797,12 +785,12 @@ TLS_error tlsReceiveBlocking(TLS_infos *infos, Packet **packet) {
     /* blocking socket */
     int flags = fcntl(infos->sockfd, F_GETFL, 0);
     if (flags == -1) {
-        warnl(FILE_TLS_COM, FUN_NAME, "error getting socket flags");
+        WARNL("error getting socket flags")
         return TLS_ERROR;
     }
 
     if (fcntl(infos->sockfd, F_SETFL, flags & ~O_NONBLOCK) != 0) {
-        warnl(FILE_TLS_COM, FUN_NAME, "error setting blocking socket");
+        WARNL("error setting blocking socket")
         close(infos->sockfd);
         infos->sockfd = -1;
         return TLS_ERROR;
@@ -841,15 +829,15 @@ TLS_error tlsReceiveBlocking(TLS_infos *infos, Packet **packet) {
         }
     default:
         ERR_error_string_n(error, buff, sizeof(buff));
-        warnl(FILE_TLS_COM, FUN_NAME, "SSL_read (%d - %s) on socket %d : %s", error, SSL_error_to_string(error),
-              infos->sockfd, buff);
+        WARNL("SSL_read (%d - %s) on socket %d : %s", error, SSL_error_to_string(error),
+              infos->sockfd, buff)
         tls_error = TLS_ERROR;
     }
 
     /* non blocking socket */
     flags = fcntl(infos->sockfd, F_GETFL, 0);
     if (fcntl(infos->sockfd, F_SETFL, flags | O_NONBLOCK) != 0) {
-        warnl(FILE_TLS_COM, FUN_NAME, "error nonblock socket");
+        WARNL("error nonblock socket")
         close(infos->sockfd);
         infos->sockfd = -1;
         tls_error = TLS_ERROR;
@@ -858,8 +846,7 @@ TLS_error tlsReceiveBlocking(TLS_infos *infos, Packet **packet) {
 }
 
 TLS_error tlsWaitOnMultiple(GenList *infos, int timeout_ms) {
-    char FUN_NAME[32] = "tlsWaitOnMultiple";
-    assertl(infos, FILE_TLS_COM, FUN_NAME, TLS_NULL_POINTER, "infos NULL");
+        ASSERTL(infos,TLS_NULL_POINTER, "infos NULL")
 
     int nb_fd = genListSize(infos);
     TLS_infos *tls;
@@ -877,7 +864,7 @@ TLS_error tlsWaitOnMultiple(GenList *infos, int timeout_ms) {
     }
     int res = poll(fds, nb_fd, timeout_ms);
     if (res == -1) {
-        warnl(FILE_TLS_COM, FUN_NAME, "error poll");
+        WARNL("error poll")
         free(fds);
         return TLS_ERROR;
     } else if (res == 0) {

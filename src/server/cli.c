@@ -7,7 +7,6 @@
 #include <types/genericlist.h>
 #include <utils/logger.h>
 
-#define FILE_NAME "cli"
 
 typedef enum e_type_cmd_server {
     CMD_SRV_LIST = 0,
@@ -36,13 +35,12 @@ Type_cmd_server getCommandTypeServer(char *command) {
 }
 
 Command_server initCommandServer(char *buffer) {
-    char FUN_NAME[32] = "initCommandServer";
-    char *token;
+        char *token;
     Command_server command;
     command.args = initGenList(sizeof(char *));
     printf("struct creer\n");
     if (command.args == NULL) {
-        warnl(FILE_NAME, FUN_NAME, "fail initGenList args");
+        WARNL("fail initGenList args")
         command.type = CMD_SRV_ERROR;
         return command;
     }
@@ -52,7 +50,7 @@ Command_server initCommandServer(char *buffer) {
     while ((token = strtok(NULL, " ")) != NULL) {
         char *arg = strdup(token);
         if (arg == NULL) {
-            warnl(FUN_NAME, FUN_NAME, "fail strdup arg");
+            WARNL("fail strdup arg")
             deinitGenList(&command.args, free);
             command.type = CMD_SRV_ERROR;
             return command;
@@ -137,7 +135,7 @@ void *cli(void *useless) {
             break;
         case CMD_SRV_UNKNOWN:
             printf("unknown command use help for have the list of commande");
-            warnl(FILE_NAME, "cli", "command unknown");
+            WARNL("command unknown")
             break;
         case CMD_SRV_ERROR:
             break;

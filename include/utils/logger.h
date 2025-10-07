@@ -23,17 +23,17 @@
 /**
  * @brief Macro appelant warnl avec file_name et fun_name fournis
  */
-#define WARNL(...) warnl(__FILE__, __func__, ##__VA_ARGS__);
+#define WARNL(...) warnl(__FILE__, __func__ __VA_OPT__(,) __VA_ARGS__);
 
 /**
  * @brief Macro appelant exitl avec file_name et fun_name fournis
  */
-#define EXITL(exit_value, ...) exitl(__FILE__, __func__, exit_value, ##__VA_ARGS__);
+#define EXITL(exit_value, ...) exitl(__FILE__, __func__, exit_value __VA_OPT__(,) __VA_ARGS__);
 
 /**
  * @brief Macro appelant assertl avec file_name et fun_name fournis
  */
-#define ASSERTL(assert, exit_value, ...) assertl(assert, __FILE__, __func__, exit_value, ##__VA_ARGS__);
+ #define ASSERTL(assert, exit_value, ...) assertl(assert, __FILE__, __func__, exit_value __VA_OPT__(,) __VA_ARGS__);
 
 /* _________________________________ PROTOTYPES _________________________________ */
 

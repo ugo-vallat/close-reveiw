@@ -18,8 +18,6 @@
 #define RED "\033[38;5;196m"
 #define RESET "\033[0m"
 
-#define FILE_MAIN "main.c"
-
 Manager *manager;
 TLS_infos *tls;
 Config_infos *config;
@@ -29,7 +27,6 @@ void *threadServer(void *arg);
 void closeApp();
 
 int main(int argc, char *argv[]) {
-    char *FUN_NAME = "main";
     pthread_t num_t;
     bool close = false;
     int error;
@@ -43,7 +40,7 @@ int main(int argc, char *argv[]) {
 
     /* init logger */
     if (argc > 2)
-        exitl(FILE_MAIN, FUN_NAME, -1, "usage : %s [logger_id]", argv[0]);
+        EXITL(-1, "usage : %s [logger_id]", argv[0])
     if (argc == 2) {
         init_logger(PATH_LOG, argv[1]);
     } else {
@@ -53,18 +50,18 @@ int main(int argc, char *argv[]) {
     /* get server infos */
     config = loadConfig(CLIENT);
     if (config == NULL) {
-        warnl(FILE_MAIN, FUN_NAME, "failed to load config");
+        WARNL("failed to load config")
         closeApp();
     }
     if (config->server.is_defined == false) {
-        warnl(FILE_MAIN, FUN_NAME, "server address/port undefined");
+        WARNL("server address/port undefined")
         closeApp();
     }
 
     /* create manager */
     manager = initManager();
     if (!manager) {
-        exitl(FILE_MAIN, FUN_NAME, -1, "failed init manager");
+        EXITL(-1, "failed init manager")
     }
 
     /* set manager in progress */
@@ -75,7 +72,7 @@ int main(int argc, char *argv[]) {
     /* creation threads */
     Manager_state state;
     if (pthread_create(&num_t, NULL, threadServer, NULL) != 0) {
-        warnl(FILE_MAIN, FUN_NAME, "fialed create thread server");
+        WARNL("fialed create thread server")
         closeApp();
     } else {
 
@@ -87,11 +84,11 @@ int main(int argc, char *argv[]) {
         }
     }
     if (pthread_create(&num_t, NULL, stdinHandler, manager) != 0) {
-        warnl(FILE_MAIN, FUN_NAME, "fialed create thread input");
+        WARNL("fialed create thread input")
         closeApp();
     }
     if (pthread_create(&num_t, NULL, stdoutHandler, manager) != 0) {
-        warnl(FILE_MAIN, FUN_NAME, "fialed create thread output");
+        WARNL("fialed create thread output")
         closeApp();
     }
 
@@ -103,7 +100,7 @@ int main(int argc, char *argv[]) {
         managerMainReceive(manager, &num_t);
         error = pthread_join(num_t, NULL);
         if (error) {
-            warnl(FILE_MAIN, FUN_NAME, "failed to join thread %lu : error %d ", num_t, error);
+            WARNL("failed to join thread %lu : error %d ", num_t, error)
         }
         close = !isManagerModuleOpen(manager);
     }
@@ -122,21 +119,20 @@ int main(int argc, char *argv[]) {
  * @note set Manager state to OPEN if ready, CLOSED otherwise
  */
 void *threadServer(void *arg) {
-    char *FUN_NAME = "threadServer";
-    assertl(manager, FILE_MAIN, FUN_NAME, -2, "manager closed");
+        ASSERTL(manager,-2, "manager closed")
     TLS_error tls_error;
     pthread_t num_t;
 
     /* open connection server */
     tls = initTLSInfos(config->server.ip, config->server.port, TLS_CLIENT, NULL, NULL);
     if (!tls) {
-        warnl(FILE_MAIN, FUN_NAME, "failed to init tls infos");
+        WARNL("failed to init tls infos")
         managerSetState(manager, MANAGER_MOD_SERVER, MANAGER_STATE_CLOSED);
         return NULL;
     }
     tls_error = tlsOpenCom(tls, NULL);
     if (tls_error != TLS_SUCCESS) {
-        warnl(FILE_MAIN, FUN_NAME, "failed to open com with server %s:%d", config->server.ip, config->server.port);
+        WARNL("failed to open com with server %s:%d", config->server.ip, config->server.port)
         managerSetState(manager, MANAGER_MOD_SERVER, MANAGER_STATE_CLOSED);
         return NULL;
     }
@@ -150,7 +146,7 @@ void *threadServer(void *arg) {
         printl("threadServer > com server closed");
         break;
     default:
-        warnl(FILE_MAIN, FUN_NAME, "tlsStartListenning failed with %s", tlsErrorToString(tls_error));
+        WARNL("tlsStartListenning failed with %s", tlsErrorToString(tls_error))
         break;
     }
     managerSetState(manager, MANAGER_MOD_SERVER, MANAGER_STATE_CLOSED);

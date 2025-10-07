@@ -31,7 +31,7 @@ bool directoryExists(const char *path) {
 HistoryInfo *initHistory(char *path_dossier_historique, char *name_conversation) {
 
     if (!directoryExists(path_dossier_historique)) {
-        warnl("history_manager", "initHistory", "Invalide path");
+        WARNL("Invalide path")
         return NULL;
     }
 
@@ -47,7 +47,7 @@ HistoryInfo *initHistory(char *path_dossier_historique, char *name_conversation)
     FILE *file = fopen(f, "a+"); // ATTENTION a+ potenciellement casser
 
     if (file == NULL) {
-        warnl("history_manager", "initHistory", "file cannot be open");
+        WARNL("file cannot be open")
         return NULL;
     }
 
@@ -60,7 +60,7 @@ HistoryInfo *initHistory(char *path_dossier_historique, char *name_conversation)
 
 void deinitHistory(HistoryInfo **info) {
     if (fclose((*info)->file) != 0) {
-        warnl("history_manager", "deinitHistory", "error fclose");
+        WARNL("error fclose")
     }
     free(*info);
     info = NULL;

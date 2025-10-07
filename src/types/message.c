@@ -7,12 +7,10 @@
 #include <utils/logger.h>
 #include <utils/project_constants.h>
 
-#define FILE_MESSAGES "message.c"
 
 Msg *initMsg(char *sender, const char *string) {
-    char FUN_NAME[32] = "initMsg";
-    assertl(sender, FILE_MESSAGES, FUN_NAME, -1, "sender NULL");
-    assertl(string, FILE_MESSAGES, FUN_NAME, -1, "string NULL");
+        ASSERTL(sender,-1, "sender NULL")
+    ASSERTL(string,-1, "string NULL")
     time_t current_time;
     struct tm *local_time;
 
@@ -33,34 +31,30 @@ Msg *initMsg(char *sender, const char *string) {
 }
 
 void deinitMsg(Msg **msg) {
-    char FUN_NAME[32] = "initMsg";
-    assertl(msg, FILE_MESSAGES, FUN_NAME, -1, "msg NULL");
-    assertl(*msg, FILE_MESSAGES, FUN_NAME, -1, "*msg NULL");
+        ASSERTL(msg,-1, "msg NULL")
+    ASSERTL(*msg,-1, "*msg NULL")
 
     free(*msg);
     *msg = NULL;
 }
 
 char *msgToTXT(Msg *msg) {
-    char FUN_NAME[32] = "msgToTXT";
-    assertl(msg, FILE_MESSAGES, FUN_NAME, -1, "msg NULL");
+        ASSERTL(msg,-1, "msg NULL")
     char *txt = malloc(SIZE_TXT);
     snprintf(txt, SIZE_TXT, "[ %s ] %s (%s)\n%s\n", msg->sender, msg->date, msg->time, msg->buffer);
     return txt;
 }
 
 int msgIntoTXT(Msg *msg, char *txt) {
-    char FUN_NAME[32] = "msgIntoTXT";
-    assertl(msg, FILE_MESSAGES, FUN_NAME, -1, "msg NULL");
-    assertl(txt, FILE_MESSAGES, FUN_NAME, -1, "txt NULL");
+        ASSERTL(msg,-1, "msg NULL")
+    ASSERTL(txt,-1, "txt NULL")
     snprintf(txt, SIZE_TXT, "[ %s ] %s (%s)\n%s\n", msg->sender, msg->date, msg->time, msg->buffer);
     return 0;
 }
 
 void msgCopy(Msg *msg_dst, Msg *msg_src) {
-    char FUN_NAME[32] = "msgCopy";
-    assertl(msg_src, FILE_MESSAGES, FUN_NAME, -1, "msg_src NULL");
-    assertl(msg_dst, FILE_MESSAGES, FUN_NAME, -1, "msg_dst NULL");
+        ASSERTL(msg_src,-1, "msg_src NULL")
+    ASSERTL(msg_dst,-1, "msg_dst NULL")
 
     memcpy(msg_dst, msg_src, sizeof(Msg));
 }

@@ -16,18 +16,16 @@
 #include <unistd.h>
 #include <utils/logger.h>
 
-#define FILE_TUI "tui.c"
 
 TUI_error stdinGetUserInput(char **buffer) {
-    char FUN_NAME[32] = "stdinGetUserInput";
-    *buffer = calloc(SIZE_INPUT, sizeof(char));
+        *buffer = calloc(SIZE_INPUT, sizeof(char));
     if (buffer == NULL) {
-        warnl(FILE_TUI, FUN_NAME, "fail calloc buffer char[SIZE_DATA_PACKET]");
+        WARNL("fail calloc buffer char[SIZE_DATA_PACKET]")
         return TUI_MEMORY_ALLOCATION_ERROR;
     }
     size_t size_allocated = SIZE_INPUT;
     if (getline(buffer, &size_allocated, stdin) == -1) {
-        warnl(FILE_TUI, FUN_NAME, "fail getline buffer");
+        WARNL("fail getline buffer")
         free(buffer);
         return TUI_INPUT_ERROR;
     }
@@ -42,10 +40,9 @@ TUI_error stdinGetUserInput(char **buffer) {
 }
 
 TUI_error stdinGetUserInputGraphical(char **buffer, WINDOW *input_win) {
-    char FUN_NAME[32] = "stdinGetUserInput2";
-    *buffer = calloc(SIZE_INPUT, sizeof(char));
+        *buffer = calloc(SIZE_INPUT, sizeof(char));
     if (buffer == NULL) {
-        warnl(FILE_TUI, FUN_NAME, "fail calloc buffer char[SIZE_DATA_PACKET]");
+        WARNL("fail calloc buffer char[SIZE_DATA_PACKET]")
         return TUI_MEMORY_ALLOCATION_ERROR;
     }
     wclear(input_win);
@@ -62,8 +59,7 @@ TUI_error stdinGetUserInputGraphical(char **buffer, WINDOW *input_win) {
 }
 
 void *stdinHandler(void *arg) {
-    char FUN_NAME[32] = "stdinHandler";
-    Manager *manager = (Manager *)arg;
+        Manager *manager = (Manager *)arg;
     int height, width;
     WINDOW *input_win;
     char *buffer, *token;
@@ -125,7 +121,7 @@ void *stdinHandler(void *arg) {
                 case CMD_ERR_SUCCESS:
                     break;
                 case CMD_ERR_WRONG_FUNCTION_CALL:
-                    warnl(FILE_TUI, FUN_NAME, "malformed error shouldn't happen <%s>", commandTypeToChar(command->cmd));
+                    WARNL("malformed error shouldn't happen <%s>", commandTypeToChar(command->cmd))
                     deinitPacket(&packet);
                     break;
                 case CMD_ERR_MISSING_ARG:
@@ -145,11 +141,11 @@ void *stdinHandler(void *arg) {
             }
             break;
         case TUI_INPUT_ERROR:
-            exitl(FILE_TUI, FUN_NAME, TUI_INPUT_ERROR, "error when trying to parse input");
+            EXITL(TUI_INPUT_ERROR, "error when trying to parse input")
         case TUI_MEMORY_ALLOCATION_ERROR:
-            exitl(FILE_TUI, FUN_NAME, TUI_MEMORY_ALLOCATION_ERROR, "most likely ran out of memory");
+            EXITL(TUI_MEMORY_ALLOCATION_ERROR, "most likely ran out of memory")
         case TUI_OUTPUT_FORMATTING_ERROR:
-            exitl(FILE_TUI, FUN_NAME, tui_error, "Unreachable !!!");
+            EXITL(tui_error, "Unreachable !!!")
         }
     }
     managerSetState(manager, MANAGER_MOD_INPUT, MANAGER_STATE_CLOSED);
@@ -159,15 +155,14 @@ void *stdinHandler(void *arg) {
 }
 
 TUI_error stdoutDisplayPacket(Packet *packet) {
-    char FUN_NAME[32] = "stdoutDisplayPacket";
-    char *output;
+        char *output;
     switch (packet->type) {
     case PACKET_TXT:
         printf("%s\n", packet->txt);
         break;
     case PACKET_MSG:
         if ((output = msgToTXT(&packet->msg)) == NULL) {
-            warnl(FILE_TUI, FUN_NAME, "failed to format Msg to TXT");
+            WARNL("failed to format Msg to TXT")
             return TUI_OUTPUT_FORMATTING_ERROR;
         }
         printf("%s\n", output);
@@ -175,7 +170,7 @@ TUI_error stdoutDisplayPacket(Packet *packet) {
         break;
     case PACKET_P2P_MSG:
         if ((output = p2pMsgToTXT(&packet->p2p)) == NULL) {
-            warnl(FILE_TUI, FUN_NAME, "failed to format p2pMsg to TXT");
+            WARNL("failed to format p2pMsg to TXT")
             return TUI_OUTPUT_FORMATTING_ERROR;
         }
         printf("%s\n", output);
@@ -186,8 +181,7 @@ TUI_error stdoutDisplayPacket(Packet *packet) {
 }
 
 TUI_error stdoutDisplayPacketGraphical(Packet *packet, WINDOW *output_win, Manager *manager) {
-    char FUN_NAME[32] = "stdoutDisplayPacket2";
-    char *output, *peer_id;
+        char *output, *peer_id;
 
     switch (packet->type) {
     case PACKET_TXT:
@@ -195,7 +189,7 @@ TUI_error stdoutDisplayPacketGraphical(Packet *packet, WINDOW *output_win, Manag
         break;
     case PACKET_MSG:
         if ((output = msgToTXT(&packet->msg)) == NULL) {
-            warnl(FILE_TUI, FUN_NAME, "failed to format Msg to TXT");
+            WARNL("failed to format Msg to TXT")
             return TUI_OUTPUT_FORMATTING_ERROR;
         }
         wprintw(output_win, "%s\n", output);
@@ -203,7 +197,7 @@ TUI_error stdoutDisplayPacketGraphical(Packet *packet, WINDOW *output_win, Manag
         break;
     case PACKET_P2P_MSG:
         if ((output = p2pMsgToTXT(&packet->p2p)) == NULL) {
-            warnl(FILE_TUI, FUN_NAME, "failed to format p2pMsg to TXT");
+            WARNL("failed to format p2pMsg to TXT")
             return TUI_OUTPUT_FORMATTING_ERROR;
         }
         wprintw(output_win, "%s", output);
@@ -243,8 +237,7 @@ TUI_error stdoutDisplayPacketGraphical(Packet *packet, WINDOW *output_win, Manag
 }
 
 void *stdoutHandler(void *arg) {
-    char FUN_NAME[32] = "stdoutHandler";
-    Manager *manager = (Manager *)arg;
+        Manager *manager = (Manager *)arg;
     int height, width;
     WINDOW *border_win, *output_win;
     bool exited = false;
@@ -276,12 +269,12 @@ void *stdoutHandler(void *arg) {
             }
             break;
         case MANAGER_ERR_ERROR:
-            warnl(FILE_TUI, FUN_NAME, "manager has encountered an error");
+            WARNL("manager has encountered an error")
             break;
         case MANAGER_ERR_RETRY:
             break;
         case MANAGER_ERR_CLOSED:
-            warnl(FILE_TUI, FUN_NAME, "manager was closed unexpectedly");
+            WARNL("manager was closed unexpectedly")
             exited = true;
             break;
         }
